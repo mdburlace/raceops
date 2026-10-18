@@ -1,0 +1,38 @@
+# RaceOps stack for Portainer (Stacks → Add stack → Repository or Upload).
+# Set JWT_SECRET and POSTGRES_PASSWORD in the stack's environment variables.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: raceops
+      POSTGRES_USER: raceops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - raceops_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raceops -d raceops"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    image: raceops:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://raceops:${POSTGRES_PASSWORD}@db:5432/raceops
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET to a long random string}
+      JWT_TTL: ${JWT_TTL:-60d}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+    volumes:
+      - raceops_uploads:/data/uploads
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+volumes:
+  raceops_db:
+  raceops_uploads:
