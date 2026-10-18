@@ -1,0 +1,126 @@
+Track,Action,Field,Value,Reason
+Rosebank Speedway,excluded,Surface Type,Not verified,placeholder / unverified or conflicting value
+Rosebank Speedway,added,,"Auckland, Auckland",Active
+Waiheke Dirt Track Club,added,,"Waiheke Island, Auckland",Active
+Waikaraka Park / Auckland Speedway,excluded,Promoter,Palmerston North Speedway Ltd,same promoter as Robertson Prestige (Palmerston North) — likely copied from another row
+Waikaraka Park / Auckland Speedway,excluded,Surface Type,Conflicting: red clay / crusher dust and clay,placeholder / unverified or conflicting value
+Waikaraka Park / Auckland Speedway,excluded,Track Size,Conflicting: 428 / 460 m,placeholder / unverified or conflicting value
+Waikaraka Park / Auckland Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Waikaraka Park / Auckland Speedway,added,,"Auckland, Auckland",Active
+Waiuku Dirt Track Club,added,,"Waiuku / Puni, Auckland",Active
+Baypark Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Baypark Speedway,updated,address,"'' → '81 Truman Road, Mount Maunganui'","matched existing ""Baypark Speedway"""
+Baypark Speedway,updated,length,'470 m' → '451 m',"matched existing ""Baypark Speedway"""
+Baypark Speedway,updated,surface,'Clay' → 'Red clay',"matched existing ""Baypark Speedway"""
+Baypark Speedway,updated,lat,'' → '-37.685484',"matched existing ""Baypark Speedway"""
+Baypark Speedway,updated,lon,'' → '176.225939',"matched existing ""Baypark Speedway"""
+Baypark Speedway,updated,website,'https://bayparkspeedway.co.nz/' → 'https://www.bayparkspeedway.co.nz',"matched existing ""Baypark Speedway"""
+Baypark Speedway,updated,classes,+5 classes,merged
+Paradise Valley Speedway,added,,"Rotorua, Bay of Plenty",Active
+Waihi Beach Dirt Track Club,excluded,Address,Not verified,placeholder / unverified or conflicting value
+Waihi Beach Dirt Track Club,excluded,Website,https://www.waihibeachdirttrackclub.co.nz,the sheet’s own notes say the home website is unavailable
+Waihi Beach Dirt Track Club,excluded,Surface Type,Not verified,placeholder / unverified or conflicting value
+Waihi Beach Dirt Track Club,excluded,Classes,Not verified,placeholder / unverified or conflicting value
+Waihi Beach Dirt Track Club,excluded,Track Size,Not verified,placeholder / unverified or conflicting value
+Waihi Beach Dirt Track Club,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Waihi Beach Dirt Track Club,added,,"Waihi Beach, Bay of Plenty",Active
+Ashburton Speedway,excluded,Surface Type,Not verified,placeholder / unverified or conflicting value
+Ashburton Speedway,excluded,Track Size,Not verified,placeholder / unverified or conflicting value
+Ashburton Speedway,added,,"Ashburton, Canterbury",Active
+Ellesmere Speedway,excluded,Surface Type,Not verified,placeholder / unverified or conflicting value
+Ellesmere Speedway,excluded,Track Size,Not verified,placeholder / unverified or conflicting value
+Ellesmere Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Ellesmere Speedway,updated,name,'Ellesmere Motor Racing Club Speedway' → 'Ellesmere Speedway',"matched existing ""Ellesmere Motor Racing Club Speedway"""
+Ellesmere Speedway,updated,address,'' → 'Southbridge Dunsandel Road',"matched existing ""Ellesmere Motor Racing Club Speedway"""
+Ellesmere Speedway,updated,city,'Selwyn (Christchurch)' → 'Leeston / Ellesmere',"matched existing ""Ellesmere Motor Racing Club Speedway"""
+Ellesmere Speedway,updated,website,'' → 'https://www.ellesmerespeedway.co.nz',"matched existing ""Ellesmere Motor Racing Club Speedway"""
+Ellesmere Speedway,updated,classes,+8 classes,merged
+Kaikoura Stockcar Club,excluded,Address,Not verified,placeholder / unverified or conflicting value
+Kaikoura Stockcar Club,excluded,Surface Type,Not verified,placeholder / unverified or conflicting value
+Kaikoura Stockcar Club,excluded,Classes,Not verified,placeholder / unverified or conflicting value
+Kaikoura Stockcar Club,excluded,Track Size,Not verified,placeholder / unverified or conflicting value
+Kaikoura Stockcar Club,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Kaikoura Stockcar Club,added,,"Kaikōura, Canterbury",Active
+Moore Park Motorcycle Speedway,added,,"West Melton, Canterbury",Active
+Oxford Speedway,added,,"Oxford, Canterbury",Active
+Ruapuna Speedway,updated,address,"'' → 'Hasketts Road, Templeton, Christchurch'","matched existing ""Ruapuna Speedway"""
+Ruapuna Speedway,updated,website,'https://www.ruapunaspeedway.co.nz/' → 'https://ruapunaspeedway.co.nz',"matched existing ""Ruapuna Speedway"""
+Ruapuna Speedway,updated,phone,'' → '027 434 2550',"matched existing ""Ruapuna Speedway"""
+Ruapuna Speedway,updated,classes,+5 classes,merged
+Woodford Glen Speedway,added,,"Kaiapoi, Canterbury",Active
+Awapuni Speedway,added,,"Gisborne, Gisborne",Active
+Meeanee Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Meeanee Speedway,added,,"Napier, Hawke's Bay",Active
+Oceanview Speedway,added,,"Whanganui, Manawatū-Whanganui",Active
+Robertson Prestige International Speedway,updated,name,'Palmerston North International Speedway (Robertson Prestige International Speedway)' → 'Robertson Prestige International Speedway',"matched existing ""Palmerston North International Speedway (Robertson Prestige International Speedway)"""
+Robertson Prestige International Speedway,updated,address,"'' → 'Central Energy Trust Arena, corner Cuba and Pascal Streets'","matched existing ""Palmerston North International Speedway (Robertson Prestige International Speedway)"""
+Robertson Prestige International Speedway,updated,length,'434 m' → '431 m',"matched existing ""Palmerston North International Speedway (Robertson Prestige International Speedway)"""
+Robertson Prestige International Speedway,updated,surface,'Clay/Lime' → 'Clay and lime mix',"matched existing ""Palmerston North International Speedway (Robertson Prestige International Speedway)"""
+Robertson Prestige International Speedway,updated,website,'https://www.pnspeedway.co.nz/' → 'https://www.pnspeedway.co.nz',"matched existing ""Palmerston North International Speedway (Robertson Prestige International Speedway)"""
+Robertson Prestige International Speedway,updated,phone,'' → '06 358 8838',"matched existing ""Palmerston North International Speedway (Robertson Prestige International Speedway)"""
+Robertson Prestige International Speedway,updated,classes,+11 classes,merged
+Eastern States Speedway,updated,address,"'' → 'Vintage Lane, Renwick, Blenheim'","matched existing ""Eastern States Speedway"""
+Eastern States Speedway,updated,city,'Blenheim' → 'Renwick / Blenheim',"matched existing ""Eastern States Speedway"""
+Eastern States Speedway,updated,length,'420 m' → '422 m',"matched existing ""Eastern States Speedway"""
+Eastern States Speedway,updated,website,'https://www.easternstatesspeedway.co.nz/' → 'https://www.easternstatesspeedway.net.nz',"matched existing ""Eastern States Speedway"""
+Eastern States Speedway,updated,phone,'' → '027 470 0798',"matched existing ""Eastern States Speedway"""
+Eastern States Speedway,updated,classes,+10 classes,merged
+Finlayson Park Raceway / Dargaville Speedway,excluded,Address,"119 Jervois Street, Dargaville (CTRA contact address)","contact/postal address, not the track location"
+Finlayson Park Raceway / Dargaville Speedway,excluded,Classes,Not verified,placeholder / unverified or conflicting value
+Finlayson Park Raceway / Dargaville Speedway,added,,"Dargaville, Northland",Active
+Kaikohe Speedway,excluded,Classes,Not verified,placeholder / unverified or conflicting value
+Kaikohe Speedway,added,,"Kaikohe, Northland",Active
+Taipa Speedway,excluded,Website,Not verified,placeholder / unverified or conflicting value
+Taipa Speedway,excluded,Classes,Not verified,placeholder / unverified or conflicting value
+Taipa Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Taipa Speedway,added,,"Taipa, Northland",Active
+Whangarei Speedway,excluded,Classes,Not verified,placeholder / unverified or conflicting value
+Whangarei Speedway,added,,"Whangarei, Northland",Active
+Beachlands Speedway,added,,"Dunedin, Otago",Active
+Central Motor Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Central Motor Speedway,added,,"Cromwell, Otago",Active
+Oreti Park Speedway,added,,"Invercargill, Southland",Active
+Riverside Speedway,updated,name,'Riverside Raceway' → 'Riverside Speedway',"matched existing ""Riverside Raceway"""
+Riverside Speedway,updated,address,"'' → '190 Sandy Point Road, Oreti Beach, Invercargill'","matched existing ""Riverside Raceway"""
+Riverside Speedway,updated,length,'410 m' → '402 m',"matched existing ""Riverside Raceway"""
+Riverside Speedway,updated,surface,"'Clay/Crusher dust/Lime' → 'Clay, crusher dust and lime mix'","matched existing ""Riverside Raceway"""
+Riverside Speedway,updated,website,'' → 'https://www.riversidespeedway.co.nz',"matched existing ""Riverside Raceway"""
+Riverside Speedway,updated,phone,'' → '027 325 5355',"matched existing ""Riverside Raceway"""
+Riverside Speedway,updated,classes,+8 classes,merged
+Stratford Speedway,added,,"Stratford, Taranaki",Active
+Top of the South Speedway,excluded,Surface Type,Not verified,placeholder / unverified or conflicting value
+Top of the South Speedway,added,,"Richmond / Nelson, Tasman",Active
+21 Speedway,excluded,Track Size,Conflicting: 1/3 mile / 600 m,placeholder / unverified or conflicting value
+21 Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+21 Speedway,added,,"Meremere, Waikato",Active
+Huntly International Speedway,added,,"Huntly, Waikato",Active
+Kihikihi Speedway,added,,"Kihikihi, Waikato",Active
+Meremere Dirt Track Club,added,,"Meremere, Waikato",Active
+Waharoa Speedway,added,,"Waharoa, Waikato",Active
+Wellington Family Speedway,updated,address,"'' → '1039A Main Road North, State Highway 2, Te Marua'","matched existing ""Wellington Family Speedway"""
+Wellington Family Speedway,updated,city,'Wellington' → 'Upper Hutt',"matched existing ""Wellington Family Speedway"""
+Wellington Family Speedway,updated,surface,"'Clay/Sand/Lime' → 'Clay, lime and sand mix'","matched existing ""Wellington Family Speedway"""
+Wellington Family Speedway,updated,website,'' → 'https://www.wellingtonspeedway.co.nz',"matched existing ""Wellington Family Speedway"""
+Wellington Family Speedway,updated,phone,'' → '04 526 9732',"matched existing ""Wellington Family Speedway"""
+Wellington Family Speedway,updated,classes,+9 classes,merged
+Greenstone Park Speedway,added,,"Greymouth, West Coast",Active
+Sunset Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Sunset Speedway,added,,"Westport, West Coast",Active
+Western Springs Speedway,excluded,Address,Not verified,placeholder / unverified or conflicting value
+Western Springs Speedway,excluded,Website,Not verified,placeholder / unverified or conflicting value
+Western Springs Speedway,excluded,Promoter,Not verified,placeholder / unverified or conflicting value
+Western Springs Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Western Springs Speedway,updated,name,'Springs Speedway (Western Springs Speedway)' → 'Western Springs Speedway',"matched existing ""Springs Speedway (Western Springs Speedway)"""
+Western Springs Speedway,updated,city,"'Auckland' → 'Western Springs, Auckland'","matched existing ""Springs Speedway (Western Springs Speedway)"""
+Western Springs Speedway,updated,status,'Active' → 'Closed',"matched existing ""Springs Speedway (Western Springs Speedway)"""
+Western Springs Speedway,updated,classes,+4 classes,merged
+Ferndene Park Speedway,excluded,Address,Not verified,placeholder / unverified or conflicting value
+Ferndene Park Speedway,excluded,Website,Not verified,placeholder / unverified or conflicting value
+Ferndene Park Speedway,excluded,Promoter,Not verified,placeholder / unverified or conflicting value
+Ferndene Park Speedway,excluded,Classes,Not verified,placeholder / unverified or conflicting value
+Ferndene Park Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Ferndene Park Speedway,added,,"Egmont Village, Taranaki",Inactive
+Mercury Bay Speedway,excluded,Website,Not verified,placeholder / unverified or conflicting value
+Mercury Bay Speedway,excluded,Contact Number,Not verified,placeholder / unverified or conflicting value
+Mercury Bay Speedway,added,,"Whitianga, Waikato",Inactive
+21 Speedway / Meremere Dirt Track Club,note,,,same Meremere motorsport complex; sheet says distinct clubs — both kept

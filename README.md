@@ -79,9 +79,11 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 
 ### Tracks, contacts, suppliers and series
 
-- **Track directory (shared by all teams):** on first start the server loads 673 tracks:
+- **Track directory (shared by all teams):** on first start the server loads 705 tracks:
   - 379 come from your two directory JSON files (AU/NZ and Canada/USA). Address, size, surface and classes are filled in from `Tracks.xlsx` where names match.
   - 294 more were in `Tracks.xlsx` but not the JSON (64 Australian, 230 US). Rows that matched an existing track by fuzzy name and state were merged, not duplicated. They are listed in `shared/seed/tracks_duplicates_skipped.csv`.
+  - New Zealand (40 tracks) comes from `Tracks - New Zealand.xlsx`, checked 18 Oct 2026. The 8 NZ tracks already listed were matched and updated (e.g. *Riverside Raceway* → *Riverside Speedway*, Western Springs marked Closed); 32 were added. Unverified or conflicting values ("Not verified", "Conflicting: …"), contact-only addresses and suspect values were left blank. Every decision is in `shared/seed/nz_import_report.csv`.
+  - Corrections to tracks that already exist on a server ship in `shared/seed/track_updates.json`. A field is changed only if it still holds the old value, so edits made by a platform admin are kept.
   - When the bundled list changes, an upgrade adds new tracks and fills empty fields. It never overwrites edits.
   - Fields follow the spreadsheet: name, address, location, state, size, surface, radius, banking, cushion, lat/long, website, contact number, status, notes and classes.
   - Platform admins refresh the directory from a newer JSON under **All teams & licences → Track directory import**. Tracks are matched on the JSON `id`, and you choose: add new only, fill empty fields, or overwrite.

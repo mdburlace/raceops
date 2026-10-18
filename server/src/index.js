@@ -170,9 +170,41 @@ async function ensureGlobalTracks(force = false) {
   const { rows } = await q('SELECT 1 FROM schema_migrations WHERE name=$1', [marker]);
   if (rows.length && !force) return null;
   const r = await importTracks(seed.map(mapImportedTrack).filter(Boolean), 'fill');
+  r.corrected = await applyTrackUpdates();
   await q('INSERT INTO schema_migrations(name) VALUES ($1) ON CONFLICT DO NOTHING', [marker]);
-  console.log(`Track directory: ${r.added} added, ${r.updated} filled in`);
+  console.log(`Track directory: ${r.added} added, ${r.updated} filled in, ${r.corrected} corrected`);
   return r;
+}
+
+/**
+ * Corrections to existing directory tracks shipped in shared/seed/track_updates.json
+ * (e.g. a renamed or closed venue). A field is only changed while it still holds the old
+ * shipped value, so anything a platform admin has edited since is left alone.
+ */
+async function applyTrackUpdates() {
+  const file = path.join(__dirname, '..', '..', 'shared', 'seed', 'track_updates.json');
+  if (!fs.existsSync(file)) return 0;
+  const { updates = [] } = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const same = (a, b) => JSON.stringify(a ?? '') === JSON.stringify(b ?? '');
+  let n = 0;
+  await tx(async (c) => {
+    for (const u of updates) {
+      const { rows: [cur] } = await c.query(
+        `SELECT id, data FROM records WHERE tenant_id IS NULL AND type='track' AND NOT deleted AND data->'values'->>'ext_id'=$1`, [u.ext_id]);
+      if (!cur) continue;
+      const vals = { ...(cur.data.values || {}) };
+      let changed = false;
+      for (const [k, v] of Object.entries(u.set || {})) {
+        if (!same(vals[k], v) && same(vals[k], u.was?.[k])) { vals[k] = v; changed = true; }
+      }
+      if (!changed) continue;
+      const data = { ...cur.data, values: vals };
+      await c.query(`UPDATE records SET data=$2, updated_at=now(), client_updated_at=now(), seq=nextval('record_seq') WHERE id=$1`, [cur.id, JSON.stringify(data)]);
+      await c.query(`INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,client_updated_at) VALUES ($1,NULL,'track','update','applied',$2,now())`, [cur.id, JSON.stringify(data)]);
+      n++;
+    }
+  });
+  return n;
 }
 
 async function ensureBaseForms() {

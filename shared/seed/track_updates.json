@@ -1,0 +1,261 @@
+{
+ "note": "Corrections to existing directory tracks. A field is only changed if it still has its \"was\" value.",
+ "updates": [
+  {
+   "ext_id": "1b01b88b5950",
+   "was": {
+    "address": "",
+    "length": "470 m",
+    "surface": "Clay",
+    "lat": "",
+    "lon": "",
+    "website": "https://bayparkspeedway.co.nz/",
+    "notes": "",
+    "classes": [
+     "Sprintcars"
+    ]
+   },
+   "set": {
+    "address": "81 Truman Road, Mount Maunganui",
+    "length": "451 m",
+    "surface": "Red clay",
+    "lat": "-37.685484",
+    "lon": "176.225939",
+    "website": "https://www.bayparkspeedway.co.nz",
+    "notes": "Coordinates: directory map pin. Club / promoter: Speedway Racing Ltd / Bill Buckley. Sources: https://www.sporty.co.nz/speedwaynz/TRACKS/BAYPARK-1 ; https://dirtfan.com/dirt-track/New-Zealand/North-Island/Tauranga/Baypark-Speedway/ Checked 2026-10-18 (Tracks - New Zealand.xlsx).",
+    "classes": [
+     "Superstocks",
+     "Stockcars",
+     "Super Saloons",
+     "Sprintcars",
+     "Midgets",
+     "Youth Ministocks"
+    ]
+   }
+  },
+  {
+   "ext_id": "43e5cd0794f4",
+   "was": {
+    "name": "Ellesmere Motor Racing Club Speedway",
+    "address": "",
+    "city": "Selwyn (Christchurch)",
+    "website": "",
+    "notes": "",
+    "classes": [
+     "Sprintcars"
+    ]
+   },
+   "set": {
+    "name": "Ellesmere Speedway",
+    "address": "Southbridge Dunsandel Road",
+    "city": "Leeston / Ellesmere",
+    "website": "https://www.ellesmerespeedway.co.nz",
+    "notes": "Also listed as Ellesmere Motor Racing Club Speedway. CTRA member. Classes reflect events in the 2026/27 programme, including visiting titles. Club / promoter: Ellesmere Motor Racing Club. Sources: https://www.ctraspeedway.co.nz/tracks-clubs/ellesmere-speedway Checked 2026-10-18 (Tracks - New Zealand.xlsx).",
+    "classes": [
+     "Youth Ministocks",
+     "Saloons",
+     "Limited Saloons",
+     "TQ Midgets",
+     "Midgets",
+     "Lightning Sprints",
+     "Modifieds",
+     "Wingless Sprints",
+     "Sprintcars"
+    ]
+   }
+  },
+  {
+   "ext_id": "f6ba54743c84",
+   "was": {
+    "address": "",
+    "website": "https://www.ruapunaspeedway.co.nz/",
+    "phone": "",
+    "notes": "",
+    "classes": [
+     "Sprintcars"
+    ]
+   },
+   "set": {
+    "address": "Hasketts Road, Templeton, Christchurch",
+    "website": "https://ruapunaspeedway.co.nz",
+    "phone": "027 434 2550",
+    "notes": "Club / promoter: Christchurch Speedway Association. Sources: https://www.sporty.co.nz/speedwaynz/TRACKS/RUAPUNA Checked 2026-10-18 (Tracks - New Zealand.xlsx).",
+    "classes": [
+     "Sprintcars",
+     "Midgets",
+     "TQ Midgets",
+     "Lightning Sprints",
+     "Six Shooters",
+     "Quarter Midgets"
+    ]
+   }
+  },
+  {
+   "ext_id": "31d020b86ee2",
+   "was": {
+    "name": "Palmerston North International Speedway (Robertson Prestige International Speedway)",
+    "address": "",
+    "length": "434 m",
+    "surface": "Clay/Lime",
+    "website": "https://www.pnspeedway.co.nz/",
+    "phone": "",
+    "notes": "",
+    "classes": [
+     "Sprintcars"
+    ]
+   },
+   "set": {
+    "name": "Robertson Prestige International Speedway",
+    "address": "Central Energy Trust Arena, corner Cuba and Pascal Streets",
+    "length": "431 m",
+    "surface": "Clay and lime mix",
+    "website": "https://www.pnspeedway.co.nz",
+    "phone": "06 358 8838",
+    "notes": "Also listed as Palmerston North International Speedway (Robertson Prestige International Speedway). Club / promoter: Palmerston North Speedway Ltd. Sources: https://www.sporty.co.nz/speedwaynz/TRACKS/PALMERSTON-NORTH Checked 2026-10-18 (Tracks - New Zealand.xlsx).",
+    "classes": [
+     "Superstocks",
+     "Stockcars",
+     "Super Saloons",
+     "Saloons",
+     "Midgets",
+     "Minisprints",
+     "Sidecars",
+     "Adult Ministocks",
+     "Youth Ministocks",
+     "Vintage Classes",
+     "Derby/Streetcar",
+     "Sprintcars"
+    ]
+   }
+  },
+  {
+   "ext_id": "43266c03a465",
+   "was": {
+    "address": "",
+    "city": "Blenheim",
+    "length": "420 m",
+    "website": "https://www.easternstatesspeedway.co.nz/",
+    "phone": "",
+    "notes": "",
+    "classes": [
+     "Sprintcars"
+    ]
+   },
+   "set": {
+    "address": "Vintage Lane, Renwick, Blenheim",
+    "city": "Renwick / Blenheim",
+    "length": "422 m",
+    "website": "https://www.easternstatesspeedway.net.nz",
+    "phone": "027 470 0798",
+    "notes": "Club / promoter: Eastern States Speedway (1995) Inc. Sources: https://www.sporty.co.nz/speedwaynz/TRACKS/BLENHEIM Checked 2026-10-18 (Tracks - New Zealand.xlsx).",
+    "classes": [
+     "Super Saloons",
+     "Saloons",
+     "Production Saloons",
+     "Superstocks",
+     "Stockcars",
+     "Modifieds",
+     "Streetstocks",
+     "Vintage Classes",
+     "Derby/Streetcar",
+     "Youth Ministocks",
+     "Sprintcars"
+    ]
+   }
+  },
+  {
+   "ext_id": "bea36038779a",
+   "was": {
+    "name": "Riverside Raceway",
+    "address": "",
+    "length": "410 m",
+    "surface": "Clay/Crusher dust/Lime",
+    "website": "",
+    "phone": "",
+    "notes": "",
+    "classes": [
+     "Sprintcars"
+    ]
+   },
+   "set": {
+    "name": "Riverside Speedway",
+    "address": "190 Sandy Point Road, Oreti Beach, Invercargill",
+    "length": "402 m",
+    "surface": "Clay, crusher dust and lime mix",
+    "website": "https://www.riversidespeedway.co.nz",
+    "phone": "027 325 5355",
+    "notes": "Also listed as Riverside Raceway. Club / promoter: Southland Stockcar Drivers Association Inc. Sources: https://www.sporty.co.nz/speedwaynz/TRACKS/RIVERSIDE Checked 2026-10-18 (Tracks - New Zealand.xlsx).",
+    "classes": [
+     "Stockcars",
+     "Super Saloons",
+     "Saloons",
+     "Production Saloons",
+     "Sprintcars",
+     "Streetstocks",
+     "Lightning Sprints",
+     "Six Shooters",
+     "Youth Saloons"
+    ]
+   }
+  },
+  {
+   "ext_id": "eeeb1643577f",
+   "was": {
+    "address": "",
+    "city": "Wellington",
+    "surface": "Clay/Sand/Lime",
+    "website": "",
+    "phone": "",
+    "notes": "",
+    "classes": [
+     "Sprintcars"
+    ]
+   },
+   "set": {
+    "address": "1039A Main Road North, State Highway 2, Te Marua",
+    "city": "Upper Hutt",
+    "surface": "Clay, lime and sand mix",
+    "website": "https://www.wellingtonspeedway.co.nz",
+    "phone": "04 526 9732",
+    "notes": "Club / promoter: Value Motors Wellington Speedway. Sources: https://www.sporty.co.nz/speedwaynz/TRACKS/WELLINGTON Checked 2026-10-18 (Tracks - New Zealand.xlsx).",
+    "classes": [
+     "Superstocks",
+     "Stockcars",
+     "Super Saloons",
+     "Saloons",
+     "TQ Midgets",
+     "Modifieds",
+     "Streetstocks",
+     "Production Saloons",
+     "Youth Ministocks",
+     "Sprintcars"
+    ]
+   }
+  },
+  {
+   "ext_id": "6d3941dbae11",
+   "was": {
+    "name": "Springs Speedway (Western Springs Speedway)",
+    "city": "Auckland",
+    "status": "Active",
+    "notes": "",
+    "classes": [
+     "Sprintcars"
+    ]
+   },
+   "set": {
+    "name": "Western Springs Speedway",
+    "city": "Western Springs, Auckland",
+    "status": "Closed",
+    "notes": "Also listed as Springs Speedway (Western Springs Speedway). Selected former venue, not a complete historic inventory. Open-wheel racing relocated to Waikaraka Park; retain separately from current Auckland Speedway. Sources: https://speedwayhub.nz/tracks ; https://ourauckland.aucklandcouncil.govt.nz/media-centre/2026/march/western-springs-stadium-bowl-concept-approved/?v=mc Checked 2026-10-18 (Tracks - New Zealand.xlsx).",
+    "classes": [
+     "Quarter Midgets",
+     "TQ Midgets",
+     "Midgets",
+     "F2 Midgets",
+     "Sprintcars"
+    ]
+   }
+  }
+ ]
+}
