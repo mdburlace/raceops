@@ -5,6 +5,7 @@ import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { fullResync, getSyncStatus, subscribeSync, syncNow } from '../lib/sync.js';
+import { TrackImport } from './Tracks.jsx';
 import { ACTIONS, ADMIN_PERMISSIONS, AREAS, FEATURES, MODULES, PLANS, entitlements, moduleActions } from '@shared/catalog.js';
 
 function OnlineOnly({ children }) {
@@ -335,6 +336,7 @@ export function AdminTeams() {
           </form>
           <p className="muted small">You become the first owner (so you can invite theirs). The team gets its own copy of the base forms and roles.</p>
         </Section>
+        <TrackImport />
         <p className="muted small">A plan sets the default areas and features; tick or untick to override for a single team. Locked areas show as “Not in plan” for that team. Billing hooks into this later.</p>
         {!teams.data ? <p className="muted">{teams.err || 'Loading…'}</p>
           : teams.data.map((t) => <TeamLicence key={t.id} t={t} onSaved={() => { reload(); refresh(); }} />)}

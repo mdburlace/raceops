@@ -1,3 +1,4 @@
+import { PHASE3_UPGRADES } from './baseForms3.js';
 // Phase 2 base forms. Seeded into every team; existing teams receive any that are
 // missing on the next server start.
 
@@ -328,8 +329,17 @@ export const FORM_REPLACE = { 'gear:default': 'small', 'dyno_run:shock': 'adjust
 export function applyUpgrades(form) {
   let changed = false;
   const has = (k) => form.sections.some((s) => s.fields.some((f) => f.key === k));
-  for (const u of FORM_UPGRADES) {
-    if (u.target !== form.target || has(u.field.key)) continue;
+  for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES]) {
+    if (u.target !== form.target) continue;
+    if (u.patch) {
+      const f = form.sections.flatMap((s) => s.fields).find((x) => x.key === u.key);
+      if (f && Object.entries(u.patch).some(([k, val]) => f[k] !== val) && !f[`_patched_${Object.keys(u.patch).join('_')}`]) {
+        Object.assign(f, u.patch, { [`_patched_${Object.keys(u.patch).join('_')}`]: true });
+        changed = true;
+      }
+      continue;
+    }
+    if (has(u.field.key)) continue;
     const sec = form.sections.find((s) => s.id === u.section) || form.sections.find((s) => s.fields.some((f) => f.key === u.after));
     if (!sec) continue;
     const i = sec.fields.findIndex((f) => f.key === u.after);

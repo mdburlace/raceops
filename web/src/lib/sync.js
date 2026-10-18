@@ -20,6 +20,7 @@ const fromServer = (tid, r) => ({
   id: r.id, tenant_id: tid, type: r.type, data: r.data, deleted: r.deleted ? 1 : 0, dirty: 0,
   client_updated_at: new Date(r.client_updated_at).toISOString(), seq: r.seq,
   created_at: r.created_at, created_by: r.created_by, updated_by: r.updated_by, updated_at: r.updated_at,
+  global: r.global || r.tenant_id === null ? 1 : 0,
 });
 
 async function push(tid) {

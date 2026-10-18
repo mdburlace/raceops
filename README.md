@@ -73,6 +73,27 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 - **Conflicts:** last save wins, based on when each person pressed Save. The losing version stays in *Change history*, marked "overwritten by a newer save".
 - Sessions last 60 days (`JWT_TTL`), so a long offline weekend won't sign anyone out.
 
+### Tracks, contacts, suppliers and series
+
+- **Track directory (shared by all teams):** on first start the server loads 379 tracks:
+  - The baseline is your two directory JSON files (AU/NZ and Canada/USA).
+  - Address, size, surface and classes are filled in from `Tracks.xlsx` where names match (159 tracks).
+  - Fields follow the spreadsheet: name, address, location, state, size, surface, radius, banking, cushion, lat/long, website, contact number, status, notes and classes.
+  - Platform admins refresh the directory from a newer JSON under **All teams & licences → Track directory import**. Tracks are matched on the JSON `id`, and you choose: add new only, fill empty fields, or overwrite.
+- **Linking tracks to a team:**
+  - **By class:** set **Classes we race** on the Tracks page. Tracks running a matching class appear under **Our tracks**.
+  - **Manually:** open a track and choose **Link to team**. You can also set a home track or hide a class-matched track.
+  - Teams can add a team-only track that's missing from the directory.
+- **Contacts:**
+  - **Shared:** admin-managed, e.g. track promoters.
+  - **Team:** private to the team.
+  - Each has full name, organisation, position, phones, emails, website and full address.
+- **Roles:** a contact can be linked to any track, supplier, series, event or car, with a different role on each (Owner, Track promoter, Race director, Sales, Accounts… or type your own). Promoter links between shared records can themselves be shared.
+- **Suppliers:** per team, with category, account number, phone, email, address and their contacts' roles.
+- **Race series:** per team (name, season, class, sanctioning body, points notes). Events are either stand-alone or a round of a series, and link to a directory track.
+  - Multi-day events (date → end date) get **Day 1 / Day 2…** tabs, and each setup sheet records its day.
+  - The series page lists the rounds with each car's feature finish.
+
 ### Gears
 
 - **Gear lists:** every team starts with the standard 10-spline quick-change chart (70 sets, with 4.12, 4.57 and 4.86 ring & pinions).

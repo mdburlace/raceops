@@ -9,7 +9,8 @@ import { q, tx, migrate } from './db.js';
 import {
   requireAuth, requireMember, hashPassword, checkPassword, signToken, randomToken, HttpError,
 } from './auth.js';
-import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, PLANS, FEATURES, canType, can } from '../../shared/catalog.js';
+import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, PLANS, FEATURES, GLOBAL_TYPES, canType, can } from '../../shared/catalog.js';
+import { mapImportedTrack } from '../../shared/tracks.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
 import { FORM_REPLACE, applyUpgrades } from '../../shared/baseForms2.js';
 import { SEED_GEAR_LISTS } from '../../shared/gearLists.js';
@@ -113,6 +114,47 @@ async function ensureTeamBase(db, tid) {
     await db.query(`INSERT INTO records(id,tenant_id,type,data) VALUES ($1,$2,'gear_list',$3)`, [crypto.randomUUID(), tid, JSON.stringify(data)]);
     console.log(`Added gear list "${seed.values.name}" to team ${tid}`);
   }
+}
+
+async function importTracks(tracks, mode, userId = null) {
+  return tx(async (c) => {
+    const { rows } = await c.query(`SELECT id, data FROM records WHERE tenant_id IS NULL AND type='track' AND NOT deleted`);
+    const byExt = new Map(rows.filter((r) => r.data.values?.ext_id).map((r) => [r.data.values.ext_id, r]));
+    let added = 0, updated = 0, skipped = 0;
+    for (const v of tracks) {
+      const cur = v.ext_id && byExt.get(v.ext_id);
+      if (!cur) {
+        const id = crypto.randomUUID();
+        const data = { scope: 'global', values: v };
+        await c.query(`INSERT INTO records(id,tenant_id,type,data,created_by,updated_by) VALUES ($1,NULL,'track',$2,$3,$3)`, [id, JSON.stringify(data), userId]);
+        await c.query(`INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,user_id,client_updated_at) VALUES ($1,NULL,'track','create','applied',$2,$3,now())`, [id, JSON.stringify(data), userId]);
+        added++;
+        continue;
+      }
+      if (mode === 'add') { skipped++; continue; }
+      const old = cur.data.values || {};
+      const merged = { ...old };
+      for (const [k, val] of Object.entries(v)) {
+        const empty = (x) => x === undefined || x === null || x === '' || (Array.isArray(x) && !x.length);
+        if (mode === 'overwrite' ? !empty(val) : empty(old[k]) && !empty(val)) merged[k] = val;
+      }
+      if (JSON.stringify(merged) === JSON.stringify(old)) { skipped++; continue; }
+      const data = { ...cur.data, values: merged };
+      await c.query(`UPDATE records SET data=$2, updated_at=now(), client_updated_at=now(), updated_by=$3, seq=nextval('record_seq') WHERE id=$1`, [cur.id, JSON.stringify(data), userId]);
+      await c.query(`INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,user_id,client_updated_at) VALUES ($1,NULL,'track','update','applied',$2,$3,now())`, [cur.id, JSON.stringify(data), userId]);
+      updated++;
+    }
+    return { added, updated, skipped };
+  });
+}
+
+/** Seed the global track directory on first start (and add any new seed tracks later). */
+async function ensureGlobalTracks() {
+  const file = path.join(__dirname, '..', '..', 'shared', 'seed', 'tracks.json');
+  if (!fs.existsSync(file)) return;
+  const seed = JSON.parse(fs.readFileSync(file, 'utf8')).tracks || [];
+  const r = await importTracks(seed.map(mapImportedTrack).filter(Boolean), 'add');
+  if (r.added) console.log(`Track directory: added ${r.added} tracks`);
 }
 
 async function ensureBaseForms() {
@@ -234,6 +276,16 @@ app.patch('/api/admin/tenants/:id', h(async (req, res) => {
   res.json(t);
 }));
 
+// Import / refresh the global track directory from a JSON export (same layout as the seed files).
+app.post('/api/admin/tracks/import', h(async (req, res) => {
+  need(req.user.is_platform_admin, 403, 'Platform admin only');
+  const list = Array.isArray(req.body?.tracks) ? req.body.tracks : [];
+  const mode = ['add', 'fill', 'overwrite'].includes(req.body?.mode) ? req.body.mode : 'fill';
+  need(list.length && list.length <= 5000, 400, 'No tracks found in the file');
+  const result = await importTracks(list.map(mapImportedTrack).filter(Boolean), mode, req.user.id);
+  res.json(result);
+}));
+
 app.post('/api/admin/tenants', h(async (req, res) => {
   need(req.user.is_platform_admin, 403, 'Platform admin only');
   need(req.body?.name, 400, 'Team name is required');
@@ -259,8 +311,9 @@ T.get('/sync', h(async (req, res) => {
   const types = RECORD_TYPES.filter((t) => canType(req.role, req.ent, t, 'view'));
   const limit = 2000;
   const { rows } = await q(
-    `SELECT id, type, data, deleted, client_updated_at, updated_at, created_at, created_by, updated_by, seq::text AS seq
-       FROM records WHERE tenant_id=$1 AND seq > $2 AND type = ANY($3) ORDER BY seq LIMIT ${limit}`,
+    `SELECT id, type, data, deleted, client_updated_at, updated_at, created_at, created_by, updated_by, seq::text AS seq,
+            (tenant_id IS NULL) AS global
+       FROM records WHERE (tenant_id=$1 OR tenant_id IS NULL) AND seq > $2 AND type = ANY($3) ORDER BY seq LIMIT ${limit}`,
     [req.tid, since, types]);
   const last = rows.length ? Number(rows[rows.length - 1].seq) : since;
   res.json({ records: rows.map((r) => ({ ...r, seq: Number(r.seq) })), since: last, more: rows.length === limit });
@@ -285,17 +338,23 @@ async function applyChange(c, req, ch) {
   const ts = new Date(ch.client_updated_at || Date.now());
   const clientTs = isNaN(ts) ? new Date() : ts;
   const { rows: [cur] } = await c.query('SELECT * FROM records WHERE id=$1 FOR UPDATE', [id]);
-  const current = (r) => r && { ...r, seq: Number(r.seq) };
+  const current = (r) => r && { ...r, seq: Number(r.seq), global: r.tenant_id === null };
+  const isGlobal = cur ? cur.tenant_id === null : data?.scope === 'global';
 
-  if (cur && (cur.tenant_id !== req.tid || cur.type !== type)) return { id, status: 'denied' };
+  if (cur && cur.type !== type) return { id, status: 'denied' };
+  if (cur && !isGlobal && cur.tenant_id !== req.tid) return { id, status: 'denied' };
   const op = !cur ? 'create' : deleted && !cur.deleted ? 'delete' : 'update';
   const action = op === 'delete' ? 'delete' : 'edit';
-  if (!canType(req.role, req.ent, type, action)) return { id, status: 'denied', record: canType(req.role, req.ent, type, 'view') ? current(cur) : null };
+  const viewable = canType(req.role, req.ent, type, 'view');
+  if (isGlobal ? !(GLOBAL_TYPES.includes(type) && req.user.is_platform_admin && viewable) : !canType(req.role, req.ent, type, action)) {
+    return { id, status: 'denied', record: viewable ? current(cur) : null };
+  }
+  const owner = isGlobal ? null : req.tid;
 
   const history = (outcome) => c.query(
     `INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,user_id,client_updated_at)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-    [id, req.tid, type, op, outcome, JSON.stringify({ ...data, _deleted: !!deleted }), req.user.id, clientTs]);
+    [id, owner, type, op, outcome, JSON.stringify({ ...data, _deleted: !!deleted }), req.user.id, clientTs]);
 
   if (cur && new Date(cur.client_updated_at) > clientTs) {
     await history('superseded');
@@ -306,7 +365,7 @@ async function applyChange(c, req, ch) {
     ({ rows: [row] } = await c.query(
       `INSERT INTO records(id,tenant_id,type,data,deleted,created_by,updated_by,client_updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$6,$7) RETURNING *`,
-      [id, req.tid, type, JSON.stringify(data), !!deleted, req.user.id, clientTs]));
+      [id, owner, type, JSON.stringify(data), !!deleted, req.user.id, clientTs]));
   } else {
     ({ rows: [row] } = await c.query(
       `UPDATE records SET data=$2, deleted=$3, updated_by=$4, client_updated_at=$5, updated_at=now(),
@@ -318,12 +377,12 @@ async function applyChange(c, req, ch) {
 }
 
 T.get('/records/:id/history', h(async (req, res) => {
-  const { rows: [r] } = await q('SELECT type FROM records WHERE id=$1 AND tenant_id=$2', [req.params.id, req.tid]);
+  const { rows: [r] } = await q('SELECT type FROM records WHERE id=$1 AND (tenant_id=$2 OR tenant_id IS NULL)', [req.params.id, req.tid]);
   need(r && canType(req.role, req.ent, r.type, 'view'), 404, 'Not found');
   const { rows } = await q(
     `SELECT h.id, h.op, h.outcome, h.data, h.client_updated_at, h.created_at, u.name AS user_name
        FROM record_history h LEFT JOIN users u ON u.id=h.user_id
-      WHERE h.record_id=$1 AND h.tenant_id=$2 ORDER BY h.id DESC LIMIT 200`, [req.params.id, req.tid]);
+      WHERE h.record_id=$1 AND (h.tenant_id=$2 OR h.tenant_id IS NULL) ORDER BY h.id DESC LIMIT 200`, [req.params.id, req.tid]);
   res.json(rows);
 }));
 
@@ -451,7 +510,7 @@ const upload = multer({
 });
 
 async function recordForAttachment(req, recordId, action) {
-  const { rows: [r] } = await q('SELECT type FROM records WHERE id=$1 AND tenant_id=$2', [recordId, req.tid]);
+  const { rows: [r] } = await q('SELECT type, tenant_id FROM records WHERE id=$1 AND (tenant_id=$2 OR tenant_id IS NULL)', [recordId, req.tid]);
   need(r, 404, 'Save the record (and let it sync) before adding attachments');
   need(canType(req.role, req.ent, r.type, action), 403, 'Not permitted');
   return r;
@@ -522,4 +581,5 @@ if (fs.existsSync(WEB_DIR)) {
 
 await migrate();
 await ensureBaseForms();
+await ensureGlobalTracks();
 app.listen(PORT, () => console.log(`RaceOps listening on :${PORT}`));

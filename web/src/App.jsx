@@ -5,6 +5,9 @@ import { AcceptInvite, Login } from './pages/Auth.jsx';
 import { AreaGate, Landing, TeamHub, TrackHub, WorkshopHub } from './pages/Areas.jsx';
 import { CrewStats, Dyno, Engines, Reports, Reviews, TrackChecks } from './pages/Phase2.jsx';
 import { GearsTires } from './pages/Gears.jsx';
+import { TrackDetail, TrackDirectory } from './pages/Tracks.jsx';
+import { ContactDetail, ContactList, SupplierList } from './pages/Contacts.jsx';
+import { SeriesDetail, SeriesList } from './pages/Series.jsx';
 import { EventDetail, EventList } from './pages/Events.jsx';
 import { Compare, SetupList } from './pages/Setups.jsx';
 import { Maintenance } from './pages/Maintenance.jsx';
@@ -52,6 +55,10 @@ function Routed() {
         <Route path="track" element={<AreaGate area="track"><TrackHub /></AreaGate>} />
         <Route path="events" element={<AreaGate area="track" module="events"><EventList /></AreaGate>} />
         <Route path="events/:id" element={<AreaGate area="track" module="events"><EventDetail /></AreaGate>} />
+        <Route path="tracks" element={<AreaGate area="track" module="tracks"><TrackDirectory /></AreaGate>} />
+        <Route path="tracks/:id" element={<AreaGate area="track" module="tracks"><TrackDetail /></AreaGate>} />
+        <Route path="series" element={<AreaGate area="track" module="events"><SeriesList /></AreaGate>} />
+        <Route path="series/:id" element={<AreaGate area="track" module="events"><SeriesDetail /></AreaGate>} />
         <Route path="setups" element={<AreaGate area="track" module="setups"><SetupList /></AreaGate>} />
         <Route path="track/checks" element={<AreaGate area="track" module="trackside"><TrackChecks /></AreaGate>} />
         <Route path="track/gears" element={<AreaGate area="track" module="gears"><GearsTires /></AreaGate>} />
@@ -73,6 +80,9 @@ function Routed() {
         <Route path="forms" element={<FormList />} />
         <Route path="forms/:id" element={<FormBuilder />} />
         <Route path="cars" element={<CarList />} />
+        <Route path="contacts" element={<ContactList />} />
+        <Route path="contacts/:id" element={<ContactDetail />} />
+        <Route path="suppliers" element={<SupplierList />} />
         <Route path="compare" element={<Compare />} />
         <Route path="r/:type/:id" element={<RecordEdit />} />
         <Route path="profile" element={<Profile />} />

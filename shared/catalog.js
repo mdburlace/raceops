@@ -33,7 +33,9 @@ export const AREAS = [
 // area: null = shared core data every area relies on (cars).
 export const MODULES = [
   { key: 'cars', label: 'Cars', types: ['car'], area: null },
-  { key: 'events', label: 'Events', types: ['event'], area: 'track' },
+  { key: 'contacts', label: 'Contacts & suppliers', types: ['contact', 'contact_link', 'supplier'], area: null },
+  { key: 'tracks', label: 'Tracks', types: ['track', 'team_track'], area: 'track' },
+  { key: 'events', label: 'Events & series', types: ['event', 'series'], area: 'track' },
   { key: 'setups', label: 'Setup sheets', types: ['setup'], area: 'track' },
   { key: 'trackside', label: 'At-track checks', types: ['track_check'], area: 'track', feature: 'trackside' },
   { key: 'gears', label: 'Gears & tires', types: ['gear', 'gear_list', 'tire'], area: 'track', feature: 'gears' },
@@ -66,6 +68,10 @@ export const ALL_PERMISSIONS = [
 export const TYPE_MODULE = Object.fromEntries(MODULES.flatMap((m) => m.types.map((t) => [t, m.key])));
 export const MODULE = Object.fromEntries(MODULES.map((m) => [m.key, m]));
 export const RECORD_TYPES = [...Object.keys(TYPE_MODULE), 'form'];
+
+// Types that can live in the shared, cross-team directory (tenant_id NULL on the server).
+// Only platform admins create or change global records; every team can read them.
+export const GLOBAL_TYPES = ['track', 'contact', 'supplier', 'contact_link'];
 
 // ---------------- licensing ----------------
 export const FEATURES = [
@@ -134,13 +140,13 @@ export const DEFAULT_ROLES = [
     description: 'Workshop and engine work; reads setups and track checks',
     permissions: [
       ...areas('track', 'workshop', 'engines'),
-      ...mod(['cars', 'events', 'setups', 'gears'], ['view']),
+      ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts'], ['view']),
       ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines'], ['view', 'edit']),
     ],
   },
   {
     name: 'Driver / Viewer',
     description: 'Read-only access at the track',
-    permissions: [...areas('track'), ...mod(['cars', 'events', 'setups', 'gears'], ['view'])],
+    permissions: [...areas('track'), ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts'], ['view'])],
   },
 ];

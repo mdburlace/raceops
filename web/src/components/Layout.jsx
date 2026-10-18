@@ -26,6 +26,10 @@ export const I = {
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   star: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',
   lock: 'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4',
+  trophy: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M9 17h6',
+  pin: 'M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4',
+  book: 'M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h11M9 8h5',
+  truck: 'M3 6h11v10H3zM14 9h4l3 3v4h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4M17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4',
 };
 export const Icon = ({ d, size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
@@ -41,6 +45,8 @@ export function useNav() {
   const groups = [
     { area: 'track', label: 'At the Track', icon: I.track, show: canArea('track'), links: [
       canModule('events') && { to: '/events', label: 'Events', icon: I.flag },
+      canModule('events') && { to: '/series', label: 'Series', icon: I.trophy },
+      canModule('tracks') && { to: '/tracks', label: 'Tracks', icon: I.pin },
       canModule('setups') && { to: '/setups', label: 'Setup sheets', icon: I.sheet },
       canModule('trackside') && { to: '/track/checks', label: 'Between-round checks', icon: I.check },
       canModule('gears') && { to: '/track/gears', label: 'Gears & tires', icon: I.gear },
@@ -55,6 +61,8 @@ export function useNav() {
     ] },
     { area: 'team', label: 'Team Management', icon: I.team, show: canArea('team') || admin, links: [
       canModule('cars') && { to: '/cars', label: 'Cars', icon: I.car },
+      canModule('contacts') && { to: '/contacts', label: 'Contacts', icon: I.book },
+      canModule('contacts') && { to: '/suppliers', label: 'Suppliers', icon: I.truck },
       { to: '/team/members', label: 'Members & invites', icon: I.users },
       (can('roles.manage') || membership?.role.is_owner) && { to: '/roles', label: 'Roles & permissions', icon: I.key },
       { to: '/forms', label: 'Forms', icon: I.form },

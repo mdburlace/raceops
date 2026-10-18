@@ -260,4 +260,5 @@ const measurementForm = {
 
 export { PHASE2_FORMS } from './baseForms2.js';
 import { PHASE2_FORMS } from './baseForms2.js';
-export const BASE_FORMS = [carForm, eventForm, setupForm, maintenanceForm, assetForm, scheduleForm, measurementForm, ...PHASE2_FORMS];
+import { PHASE3_FORMS } from './baseForms3.js';
+export const BASE_FORMS = [carForm, eventForm, setupForm, maintenanceForm, assetForm, scheduleForm, measurementForm, ...PHASE2_FORMS, ...PHASE3_FORMS];

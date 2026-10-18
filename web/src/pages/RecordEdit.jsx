@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
+import ContactLinks from '../components/ContactLinks.jsx';
+import { GLOBAL_TYPES } from '@shared/catalog.js';
 import { Attachments, History, PageHeader } from '../components/ui.jsx';
 import { allFields, isVisible, formFor, formsFor, fmtDate, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
 import { deleteRecord, saveRecord } from '../lib/store.js';
@@ -10,7 +12,8 @@ import { useSession } from '../lib/session.jsx';
 export const TYPE_LABEL = {
   car: 'Car', event: 'Event', setup: 'Setup sheet', maintenance: 'Maintenance log', asset: 'Asset',
   schedule: 'Maintenance schedule', measurement: 'Measurement', track_check: 'Between-rounds check',
-  gear: 'Gear set', gear_list: 'Gear list', tire: 'Tire', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
+  gear: 'Gear set', gear_list: 'Gear list', tire: 'Tire', track: 'Track', team_track: 'Team track', contact: 'Contact',
+  supplier: 'Supplier', contact_link: 'Contact role', series: 'Series', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
 };
 
 // New records pre-filled from the latest record with the same car / engine.
@@ -30,6 +33,12 @@ function afterSave(type, rec) {
     case 'measurement': return vals.asset ? `/assets/${vals.asset}` : '/assets';
     case 'car': return '/cars';
     case 'track_check': return '/track/checks';
+    case 'track': return `/tracks/${rec.id}`;
+    case 'team_track': return vals.track ? `/tracks/${vals.track}` : '/tracks';
+    case 'contact': return `/contacts/${rec.id}`;
+    case 'supplier': return '/suppliers';
+    case 'contact_link': return vals.contact ? `/contacts/${vals.contact}` : '/contacts';
+    case 'series': return `/series/${rec.id}`;
     case 'gear': return '/track/gears?tab=chart';
     case 'gear_list': return '/track/gears?tab=lists';
     case 'tire': return '/track/gears?tab=tires';
@@ -67,7 +76,10 @@ export default function RecordEdit() {
   const data = useTeamData();
   const rec = useRecordById(id === 'new' ? null : id);
   const isNew = id === 'new';
-  const readOnly = !canType(type, 'edit');
+  const canBeGlobal = GLOBAL_TYPES.includes(type) && user?.is_platform_admin;
+  const [makeGlobal, setMakeGlobal] = useState(type === 'track');
+  const isGlobal = isNew ? canBeGlobal && makeGlobal : !!(rec?.global || rec?.data?.scope === 'global');
+  const readOnly = !canType(type, 'edit') || (!isNew && isGlobal && !user?.is_platform_admin);
 
   const [formId, setFormId] = useState(null);
   const [values, setValues] = useState(null);
@@ -133,7 +145,10 @@ export default function RecordEdit() {
     }
     setErrors(errs);
     if (Object.keys(errs).length) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-    const saved = await saveRecord(tid, type, isNew ? null : id, { ...(rec?.data || {}), form_id: form.id, values }, user.id);
+    const vals = { ...values };
+    if (type === 'event' && vals.venue && data.byId[vals.venue]) vals.track = v(data.byId[vals.venue], 'name');
+    const scope = isGlobal ? { scope: 'global' } : {};
+    const saved = await saveRecord(tid, type, isNew ? null : id, { ...(rec?.data || {}), ...scope, form_id: form.id, values: vals }, user.id);
     setDirty(false);
     nav(params.get('back') || afterSave(type, saved), { replace: true });
   };
@@ -165,7 +180,15 @@ export default function RecordEdit() {
         {!isNew && canType(type, 'delete') && <button type="button" className="btn ghost danger" onClick={remove}>Delete</button>}
       </PageHeader>
 
-      {readOnly && <div className="notice">You have read-only access to {TYPE_LABEL[type]?.toLowerCase()}s.</div>}
+      {readOnly && (isGlobal && canType(type, 'edit')
+        ? <div className="notice info">Shared directory record — kept up to date by the platform administrator. Add your team's notes and contacts on the {TYPE_LABEL[type]?.toLowerCase()} page.</div>
+        : <div className="notice">You have read-only access to {TYPE_LABEL[type]?.toLowerCase()}s.</div>)}
+      {isNew && canBeGlobal && (
+        <div className="card inline-row">
+          <label className="toggle"><input type="checkbox" checked={makeGlobal} onChange={(e) => setMakeGlobal(e.target.checked)} />
+            <span>Shared directory — visible to all teams (platform admin)</span></label>
+        </div>
+      )}
       {rec?.dirty === 1 && <div className="notice info">Saved on this device — will sync when online.</div>}
 
       {isNew && forms.length > 1 && (
@@ -203,6 +226,8 @@ export default function RecordEdit() {
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors} />
 
       {type === 'dyno_run' && <DynoChart runs={[{ id: id || 'new', name: values.label || 'This run', values, form }]} />}
+
+      {!isNew && rec && ['supplier', 'car'].includes(type) && <ContactLinks data={data} entity={rec} />}
 
       {!isNew && rec && (
         <>

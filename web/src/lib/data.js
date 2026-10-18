@@ -52,6 +52,9 @@ export const num = (x) => {
   return Number.isFinite(n) ? n : null;
 };
 
+/** Track display name for an event: linked track, else the typed name. */
+export const eventTrack = (ev, data) => (ev ? (data?.byId[ev.data?.values?.venue] ? titleOf(data.byId[ev.data.values.venue]) : ev.data?.values?.track || '') : '');
+
 export function titleOf(rec, data) {
   if (!rec) return '—';
   const vals = rec.data?.values || {};
@@ -77,6 +80,12 @@ export function titleOf(rec, data) {
     case 'dyno_run': return `${vals.label || 'Dyno run'}${data?.byId[vals.asset] ? ` · ${titleOf(data.byId[vals.asset])}` : ''}`;
     case 'engine_build': return `${vals.build_type || 'Build'}${data?.byId[vals.engine] ? ` · ${titleOf(data.byId[vals.engine])}` : ''}`;
     case 'review': return `Review${vals.period ? ` · ${vals.period}` : ''}`;
+    case 'track': return vals.name || 'Track';
+    case 'team_track': return titleOf(data?.byId[vals.track], data);
+    case 'contact': return [vals.first_name, vals.last_name].filter(Boolean).join(' ') || vals.organisation || vals.email || 'Contact';
+    case 'supplier': return vals.name || 'Supplier';
+    case 'series': return `${vals.name || 'Series'}${vals.season ? ` ${vals.season}` : ''}`;
+    case 'contact_link': return `${titleOf(data?.byId[vals.contact], data)} — ${vals.role || ''}`;
     default: return rec.type;
   }
 }
@@ -109,6 +118,8 @@ export function display(field, val, data) {
     case 'ref': return typeof val === 'string' ? titleOf(data?.byId[val], data) || '(missing)' : '';
     case 'multiref': return (Array.isArray(val) ? val : []).filter((id) => id !== '__none__').map((id) => titleOf(data?.byId[id], data)).join(', ');
     case 'member': return memberName(val);
+    case 'tags': return Array.isArray(val) ? val.join(', ') : String(val || '');
+    case 'entityref': return typeof val === 'string' ? titleOf(data?.byId[val], data) : '';
     case 'table': return Array.isArray(val) ? `${val.filter((r) => Object.keys(r).length > 1).length} rows` : '';
     case 'sweep': return Array.isArray(val) ? val.map((x) => x.label).filter(Boolean).join(', ') : '';
     case 'asset': return assetRefId(val) ? titleOf(data?.byId[assetRefId(val)]) : String(val);

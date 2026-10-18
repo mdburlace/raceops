@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { SweepField, TableField } from './TableFields.jsx';
@@ -35,7 +35,54 @@ function AssetPicker({ field, value, onChange, data, compact }) {
   );
 }
 
-export function FieldInput({ field, value, onChange, data, form, suggestions, compact }) {
+/** Label used in pickers: tracks show their location so duplicates are distinguishable. */
+export function refLabel(r, data) {
+  if (!r) return '';
+  if (r.type === 'track') return [v(r, 'name'), [v(r, 'city'), v(r, 'region'), v(r, 'country')].filter(Boolean).join(', ')].filter(Boolean).join(' — ');
+  if (r.type === 'contact' && v(r, 'organisation')) return `${titleOf(r, data)} (${v(r, 'organisation')})`;
+  return titleOf(r, data);
+}
+
+/** Searchable picker for long lists (track directory, contacts). */
+export function RefSearch({ id, recs, value, onChange, data, placeholder = 'Type to search…' }) {
+  const label = (r) => refLabel(r, data);
+  const cur = recs.find((r) => r.id === value);
+  const [text, setText] = useState(cur ? label(cur) : '');
+  useEffect(() => { setText(cur ? label(cur) : ''); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  const listId = `dl-${id}`;
+  const matched = !!cur && text === label(cur);
+  return (
+    <div className="ref-search">
+      <input id={id} value={text} placeholder={placeholder} list={listId} autoComplete="off"
+        onChange={(e) => {
+          const x = e.target.value;
+          setText(x);
+          const hit = recs.find((r) => label(r) === x);
+          if (hit) onChange(hit.id); else if (!x) onChange('');
+        }} />
+      <datalist id={listId}>{recs.slice(0, 2000).map((r) => <option key={r.id} value={label(r)} />)}</datalist>
+      {text && !matched && <small className="muted">Pick a match from the list</small>}
+    </div>
+  );
+}
+
+function TagsInput({ id, value, onChange, suggestions = [] }) {
+  const tags = Array.isArray(value) ? value : value ? [String(value)] : [];
+  const [text, setText] = useState('');
+  const add = (x) => { const tg = x.trim(); if (tg && !tags.includes(tg)) onChange([...tags, tg]); setText(''); };
+  return (
+    <div className="tags-input">
+      {tags.map((tg) => (
+        <span key={tg} className="chip active">{tg}<button type="button" aria-label={`Remove ${tg}`} onClick={() => onChange(tags.filter((x) => x !== tg))}>×</button></span>
+      ))}
+      <input id={id} value={text} list={`dl-${id}`} placeholder="Add…" onChange={(e) => { if (e.target.value.endsWith(',')) add(e.target.value.slice(0, -1)); else setText(e.target.value); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(text); } }} onBlur={() => text && add(text)} />
+      <datalist id={`dl-${id}`}>{suggestions.filter((x) => !tags.includes(x)).slice(0, 500).map((x) => <option key={x} value={x} />)}</datalist>
+    </div>
+  );
+}
+
+export function FieldInput({ field, value, onChange, data, form, suggestions, compact, values }) {
   const common = { id: `f-${field.key}`, placeholder: field.placeholder || '' };
   switch (field.type) {
     case 'textarea':
@@ -81,8 +128,17 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
         </div>
       );
     }
+    case 'tags':
+      return <TagsInput id={common.id} value={value} onChange={onChange} suggestions={suggestions || []} />;
+    case 'entityref': {
+      const t = values?.[field.typeKey];
+      if (!t) return <span className="muted small">Choose what it links to first</span>;
+      const recs = data.list(t).slice().sort((a, b) => refLabel(a, data).localeCompare(refLabel(b, data)));
+      return <RefSearch id={common.id} recs={recs} value={value} data={data} onChange={onChange} />;
+    }
     case 'ref': {
       const opts = data.list(field.ref).filter((r) => !field.category || v(r, 'category') === field.category || r.id === value).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
+      if (opts.length > 40) return <RefSearch id={common.id} recs={opts} value={value} data={data} onChange={onChange} />;
       return (
         <select {...common} value={value || ''} onChange={(e) => onChange(e.target.value)}>
           <option value="">—</option>
@@ -158,6 +214,10 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
   const suggestions = useMemo(() => {
     const out = {};
     for (const s of form?.data.sections || []) for (const f of s.fields) {
+      if (f.type === 'tags') {
+        out[f.key] = [...new Set(data.list(recordType).flatMap((r) => (Array.isArray(v(r, f.key)) ? v(r, f.key) : [])))].sort();
+        continue;
+      }
       if (!f.suggest) continue;
       out[f.key] = [...new Set(data.list(recordType).map((r) => v(r, f.key)).filter((x) => typeof x === 'string' && x))].sort();
     }
@@ -206,7 +266,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
 }
 
 function Field({ f, values, onChange, data, form, readOnly, errors, suggestions }) {
-  const wide = ['textarea', 'corners', 'table', 'multiref', 'sweep'].includes(f.type);
+  const wide = ['textarea', 'corners', 'table', 'multiref', 'sweep', 'tags'].includes(f.type);
   let body;
   if (f.type === 'calc') {
     const r = evalFormula(f.formula, values);
@@ -220,7 +280,7 @@ function Field({ f, values, onChange, data, form, readOnly, errors, suggestions 
   } else if (readOnly) {
     body = <div className="ro">{display(f, values[f.key], data) || '—'}{values[f.key] && f.unit && f.type === 'number' ? <small> {f.unit}</small> : null}</div>;
   } else {
-    body = <FieldInput field={f} value={values[f.key]} data={data} form={form} suggestions={suggestions[f.key]} onChange={(x) => onChange(f.key, x)} />;
+    body = <FieldInput field={f} value={values[f.key]} values={values} data={data} form={form} suggestions={suggestions[f.key]} onChange={(x) => onChange(f.key, x)} />;
   }
   return (
     <div className={`field${wide ? ' span-all' : ''}${errors[f.key] ? ' has-error' : ''}`}>
