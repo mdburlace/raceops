@@ -11,6 +11,8 @@ import {
 } from './auth.js';
 import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, PLANS, FEATURES, canType, can } from '../../shared/catalog.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
+import { FORM_REPLACE, applyUpgrades } from '../../shared/baseForms2.js';
+import { SEED_GEAR_LISTS } from '../../shared/gearLists.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -49,53 +51,73 @@ async function createTenant(c, name, ownerId) {
     if (r.is_owner) ownerRole = role;
   }
   await c.query('INSERT INTO memberships(user_id,tenant_id,role_id) VALUES ($1,$2,$3)', [ownerId, t.id, ownerRole.id]);
-  for (const f of BASE_FORMS) {
-    const id = crypto.randomUUID();
-    await c.query(
-      `INSERT INTO records(id,tenant_id,type,data,created_by,updated_by) VALUES ($1,$2,'form',$3,$4,$4)`,
-      [id, t.id, JSON.stringify({ ...f, base: true, base_key: baseKey(f) }), ownerId]);
-    await c.query(
-      `INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,user_id,client_updated_at)
-       VALUES ($1,$2,'form','create','applied',$3,$4,now())`, [id, t.id, JSON.stringify(f), ownerId]);
-  }
+  await ensureTeamBase(c, t.id);
   return t;
 }
 
 const baseKey = (f) => `${f.target}:${f.dyno_kind || 'default'}`;
 
-/** Give every team any base forms added in later releases, and upgrade Phase 1 setup sheets. */
-async function ensureBaseForms() {
-  const { rows: tenants } = await q('SELECT id FROM tenants');
-  for (const { id: tid } of tenants) {
-    const { rows: forms } = await q("SELECT id, data FROM records WHERE tenant_id=$1 AND type='form' AND NOT deleted", [tid]);
-    const have = new Set(forms.map((f) => f.data.base_key || (f.data.base ? `${f.data.target}:default` : null)).filter(Boolean));
-    for (const f of BASE_FORMS) {
-      if (have.has(baseKey(f))) continue;
+/** Bring one team's base forms and seed data up to date (new forms, field upgrades, gear lists). */
+async function ensureTeamBase(db, tid) {
+  const { rows: forms } = await db.query("SELECT id, data FROM records WHERE tenant_id=$1 AND type='form' AND NOT deleted", [tid]);
+  const keyOf = (d) => d.base_key || (d.base ? `${d.target}:default` : null);
+  const have = new Map(forms.map((f) => [keyOf(f.data), f]).filter(([k]) => k));
+  const fieldKeys = (d) => new Set(d.sections.flatMap((s) => s.fields.map((x) => x.key)));
+  const save = (id, d) => db.query(`UPDATE records SET data=$2, updated_at=now(), client_updated_at=now(), seq=nextval('record_seq') WHERE id=$1`, [id, JSON.stringify(d)]);
+  const formIds = {};
+
+  for (const base of BASE_FORMS) {
+    const key = baseKey(base);
+    const def = structuredClone(base);
+    applyUpgrades(def);
+    const existing = have.get(key);
+    if (!existing) {
       const id = crypto.randomUUID();
-      const data = { ...f, base: true, base_key: baseKey(f) };
-      await q(`INSERT INTO records(id,tenant_id,type,data) VALUES ($1,$2,'form',$3)`, [id, tid, JSON.stringify(data)]);
-      await q(`INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,client_updated_at)
+      const data = { ...def, base: true, base_key: key };
+      await db.query(`INSERT INTO records(id,tenant_id,type,data) VALUES ($1,$2,'form',$3)`, [id, tid, JSON.stringify(data)]);
+      await db.query(`INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,client_updated_at)
                VALUES ($1,$2,'form','create','applied',$3,now())`, [id, tid, JSON.stringify(data)]);
-      console.log(`Added base form "${f.name}" to team ${tid}`);
+      formIds[key] = id;
+      continue;
     }
-    // Phase 1 setup sheet: gear now links to the gear list; add Crew Chief.
-    for (const f of forms.filter((x) => x.data.target === 'setup' && x.data.base)) {
-      const d = f.data;
-      let changed = false;
+    formIds[key] = existing.id;
+    const d = existing.data;
+    let changed = false;
+    // structure changed in a release: take the shipped sections, keep any sections the team added
+    const marker = FORM_REPLACE[key];
+    if (marker && !fieldKeys(d).has(marker)) {
+      const shippedIds = new Set(def.sections.map((x) => x.id));
+      d.sections = [...def.sections, ...d.sections.filter((x) => !shippedIds.has(x.id))];
+      changed = true;
+    }
+    // Phase 1 setup sheet: gear links to the gear list; add Crew Chief
+    if (d.target === 'setup') {
       for (const sec of d.sections) for (const fld of sec.fields) {
         if (fld.key === 'gear' && fld.type === 'asset') { fld.type = 'ref'; fld.ref = 'gear'; delete fld.category; changed = true; }
       }
-      const session = d.sections.find((s) => s.id === 'session');
-      if (session && !d.sections.some((s) => s.fields.some((x) => x.key === 'crew_chief'))) {
+      const session = d.sections.find((x) => x.id === 'session');
+      if (session && !fieldKeys(d).has('crew_chief')) {
         session.fields.push({ key: 'crew_chief', label: 'Crew Chief', type: 'member', core: true, defaultSelf: true });
         changed = true;
       }
-      if (changed) {
-        await q(`UPDATE records SET data=$2, updated_at=now(), client_updated_at=now(), seq=nextval('record_seq') WHERE id=$1`, [f.id, JSON.stringify(d)]);
-        console.log(`Upgraded setup form ${f.id} in team ${tid}`);
-      }
     }
+    if (applyUpgrades(d)) changed = true;
+    if (changed) { await save(existing.id, d); console.log(`Upgraded form "${d.name}" in team ${tid}`); }
   }
+
+  // standard gear lists
+  const { rows: lists } = await db.query("SELECT data FROM records WHERE tenant_id=$1 AND type='gear_list'", [tid]);
+  for (const seed of SEED_GEAR_LISTS) {
+    if (lists.some((l) => l.data.seed_key === seed.seed_key)) continue;
+    const data = { form_id: formIds['gear_list:default'], seed_key: seed.seed_key, values: seed.values };
+    await db.query(`INSERT INTO records(id,tenant_id,type,data) VALUES ($1,$2,'gear_list',$3)`, [crypto.randomUUID(), tid, JSON.stringify(data)]);
+    console.log(`Added gear list "${seed.values.name}" to team ${tid}`);
+  }
+}
+
+async function ensureBaseForms() {
+  const { rows: tenants } = await q('SELECT id FROM tenants');
+  for (const { id } of tenants) await tx((c) => ensureTeamBase(c, id));
 }
 
 const authPayload = async (user) => ({

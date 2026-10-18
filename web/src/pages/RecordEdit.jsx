@@ -3,14 +3,14 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
 import { Attachments, History, PageHeader } from '../components/ui.jsx';
-import { allFields, formFor, formsFor, fmtDate, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
+import { allFields, isVisible, formFor, formsFor, fmtDate, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 
 export const TYPE_LABEL = {
   car: 'Car', event: 'Event', setup: 'Setup sheet', maintenance: 'Maintenance log', asset: 'Asset',
   schedule: 'Maintenance schedule', measurement: 'Measurement', track_check: 'Between-rounds check',
-  gear: 'Gear set', tire: 'Tire', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
+  gear: 'Gear set', gear_list: 'Gear list', tire: 'Tire', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
 };
 
 // New records pre-filled from the latest record with the same car / engine.
@@ -30,7 +30,8 @@ function afterSave(type, rec) {
     case 'measurement': return vals.asset ? `/assets/${vals.asset}` : '/assets';
     case 'car': return '/cars';
     case 'track_check': return '/track/checks';
-    case 'gear': return '/track/gears';
+    case 'gear': return '/track/gears?tab=chart';
+    case 'gear_list': return '/track/gears?tab=lists';
     case 'tire': return '/track/gears?tab=tires';
     case 'dyno_run': return '/workshop/dyno';
     case 'engine_build': return '/engines';
@@ -86,6 +87,7 @@ export default function RecordEdit() {
     for (const fd of allFields(f)) if (fd.default !== undefined) init[fd.key] = fd.default;
     for (const [k, val] of params.entries()) if (k !== 'form' && k !== 'from') init[k] = val;
     for (const fd of allFields(f)) if (fd.defaultSelf && !init[fd.key]) init[fd.key] = user.id;
+    if (type === 'dyno_run' && init.asset && v(data.byId[init.asset], 'adjust_type')) init.adjust_type = v(data.byId[init.asset], 'adjust_type');
     if (allFields(f).some((fd) => fd.key === 'date' && fd.type === 'date')) init.date ||= today();
     const cfg = CARRY[type];
     if (cfg && init[cfg.match]) {
@@ -97,7 +99,15 @@ export default function RecordEdit() {
     setValues(init);
   }, [data, rec, isNew]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onChange = (k, val) => { setValues((s) => ({ ...s, [k]: val })); setDirty(true); };
+  const onChange = (k, val) => {
+    setValues((s) => {
+      const next = { ...s, [k]: val };
+      // dyno run: picking a shock brings its adjuster type across
+      if (type === 'dyno_run' && k === 'asset' && data?.byId[val] && v(data.byId[val], 'adjust_type')) next.adjust_type = v(data.byId[val], 'adjust_type');
+      return next;
+    });
+    setDirty(true);
+  };
 
   const cfg = CARRY[type];
   const matchVal = cfg ? values?.[cfg.match] : null;
@@ -117,7 +127,7 @@ export default function RecordEdit() {
     const errs = {};
     for (const f of allFields(form)) {
       if (!f.required) continue;
-      if (f.showIf) { const [k, want] = f.showIf.split('='); if (String(values[k] ?? '') !== want) continue; }
+      if (!isVisible(f, values)) continue;
       const val = values[f.key];
       if (val === undefined || val === null || val === '') errs[f.key] = 'Required';
     }

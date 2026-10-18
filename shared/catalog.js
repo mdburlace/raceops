@@ -36,7 +36,7 @@ export const MODULES = [
   { key: 'events', label: 'Events', types: ['event'], area: 'track' },
   { key: 'setups', label: 'Setup sheets', types: ['setup'], area: 'track' },
   { key: 'trackside', label: 'At-track checks', types: ['track_check'], area: 'track', feature: 'trackside' },
-  { key: 'gears', label: 'Gears & tires', types: ['gear', 'tire'], area: 'track', feature: 'gears' },
+  { key: 'gears', label: 'Gears & tires', types: ['gear', 'gear_list', 'tire'], area: 'track', feature: 'gears' },
   { key: 'maintenance', label: 'Car maintenance', types: ['maintenance', 'schedule'], area: 'workshop' },
   { key: 'assets', label: 'Assets', types: ['asset', 'measurement'], area: 'workshop' },
   { key: 'dyno', label: 'Shock & bar dyno', types: ['dyno_run'], area: 'workshop', feature: 'dyno' },

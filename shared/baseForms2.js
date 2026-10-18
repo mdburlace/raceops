@@ -46,23 +46,45 @@ const trackCheckForm = {
   ],
 };
 
-// ---------------- At the track: quick-change gears ----------------
+// ---------------- At the track: gear sets the team owns ----------------
 const gearForm = {
-  target: 'gear', name: 'Quick-Change Gear Set', is_default: true,
+  target: 'gear', name: 'Quick-Change Gear Set', is_default: true, version: 2,
   sections: [
     { id: 'gear', title: 'Gear set', fields: [
-      t('name', 'Set ID', { core: true, required: true, placeholder: 'e.g. QC-14' }),
-      n('upper', 'Upper gear (teeth)', '', { core: true, required: true }),
-      n('lower', 'Lower gear (teeth)', '', { core: true, required: true }),
-      n('rp_ratio', 'Ring & pinion ratio', '', { core: true, placeholder: 'e.g. 4.86' }),
-      { key: 'final_ratio', label: 'Final ratio', type: 'calc', core: true, formula: 'rp_ratio * lower / upper',
-        help: 'Edit this formula in Forms if your rear end is calculated the other way round.' },
+      { key: 'list', label: 'Gear list', type: 'ref', ref: 'gear_list', core: true },
+      t('name', 'Set no.', { core: true, required: true, placeholder: 'e.g. 15A' }),
+      n('small', 'Small gear (teeth)', '', { core: true, required: true }),
+      n('large', 'Large gear (teeth)', '', { core: true, required: true }),
       n('qty', 'Quantity', '', { default: '1' }),
       { key: 'status', label: 'Status', type: 'select', core: true, options: ['Available', 'On car', 'Damaged', 'Retired'], default: 'Available' },
       { key: 'available_for', label: 'Available for cars', type: 'multiref', ref: 'car', core: true, help: 'Leave empty if any car can use it.' },
       t('location', 'Location', { placeholder: 'e.g. Trailer drawer 3' }),
       n('laps', 'Laps run', ''),
       { key: 'notes', label: 'Notes', type: 'textarea' },
+    ] },
+  ],
+};
+
+// ---------------- At the track: standard gear lists (10-spline, midget, ...) ----------------
+const gearListForm = {
+  target: 'gear_list', name: 'Gear List', is_default: true,
+  sections: [
+    { id: 'list', title: 'Gear list', fields: [
+      t('name', 'Name', { core: true, required: true, placeholder: 'e.g. Midget quick change' }),
+      { key: 'application', label: 'Application', type: 'select', core: true,
+        options: ['Sprint car — 10-spline', 'Midget', 'Micro / mini sprint', 'Late model', 'Other'] },
+      t('manufacturer', 'Manufacturer', { suggest: true }),
+      { key: 'notes', label: 'Notes', type: 'textarea' },
+    ] },
+    { id: 'rps', title: 'Ring & pinion options', fields: [
+      { key: 'rps', label: 'Ring & pinion', type: 'table', core: true,
+        columns: [{ key: 'label', label: 'Name', text: true }, { key: 'pinion', label: 'Pinion teeth' }, { key: 'ring', label: 'Ring teeth' }],
+        defaultRows: [{}], help: 'Ratio = ring ÷ pinion, e.g. 34 ÷ 7 = 4.86.' },
+    ] },
+    { id: 'sets', title: 'Gear sets', fields: [
+      { key: 'sets', label: 'Sets', type: 'table', core: true, parse: 'gearsets',
+        columns: [{ key: 'set', label: 'Set no.', text: true }, { key: 'small', label: 'Small' }, { key: 'large', label: 'Large' }, { key: 'note', label: 'Note', text: true }],
+        defaultRows: [{}], help: 'Paste a chart: each line needs a set number and teeth like 21/22. Low ratio = small ÷ large, high = large ÷ small.' },
     ] },
   ],
 };
@@ -87,7 +109,21 @@ const tireForm = {
   ],
 };
 
-// ---------------- Workshop: shock dyno (Slade / Schatz sheet layout) ----------------
+// ---------------- Workshop: shock dyno (Slade / Schatz / Kenco / Roehrig layouts) ----------------
+export const ADJUST_TYPES = ['Non-adjustable', 'Single adjustable', 'Two-way', 'Three-way', 'Four-way'];
+export const ADJUSTERS = {
+  'Single adjustable': ['Adjuster'],
+  'Two-way': ['Comp', 'Reb'],
+  'Three-way': ['LS comp', 'HS comp', 'Reb'],
+  'Four-way': ['LS comp', 'HS comp', 'LS reb', 'HS reb'],
+};
+const SHOCK_ADJUST_SECTIONS = [
+  { id: 'adjust', title: 'Adjustment & test', fields: [
+    { key: 'adjust_type', label: 'Adjustable', type: 'select', core: true, options: ADJUST_TYPES, default: 'Non-adjustable' },
+    { key: 'adjust_unit', label: 'Adjuster measured in', type: 'select', options: ['Clicks open', 'Clicks closed', 'Turns', 'Set number'], showIf: 'adjust_type!=|Non-adjustable' },
+    n('amplitude', 'Amplitude', 'in'), n('frequency', 'Frequency', 'Hz'), n('test_speed', 'Test speed', 'in/s'), n('rod_force', 'Rod force', 'lb'),
+  ] },
+];
 const SHOCK_COLS = [
   { key: 'v', label: 'Velocity', unit: 'in/s' },
   { key: 'co', label: 'CO' }, { key: 'rc', label: 'RC' }, { key: 'cc', label: 'CC' },
@@ -105,10 +141,14 @@ const shockDynoForm = {
       n('gas', 'Gas pressure', 'psi'), n('temp', 'Shaft temp', '°'), n('stroke', 'Test stroke', 'in'),
       t('speeds', 'Test speeds', { placeholder: 'e.g. 3, 6, 10 in/s' }), { key: 'operator', label: 'Operator', type: 'member', defaultSelf: true },
     ] },
+    ...SHOCK_ADJUST_SECTIONS,
     { id: 'data', title: 'Force vs velocity (lb)', fields: [
-      { key: 'data', label: 'Readings', type: 'table', core: true, columns: SHOCK_COLS, xKey: 'v',
+      { key: 'data', label: 'Readings', type: 'table', core: true, columns: SHOCK_COLS, xKey: 'v', showIf: 'adjust_type=|Non-adjustable',
         defaultRows: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => ({ v: String(v) })),
         help: 'C = compression, R = rebound; O = open, C = closed, A = average. Rebound forces are negative.' },
+      { key: 'settings', label: 'Adjuster settings tested', type: 'sweep', core: true, columns: SHOCK_COLS, xKey: 'v', showIf: 'adjust_type!=|Non-adjustable',
+        defaultRows: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => ({ v: String(v) })),
+        help: 'One block per adjuster setting (e.g. fully closed, 1 click open … or set 10, 15, 20). Readings are optional — a setting can hold just a note.' },
     ] },
     { id: 'notes', title: 'Notes', fields: [{ key: 'notes', label: 'Notes', type: 'textarea' }] },
   ],
@@ -268,4 +308,33 @@ const reviewForm = {
   ],
 };
 
-export const PHASE2_FORMS = [trackCheckForm, gearForm, tireForm, shockDynoForm, barDynoForm, engineBuildForm, reviewForm];
+export const PHASE2_FORMS = [trackCheckForm, gearForm, gearListForm, tireForm, shockDynoForm, barDynoForm, engineBuildForm, reviewForm];
+
+// Fields added to existing teams' base forms on server start (only if the key is missing).
+export const FORM_UPGRADES = [
+  { target: 'setup', section: 'engine', after: 'gear', field: { key: 'gear_orientation', label: 'Gear position', type: 'select', options: ['Low', 'High'] } },
+  { target: 'setup', section: 'engine', after: 'gear_orientation', field: { key: 'final_drive', label: 'Final drive', type: 'number', placeholder: 'from gear calculator' } },
+  { target: 'setup', section: 'shocks', after: 'shocks', field: { key: 'shock_adjust', label: 'Adjuster settings', type: 'corners', input: 'text', corners: ['LF', 'RF', 'LR', 'RR'], placeholder: 'e.g. 3 clicks' } },
+  { target: 'car', section: 'car', after: 'wheelbase', field: { key: 'gear_list', label: 'Gear list', type: 'ref', ref: 'gear_list', core: true } },
+  { target: 'car', section: 'car', after: 'gear_list', field: { key: 'rp_ratio', label: 'Ring & pinion ratio', type: 'number', core: true, placeholder: 'e.g. 4.86' } },
+  { target: 'asset', section: 'details', after: 'spec', field: { key: 'adjust_type', label: 'Shock adjustable', type: 'select', options: ADJUST_TYPES, showIf: 'category=Shock' } },
+];
+
+// Base forms whose structure changed: an existing team's copy is replaced by the shipped
+// version when it lacks the marker field (user-added sections are kept at the end).
+export const FORM_REPLACE = { 'gear:default': 'small', 'dyno_run:shock': 'adjust_type' };
+
+/** Apply FORM_UPGRADES to a form definition (returns true if anything changed). */
+export function applyUpgrades(form) {
+  let changed = false;
+  const has = (k) => form.sections.some((s) => s.fields.some((f) => f.key === k));
+  for (const u of FORM_UPGRADES) {
+    if (u.target !== form.target || has(u.field.key)) continue;
+    const sec = form.sections.find((s) => s.id === u.section) || form.sections.find((s) => s.fields.some((f) => f.key === u.after));
+    if (!sec) continue;
+    const i = sec.fields.findIndex((f) => f.key === u.after);
+    sec.fields.splice(i >= 0 ? i + 1 : sec.fields.length, 0, { ...u.field });
+    changed = true;
+  }
+  return changed;
+}

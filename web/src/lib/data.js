@@ -67,7 +67,11 @@ export function titleOf(rec, data) {
     case 'maintenance': return `${levelLabel(vals.level)} service`;
     case 'measurement': return `${vals.kind || 'Measurement'}: ${vals.value ?? ''} ${vals.unit || ''}`.trim();
     case 'form': return rec.data.name;
-    case 'gear': return `${vals.name || 'Gear'}${vals.upper && vals.lower ? ` (${vals.upper}/${vals.lower})` : ''}`;
+    case 'gear': {
+      const sm = vals.small ?? vals.upper; const lg = vals.large ?? vals.lower;
+      return `${vals.name || 'Gear'}${sm && lg ? ` (${sm}/${lg})` : ''}`;
+    }
+    case 'gear_list': return vals.name || 'Gear list';
     case 'tire': return vals.name || 'Tire';
     case 'track_check': return `Check${vals.after_session ? ` after ${vals.after_session}` : ''}${data?.byId[vals.event] ? ` · ${titleOf(data.byId[vals.event])}` : ''}`;
     case 'dyno_run': return `${vals.label || 'Dyno run'}${data?.byId[vals.asset] ? ` · ${titleOf(data.byId[vals.asset])}` : ''}`;
@@ -78,6 +82,15 @@ export function titleOf(rec, data) {
 }
 
 const LEVELS = { weekly: 'Weekly', race2: 'Every 2nd race', monthly: 'Monthly / 4th race' };
+/** showIf: "key=A", "key=A|B" (any of; empty allowed: "key=|A"), "key!=A|B". */
+export function isVisible(field, values) {
+  if (!field.showIf) return true;
+  const neg = field.showIf.includes('!=');
+  const [k, want] = field.showIf.split(neg ? '!=' : '=');
+  const hit = want.split('|').includes(String(values?.[k] ?? ''));
+  return neg ? !hit : hit;
+}
+
 // Team members are cached on the device so member fields work offline.
 let MEMBERS = {};
 export const setMembersCache = (list) => { MEMBERS = Object.fromEntries((list || []).map((m) => [m.id, m])); };
@@ -94,9 +107,10 @@ export function display(field, val, data) {
   if (val === null || val === undefined || val === '') return '';
   switch (field.type) {
     case 'ref': return typeof val === 'string' ? titleOf(data?.byId[val], data) || '(missing)' : '';
-    case 'multiref': return (Array.isArray(val) ? val : []).map((id) => titleOf(data?.byId[id], data)).join(', ');
+    case 'multiref': return (Array.isArray(val) ? val : []).filter((id) => id !== '__none__').map((id) => titleOf(data?.byId[id], data)).join(', ');
     case 'member': return memberName(val);
     case 'table': return Array.isArray(val) ? `${val.filter((r) => Object.keys(r).length > 1).length} rows` : '';
+    case 'sweep': return Array.isArray(val) ? val.map((x) => x.label).filter(Boolean).join(', ') : '';
     case 'asset': return assetRefId(val) ? titleOf(data?.byId[assetRefId(val)]) : String(val);
     case 'checkbox': return val ? 'Yes' : 'No';
     case 'select': {

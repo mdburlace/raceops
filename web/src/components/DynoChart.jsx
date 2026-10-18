@@ -1,29 +1,41 @@
 import { useMemo, useState } from 'react';
 import { allFields, linearSlope, num } from '../lib/data.js';
 
-const COLORS = ['var(--accent)', 'var(--info)', 'var(--ok)', '#9b59b6', '#d4a017', '#e84393'];
+const COLORS = ['var(--accent)', 'var(--info)', 'var(--ok)', '#9b59b6', '#d4a017', '#e84393', '#16a3a3', '#7a5c3e', '#5b6b8c', '#c0392b'];
 
 function tableField(form) {
   return allFields(form).find((f) => f.type === 'table');
 }
 
 /** Overlay force/velocity (shock) or load/deflection (bar) curves from one or more dyno runs. */
-export default function DynoChart({ runs, height = 300 }) {
-  const first = runs.find((r) => tableField(r.form));
+export default function DynoChart({ runs: inputRuns, height = 300 }) {
+  const first = inputRuns.find((r) => tableField(r.form));
   const tf = first ? tableField(first.form) : null;
+  const [hidden, setHidden] = useState([]);
+  // adjustable shocks: every adjuster setting becomes its own curve
+  const allRuns = inputRuns.flatMap((r) => {
+    const sw = r.values?.settings;
+    const adjustable = r.values?.adjust_type && r.values.adjust_type !== 'Non-adjustable';
+    if (tf && adjustable && Array.isArray(sw) && sw.length) {
+      return sw.map((st, i) => ({ id: `${r.id}#${i}`, name: inputRuns.length > 1 ? `${r.name} · ${st.label}` : st.label || `Setting ${i + 1}`, values: { [tf.key]: st.data }, form: r.form }));
+    }
+    return [r];
+  });
+  const runs = allRuns.filter((r) => !hidden.includes(r.id));
   const yCols = (tf?.columns || []).filter((c) => c.key !== tf.xKey);
   const hasData = (k) => runs.some((r) => (r.values?.[tf.key] || []).some((row) => num(row[k]) !== null));
-  const defaults = ['ca', 'ra'].filter((k) => yCols.some((c) => c.key === k) && hasData(k));
+  const pickPair = (pair) => pair.filter((k) => yCols.some((c) => c.key === k) && hasData(k));
+  const defaults = pickPair(['ca', 'ra']).length ? pickPair(['ca', 'ra']) : pickPair(['cc', 'rc']);
   const [picked, setPicked] = useState(null);
   const cols = picked || (defaults.length ? defaults : yCols.filter((c) => hasData(c.key)).map((c) => c.key).slice(0, 2));
 
   const series = useMemo(() => {
     if (!tf) return [];
     return runs.flatMap((r, ri) => cols.map((k, ci) => ({
-      key: `${r.id}-${k}`, run: r.name, col: yCols.find((c) => c.key === k)?.label || k, color: COLORS[ri % COLORS.length], dash: ci > 0 && cols.length > 1 && !/^r/.test(k) ? '6 4' : '',
+      key: `${r.id}-${k}`, run: r.name, col: yCols.find((c) => c.key === k)?.label || k, color: COLORS[allRuns.indexOf(r) % COLORS.length] || COLORS[ri % COLORS.length], dash: ci > 0 && cols.length > 1 && !/^r/.test(k) ? '6 4' : '',
       pts: (r.values?.[tf.key] || []).map((row) => [num(row[tf.xKey]), num(row[k])]).filter(([x, y]) => x !== null && y !== null).sort((a, b) => a[0] - b[0]),
     }))).filter((s) => s.pts.length);
-  }, [runs, cols, tf]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [runs, cols, tf, allRuns]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!tf) return null;
   const xCol = tf.columns.find((c) => c.key === tf.xKey);
@@ -59,7 +71,9 @@ export default function DynoChart({ runs, height = 300 }) {
           </div>
         )}
       </div>
-      {series.length === 0 ? <p className="muted">Enter readings to see the curve.</p> : (
+      {series.length === 0 ? (hidden.length
+        ? <p className="muted">All curves hidden. <button type="button" className="link" onClick={() => setHidden([])}>Show all</button></p>
+        : <p className="muted">Enter readings to see the curve.</p>) : (
         <div className="chart">
           <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Dyno curve">
             {yt.map((t) => <g key={`y${t}`}><line x1={P.l} x2={W - P.r} y1={sy(t)} y2={sy(t)} className="grid" /><text x={P.l - 6} y={sy(t)} className="tick" textAnchor="end" dominantBaseline="middle">{f(t)}</text></g>)}
@@ -74,9 +88,15 @@ export default function DynoChart({ runs, height = 300 }) {
             ))}
           </svg>
           <div className="legend wrap">
-            {runs.map((r, ri) => {
+            {allRuns.map((r, ri) => {
               const rate = tf.xKey === 'x' ? linearSlope(r.values?.[tf.key], 'x', 'load') : null;
-              return <span key={r.id} className="lg"><i style={{ background: COLORS[ri % COLORS.length] }} />{r.name}{rate ? ` — ${rate.toFixed(1)} lb/in` : ''}</span>;
+              const off = hidden.includes(r.id);
+              return (
+                <button type="button" key={r.id} className={`lg lg-btn${off ? ' off' : ''}`} title={off ? 'Show' : 'Hide'}
+                  onClick={() => setHidden(off ? hidden.filter((x) => x !== r.id) : [...hidden, r.id])}>
+                  <i style={{ background: COLORS[ri % COLORS.length] }} />{r.name}{rate ? ` — ${rate.toFixed(1)} lb/in` : ''}
+                </button>
+              );
             })}
           </div>
         </div>

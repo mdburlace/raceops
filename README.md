@@ -73,6 +73,28 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 - **Conflicts:** last save wins, based on when each person pressed Save. The losing version stays in *Change history*, marked "overwritten by a newer save".
 - Sessions last 60 days (`JWT_TTL`), so a long offline weekend won't sign anyone out.
 
+### Gears
+
+- **Gear lists:** every team starts with the standard 10-spline quick-change chart (70 sets, with 4.12, 4.57 and 4.86 ring & pinions).
+  - Add other lists (midget, micro, late model) under **Gears & tires → Gear lists**. Paste the chart in: each line needs a set number and the teeth, e.g. `15A 21/22`.
+  - Ring & pinions are entered as pinion and ring teeth.
+- **Per car:** set the car's gear list and ring & pinion ratio (Team → Cars).
+- **Availability:** the **Gear chart & availability** tab shows low/high final drive for every ring & pinion. Enter **Team qty** for the sets you own, and untick any car that can't use a set.
+- **Gear calculator:** pick the car and your current gear (or type its final drive) and the rpm, then:
+  - **Hit a final drive:** ranks the sets closest to the ratio you want.
+  - **Change rpm:** enter `+200`, `−150` or a target such as `8200`; it works out the ratio needed and ranks the sets.
+  - **Try a gear set:** shows the new final drive, % change, rpm at the same speed and mph.
+  - Results can be limited to the sets available for that car, or compared across every ring & pinion.
+- Final drive = R&P × spur ratio (low = small ÷ large, high = large ÷ small). New rpm = rpm × new ratio ÷ current ratio.
+
+### Adjustable shocks
+
+- A shock asset, and each dyno run, can be **Non-adjustable, Single, Two-way, Three-way or Four-way**. Picking the shock on a run brings its type across.
+- An adjustable run stores **one block per adjuster setting**: a label, the adjuster positions (LS/HS comp, LS/HS reb as applicable), a note such as "good if rough/heavy", and optional readings. All settings overlay on one graph; click a legend entry to hide or show it.
+- **Paste whole printout** imports Kenco/Slade/Roehrig/Intercomp text: each title line starts a new setting, and header rows such as `Speed CC RO RC CO` map the columns.
+- Single tables also have **Paste / import** and **Fill velocity** (e.g. 0–10 every 0.25).
+- Setup sheets now record the **Adjuster settings** per corner, plus gear **position** and **final drive**.
+
 ### Areas, access and licensing
 
 Access to anything is checked in three layers, on the server (sync, history and attachments) and in the app:

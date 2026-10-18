@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { assetRefId, display, evalFormula, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
+import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
+import { SweepField, TableField } from './TableFields.jsx';
 
 function Opt({ o }) {
   const value = typeof o === 'object' ? o.value : o;
@@ -66,7 +67,7 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
         </select>
       );
     case 'multiref': {
-      const sel = Array.isArray(value) ? value : [];
+      const sel = (Array.isArray(value) ? value : []).filter((x) => x !== '__none__');
       return (
         <div className="chips multi">
           {data.list(field.ref).map((r) => (
@@ -121,35 +122,6 @@ function Corners({ field, value, onChange, data, form, readOnly }) {
   );
 }
 
-function TableField({ field, value, onChange, readOnly }) {
-  const cols = field.columns || [];
-  const rows = Array.isArray(value) && value.length ? value : (field.defaultRows || [{}]);
-  const set = (i, k, x) => onChange(rows.map((r, j) => (j === i ? { ...r, [k]: x } : r)));
-  return (
-    <div className="data-table-wrap">
-      <table className="data-table">
-        <thead><tr>{cols.map((c) => <th key={c.key}>{c.label}{c.unit ? <small> {c.unit}</small> : null}</th>)}{!readOnly && <th />}</tr></thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              {cols.map((c) => (
-                <td key={c.key}>
-                  {readOnly ? (r[c.key] ?? '') : (
-                    <input inputMode="decimal" className="num" aria-label={`${c.label} row ${i + 1}`} value={r[c.key] ?? ''}
-                      onChange={(e) => set(i, c.key, e.target.value)} />
-                  )}
-                </td>
-              ))}
-              {!readOnly && <td><button type="button" className="icon-btn" aria-label="Remove row" onClick={() => onChange(rows.filter((_, j) => j !== i))}>✕</button></td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {!readOnly && <button type="button" className="btn small ghost" onClick={() => onChange([...rows, {}])}>+ Row</button>}
-    </div>
-  );
-}
-
 function CheckItem({ field, value, onChange, readOnly }) {
   const val = value || {};
   const [showNote, setShowNote] = useState(!!val.note);
@@ -179,11 +151,7 @@ function CheckItem({ field, value, onChange, readOnly }) {
   );
 }
 
-const visible = (field, values) => {
-  if (!field.showIf) return true;
-  const [k, want] = field.showIf.split('=');
-  return String(values[k] ?? '') === want;
-};
+const visible = isVisible;
 
 export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [] }) {
   useSession(); // re-render when the cached member list arrives
@@ -238,11 +206,13 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
 }
 
 function Field({ f, values, onChange, data, form, readOnly, errors, suggestions }) {
-  const wide = ['textarea', 'corners', 'table', 'multiref'].includes(f.type);
+  const wide = ['textarea', 'corners', 'table', 'multiref', 'sweep'].includes(f.type);
   let body;
   if (f.type === 'calc') {
     const r = evalFormula(f.formula, values);
     body = <div className="calc">{r ?? '—'}{r !== null && f.unit ? <small> {f.unit}</small> : null}</div>;
+  } else if (f.type === 'sweep') {
+    body = <SweepField field={f} value={values[f.key]} values={values} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'table') {
     body = <TableField field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'corners') {
