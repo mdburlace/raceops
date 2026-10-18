@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { gearTeeth } from '../lib/gears.js';
+import { dayOf, orderSessions, previousSession } from '../lib/sessions.js';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
@@ -100,6 +101,7 @@ export default function RecordEdit() {
   const [carried, setCarried] = useState(null);
   const [choosing, setChoosing] = useState(false);
   const [pickBaseline, setPickBaseline] = useState('');
+  const [pickSession, setPickSession] = useState('');
   const [dirty, setDirty] = useState(false);
 
   const form = data ? formFor(data, type, formId || rec?.data.form_id || params.get('form')) : null;
@@ -116,6 +118,7 @@ export default function RecordEdit() {
     for (const fd of allFields(f)) if (fd.defaultSelf && !init[fd.key]) init[fd.key] = user.id;
     if (type === 'dyno_run' && init.asset && v(data.byId[init.asset], 'adjust_type')) init.adjust_type = v(data.byId[init.asset], 'adjust_type');
     if (allFields(f).some((fd) => fd.key === 'date' && fd.type === 'date')) init.date ||= today();
+    if (type === 'setup' && init.order !== undefined) init.order = num(init.order);
     if (type === 'event' && !init.car) {
       const active = data.list('car').filter((c) => v(c, 'active') !== false);
       if (active.length === 1) init.car = active[0].id; // the only car the team runs
@@ -170,9 +173,17 @@ export default function RecordEdit() {
   const baselines = data && type === 'setup' ? data.list('setup').filter((s) => v(s, 'baseline') && s.id !== id)
     .sort((a, b) => String(v(a, 'baseline_name') || titleOf(a, data)).localeCompare(String(v(b, 'baseline_name') || titleOf(b, data)))) : [];
   const baselineLabel = (s) => `${v(s, 'baseline_name') || titleOf(s, data)} — ${titleOf(data.byId[v(s, 'car')])}`;
-  const prevSession = data && type === 'setup' && values?.event && values?.car
-    ? data.list('setup').filter((s) => s.id !== id && v(s, 'event') === values.event && v(s, 'car') === values.car)
-      .sort((a, b) => (num(v(b, 'day')) || 1) - (num(v(a, 'day')) || 1) || b.created_at.localeCompare(a.created_at))[0] : null;
+  const presets = (type === 'setup' && form?.data.sessions) || [];
+  // the session just before this one in the event's running order (the default to copy from)
+  const prevSession = data && type === 'setup' && values?.event && values?.car ? previousSession(data.list('setup'), values, presets, id) : null;
+  // sessions that can be copied: this event in running order, then this car's earlier events
+  const thisEvent = data && type === 'setup' && values?.event && values?.car
+    ? orderSessions(data.list('setup').filter((s) => s.id !== id && v(s, 'event') === values.event && v(s, 'car') === values.car), presets) : [];
+  const earlier = data && type === 'setup' && values?.car
+    ? sortSetupsDesc(data.list('setup').filter((s) => s.id !== id && v(s, 'car') === values.car && v(s, 'event') !== values.event), data).slice(0, 40) : [];
+  const multiDay = thisEvent.some((s) => dayOf(s) > 1) || num(values?.day) > 1;
+  const inEventLabel = (s) => `${multiDay ? `Day ${dayOf(s)} · ` : ''}${v(s, 'session') || 'Session'}${s.id === prevSession?.id ? ' (previous)' : ''}`;
+  const chosenSession = pickSession || prevSession?.id || earlier[0]?.id || '';
   const lastEvent = data && type === 'setup' && values?.car
     ? sortSetupsDesc(data.list('setup').filter((s) => s.id !== id && v(s, 'car') === values.car && v(s, 'event') !== values.event), data)[0] : null;
   const startFrom = (src) => {
@@ -257,15 +268,20 @@ export default function RecordEdit() {
         </div>
       )}
 
-      {type === 'setup' && choosing && !readOnly && (prevSession || lastEvent || baselines.length > 0) && (
+      {type === 'setup' && choosing && !readOnly && (thisEvent.length || earlier.length || baselines.length > 0) && (
         <div className="card start-from">
           <h3>Start this sheet from…</h3>
           <p className="muted small">Copies the setup as starting values. Hot pressures and stagger, shock travel, race results, conditions & feedback, notes and photos are not copied.</p>
           <div className="start-options">
-            {prevSession && (
-              <button type="button" className="start-opt primary" onClick={() => startFrom(prevSession)}>
-                <b>Previous session</b><span>{titleOf(prevSession, data)}{num(v(prevSession, 'day')) > 1 ? ` · Day ${v(prevSession, 'day')}` : ''}</span>
-              </button>
+            {(thisEvent.length > 0 || earlier.length > 0) && (
+              <div className="start-opt primary as-div copy-session">
+                <b>Copy a session</b>
+                <select aria-label="Session to copy" value={chosenSession} onChange={(e) => setPickSession(e.target.value)}>
+                  {thisEvent.length > 0 && <optgroup label="This event">{thisEvent.map((s) => <option key={s.id} value={s.id}>{inEventLabel(s)}</option>)}</optgroup>}
+                  {earlier.length > 0 && <optgroup label="Earlier events">{earlier.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} · {fmtDate(recDate(s, data))}</option>)}</optgroup>}
+                </select>
+                <button type="button" className="btn small primary" disabled={!chosenSession} onClick={() => startFrom(data.byId[chosenSession])}>Copy this session</button>
+              </div>
             )}
             {lastEvent && (
               <button type="button" className="start-opt" onClick={() => startFrom(lastEvent)}>
@@ -287,7 +303,7 @@ export default function RecordEdit() {
         </div>
       )}
 
-      {cfg && !readOnly && !(type === 'setup' && choosing && (prevSession || lastEvent || baselines.length > 0)) && (
+      {cfg && !readOnly && !(type === 'setup' && choosing && (thisEvent.length || earlier.length || baselines.length > 0)) && (
         <div className="card carry-bar">
           {carried
             ? <span>Started from <b>{v(carried, 'baseline') ? `baseline “${v(carried, 'baseline_name') || titleOf(carried, data)}”` : titleOf(carried, data)}</b>{type === 'setup' ? ' — hot values, travel, race, feedback and notes left blank.' : ' — measurements copied; check every value.'}</span>
@@ -298,9 +314,16 @@ export default function RecordEdit() {
           }}>
             <option value="">{matchVal ? 'Copy from…' : `Pick a ${cfg.match} first`}</option>
             {baselines.length > 0 && <optgroup label="Baselines">{baselines.map((b) => <option key={b.id} value={b.id}>{baselineLabel(b)}</option>)}</optgroup>}
-            <optgroup label={type === 'setup' ? 'Sessions' : 'Previous'}>
-              {copyOptions.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}
-            </optgroup>
+            {type === 'setup' ? (
+              <>
+                {thisEvent.length > 0 && <optgroup label="This event">{thisEvent.map((s) => <option key={s.id} value={s.id}>{inEventLabel(s)}</option>)}</optgroup>}
+                {earlier.length > 0 && <optgroup label="Earlier events">{earlier.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}</optgroup>}
+              </>
+            ) : (
+              <optgroup label="Previous">
+                {copyOptions.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}
+              </optgroup>
+            )}
           </select>
         </div>
       )}

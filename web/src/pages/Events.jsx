@@ -5,6 +5,7 @@ import { Empty, PageHeader, Section } from '../components/ui.jsx';
 import { eventTrack, fmtDate, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
+import { orderForNew, orderSessions } from '../lib/sessions.js';
 
 /** Number of days an event runs (1 for single-day). */
 export function eventDays(ev) {
@@ -105,7 +106,18 @@ function AddSession({ presets, used, onAdd, carLabel }) {
   );
 }
 
-function SessionCell({ s, back, label }) {
+function SessionCell({ s, back, label, reorder, onMove, first, last }) {
+  if (reorder) {
+    return (
+      <div className="session-cell has reordering">
+        <span className="sn">{label || v(s, 'session') || 'Session'}</span>
+        <span className="move">
+          <button type="button" className="icon-btn" disabled={first} aria-label={`Move ${v(s, 'session')} earlier`} onClick={() => onMove(-1)}>▲</button>
+          <button type="button" className="icon-btn" disabled={last} aria-label={`Move ${v(s, 'session')} later`} onClick={() => onMove(1)}>▼</button>
+        </span>
+      </div>
+    );
+  }
   return (
     <Link to={`/r/setup/${s.id}?back=${back}`} className={`session-cell has${s.dirty ? ' pending' : ''}`}>
       <span className="sn">{label || v(s, 'session') || 'Session'}</span>
@@ -139,9 +151,10 @@ function ChooseCar({ ev, data }) {
 export function EventDetail() {
   const { id } = useParams();
   const data = useTeamData();
-  const { canType } = useSession();
+  const { canType, tid, user } = useSession();
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
+  const [reorder, setReorder] = useState(false);
   const dayState = num(params.get('day'));
   const setDay = (d) => setParams({ day: String(d) }, { replace: true });
   if (!data) return null;
@@ -149,13 +162,11 @@ export function EventDetail() {
   if (!ev) return <><PageHeader title="Event not found" back="/events" /></>;
   const form = formFor(data, 'setup');
   const presets = form?.data.sessions || [];
-  const order = (sn) => { const i = presets.indexOf(sn); return i < 0 ? presets.length : i; };
   const days = eventDays(ev);
   const day = dayState || (days > 1 ? Math.min(days, Math.max(1, Math.round((new Date(`${today()}T00:00:00`) - new Date(`${v(ev, 'date')}T00:00:00`)) / 864e5) + 1)) : 1);
   const dayOf = (s) => num(v(s, 'day')) || 1;
   const setups = data.list('setup').filter((s) => v(s, 'event') === id);
-  const daySetups = setups.filter((s) => days === 1 || dayOf(s) === day)
-    .sort((a, b) => order(v(a, 'session')) - order(v(b, 'session')) || (a.created_at || '').localeCompare(b.created_at || ''));
+  const daySetups = orderSessions(setups.filter((s) => days === 1 || dayOf(s) === day), presets);
   const car = data.byId[v(ev, 'car')];
   // sheets recorded for other cars (before the event had a car) stay reachable
   const otherCars = [...new Set(setups.map((s) => v(s, 'car')))].filter((c) => c && c !== car?.id).map((c) => data.byId[c]).filter(Boolean);
@@ -164,32 +175,53 @@ export function EventDetail() {
   const venue = data.byId[v(ev, 'venue')];
   const baselines = data.list('setup').filter((s) => v(s, 'baseline'));
   const series = data.byId[v(ev, 'series')];
-  const newSheet = (carId, session, from) => nav(`/r/setup/new?event=${id}&car=${carId}&session=${encodeURIComponent(session)}${days > 1 ? `&day=${day}` : ''}${from ? `&from=${from}` : ''}&back=${back}`);
+  const newSheet = (carId, session, from) => {
+    const order = orderForNew(daySetups.filter((s) => v(s, 'car') === carId), presets, session);
+    nav(`/r/setup/new?event=${id}&car=${carId}&session=${encodeURIComponent(session)}${days > 1 ? `&day=${day}` : ''}&order=${order}${from ? `&from=${from}` : ''}&back=${back}`);
+  };
+  // move a session up or down; the day's sessions are renumbered 10, 20, 30…
+  const move = async (list, i, dir) => {
+    const next = list.slice();
+    [next[i], next[i + dir]] = [next[i + dir], next[i]];
+    for (const [n, s] of next.entries()) {
+      const order = (n + 1) * 10;
+      if (num(v(s, 'order')) !== order) await saveRecord(tid, 'setup', s.id, { ...s.data, values: { ...s.data.values, order } }, user.id);
+    }
+  };
   const facts = [v(ev, 'location'), v(ev, 'track_length'), v(ev, 'surface'), v(ev, 'banking') && `Banking ${v(ev, 'banking')}`].filter(Boolean);
 
   const carBlock = (c, primary) => {
     const mine = daySetups.filter((s) => v(s, 'car') === c.id);
     const used = mine.map((s) => v(s, 'session'));
-    const all = setups.filter((s) => v(s, 'car') === c.id);
+    const all = orderSessions(setups.filter((s) => v(s, 'car') === c.id), presets);
     const nextSession = presets.find((p) => !used.includes(p)) || 'Practice';
     return (
       <Section key={c.id} title={primary ? `${titleOf(c)} — sessions${days > 1 ? ` · Day ${day}` : ''}` : `${titleOf(c)} (earlier sheets)`} className={`event-car${primary ? '' : ' other-car'}`}
         actions={(
           <span className="row-actions">
-            {primary && canEdit && baselines.length > 0 && (
+            {primary && canEdit && !reorder && baselines.length > 0 && (
               <select className="baseline-pick" aria-label={`Start ${titleOf(c)} from a baseline`} value=""
                 onChange={(e) => e.target.value && newSheet(c.id, nextSession, e.target.value)}>
                 <option value="">Start from baseline…</option>
                 {baselines.map((b) => <option key={b.id} value={b.id}>{v(b, 'baseline_name') || titleOf(b, data)}{v(b, 'car') !== c.id ? ` (${titleOf(data.byId[v(b, 'car')])})` : ''}</option>)}
               </select>
             )}
-            {all.length > 1 && <Link className="btn ghost small" to={`/compare?ids=${all.map((s) => s.id).join(',')}`}>Compare sessions</Link>}
+            {primary && canEdit && mine.length > 1 && (
+              <button type="button" className={`btn small${reorder ? ' primary' : ' ghost'}`} onClick={() => setReorder(!reorder)}>{reorder ? 'Done' : 'Reorder'}</button>
+            )}
+            {all.length > 1 && !reorder && <Link className="btn ghost small" to={`/compare?ids=${all.map((s) => s.id).join(',')}`}>Compare sessions</Link>}
           </span>
         )}>
         {mine.length > 0 ? (
-          <div className="session-grid">{mine.map((s) => <SessionCell key={s.id} s={s} back={back} />)}</div>
+          <div className={`session-grid${primary && reorder ? ' reorder' : ''}`}>
+            {mine.map((s, i) => (
+              <SessionCell key={s.id} s={s} back={back} reorder={primary && reorder} first={i === 0} last={i === mine.length - 1}
+                onMove={(dir) => move(mine, i, dir)} />
+            ))}
+          </div>
         ) : <p className="muted">{primary ? 'No sessions yet — add the first one below.' : 'No sheets on this day.'}</p>}
-        {primary && canEdit && <AddSession presets={presets} used={used} carLabel={titleOf(c)} onAdd={(name) => newSheet(c.id, name)} />}
+        {primary && reorder && <p className="muted small">Use ▲ ▼ to put the sessions in the order they ran — for example after adding one that was missed.</p>}
+        {primary && canEdit && !reorder && <AddSession presets={presets} used={used} carLabel={titleOf(c)} onAdd={(name) => newSheet(c.id, name)} />}
       </Section>
     );
   };

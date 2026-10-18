@@ -712,3 +712,9 @@ input.le-add { flex: 1 1 140px; width: auto !important; min-height: 30px !import
 .track-facts { margin: -4px 0 12px; }
 .car-chip { font-weight: 700; }
 @media (max-width: 560px) { .add-session select, .add-session input { flex: 1 1 100%; } .add-session .btn { flex: 1; } }
+.session-cell.reordering { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; cursor: default; }
+.session-cell.reordering .move { display: inline-flex; gap: 4px; }
+.session-cell.reordering .icon-btn { width: 34px; height: 34px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); font-size: 12px; cursor: pointer; display: inline-grid; place-items: center; }
+.session-cell.reordering .icon-btn:disabled { opacity: .3; cursor: default; }
+.session-grid.reorder { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.start-opt.copy-session select { margin: 6px 0; }
