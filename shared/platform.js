@@ -49,3 +49,20 @@ export function licenceState(t) {
 }
 
 export const announcementActive = (a) => !!(a?.text && (!a.until || new Date(`${String(a.until).slice(0, 10)}T23:59:59`) >= new Date()));
+
+// ---------------- AI assistant ----------------
+// Prices are US$ per million tokens (input / output), editable by the platform admin.
+export const AI_MODELS = [
+  { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5 — fastest, lowest cost', price: { in: 0.10, out: 0.50 } },
+  { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5 — fast and capable', price: { in: 2, out: 10 } },
+  { id: 'claude-opus-5-5', label: 'Claude Opus 5.5 — most capable for everyday work', price: { in: 4, out: 20 } },
+  { id: 'claude-fable-5-1', label: 'Claude Fable 5.1 — deepest reasoning, slowest', price: { in: 10, out: 50 } },
+];
+export const DEFAULT_AI = {
+  enabled: false,
+  model_fast: 'claude-haiku-5-5', // photo fill and voice debrief
+  model_smart: 'claude-sonnet-5-5', // Ask RaceOps
+  monthly_usd: 10, // default allowance per team per calendar month
+  prices: Object.fromEntries(AI_MODELS.map((m) => [m.id, m.price])),
+};
+export const AI_FEATURES = { extract: 'Fill from photo', debrief: 'Voice debrief', ask: 'Ask RaceOps', test: 'Connection test' };

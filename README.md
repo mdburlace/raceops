@@ -212,6 +212,41 @@ How licences are enforced:
 - **Suspended:** members can't open the team at all (platform admins still can).
 - Plan, seat and feature changes reach devices at their next sync or app refresh (within 10 minutes while the app is open).
 
+### AI assistant
+
+The AI features use Claude through the Anthropic API. They're off until a platform admin turns them on.
+
+**Setting it up**
+1. Create an API key at platform.claude.com, then add it to the Portainer stack as `ANTHROPIC_API_KEY`. The key stays on the server and is never sent to phones.
+2. Go to **Platform admin → AI assistant** and tick *Turn on the AI assistant*. Then:
+   - **Models:** choose the model for photo fill and debriefs (default Claude Haiku 5.5, fast and low cost) and for Ask RaceOps (default Claude Sonnet 5.5).
+   - **Allowance:** set the default monthly allowance per team in US$.
+   - Click **Test connection**.
+3. AI is an **add-on** licence feature. It's included in *Pro*, and you can tick it on any plan or team under Plans & allocation or Teams & licences.
+4. Roles: each role has an **AI assistant** permission under *Shared data*. Existing roles get it; untick it for any role that shouldn't use AI.
+
+**What it does**
+
+| Feature | Where | How it works |
+|---|---|---|
+| **Fill from photo** | The **AI** bar on any form you can edit: setup sheets, dyno runs, engine builds, maintenance… | Take or pick up to 6 photos, or a PDF: a paper setup sheet, a tire-temperature card, a dyno printout. The AI reads them and lists the values it found next to what's already there. Untick anything wrong, then **Apply**. Dyno printout tables go through the same importer as *Paste whole printout*, so each setting becomes its own curve. Only clearly readable values are filled; nothing is guessed. |
+| **Voice debrief** | Setup sheets → **Voice debrief** | Choose Driver or Crew lead, tap **Talk** (or use the keyboard's microphone) and describe the session. **Fill feedback** turns it into track-condition and car-behaviour descriptions from your pick-lists, tidied comments, track notes and *changes for next session*, all shown for review first. Offline, **Save to comments as is** keeps the words so they can be tidied later. |
+| **Ask RaceOps** | **Ask RaceOps** in the menu | Questions in plain English about your records, e.g. "What did we run last time the track was slick?" or "Which shocks are due for service?" Answers link to the setup sheets, events and assets they came from. It can only **read** what that person is allowed to see, and it never changes anything. |
+
+**Costs and control**
+- **Allowance:** each team has a monthly allowance (the default, or its own amount on Teams & licences; 0 turns AI off for that team). When it's used up, AI stops until the next month.
+- **Estimates:** costs are estimated from the token counts the API reports and the prices on the AI page (US$ per million tokens). Check current prices in Anthropic's docs. Your Anthropic invoice is the real figure.
+- **Team opt-out:** a team owner can turn AI off for their team on the Team page.
+- **Usage log:** **Platform admin → AI assistant** shows spend per team and recent requests.
+- **What's sent:** only the photos, debrief or question being worked on, plus, for Ask, the records it looks up. Text inside records is treated as data, never as instructions.
+- **Rate limit:** each person is limited to 40 AI requests per 10 minutes.
+- **Offline:** AI needs a connection. Everything else keeps working offline as before.
+
+| Setting | Meaning |
+|---|---|
+| `ANTHROPIC_API_KEY` | Your Anthropic API key. Leave empty to keep AI unavailable. |
+| `AI_PROVIDER` | Leave unset. `mock` is a built-in stand-in used only by automated tests. |
+
 ### Teams, roles and permissions
 
 - **Multi-team:** one person can belong to several teams and switch between them in the sidebar. Platform admins create more teams under **Platform admin → Teams & licences**.

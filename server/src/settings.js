@@ -1,5 +1,5 @@
 import { q } from './db.js';
-import { DEFAULT_GENERAL, LISTS, mergePlans, announcementActive } from '../../shared/platform.js';
+import { DEFAULT_GENERAL, DEFAULT_AI, LISTS, mergePlans, announcementActive } from '../../shared/platform.js';
 
 // Platform settings are small and read on every request, so they are cached in memory
 // and reloaded whenever an admin saves (single server process).
@@ -16,6 +16,7 @@ export async function loadSettings() {
     general,
     lists: Object.fromEntries(LISTS.map((l) => [l.key, Array.isArray(raw.lists?.[l.key]) ? raw.lists[l.key] : l.default])),
     customLists: raw.lists || {},
+    ai: { ...DEFAULT_AI, ...(raw.ai || {}), prices: { ...DEFAULT_AI.prices, ...(raw.ai?.prices || {}) } },
   };
   return cache;
 }

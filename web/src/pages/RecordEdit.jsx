@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { gearTeeth } from '../lib/gears.js';
 import { dayOf, orderSessions, previousSession } from '../lib/sessions.js';
+import { AiTools } from '../components/Ai.jsx';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
@@ -334,6 +335,10 @@ export default function RecordEdit() {
         <div className="card inline-row">
           <span>Showing <b>{levelLabel(values.level)}</b> items{values.level !== 'weekly' ? ' (includes the shorter intervals)' : ''}.</span>
         </div>
+      )}
+
+      {!readOnly && canType(type, 'edit') && (
+        <AiTools type={type} form={form} values={values} setValues={(fn) => { setValues(fn); setDirty(true); }} />
       )}
 
       <FormRenderer form={form} values={values} onChange={onChange} data={data} readOnly={readOnly}

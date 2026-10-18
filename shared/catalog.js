@@ -45,6 +45,8 @@ export const MODULES = [
   { key: 'engines', label: 'Engine builds', types: ['engine_build'], area: 'engines' },
   { key: 'reports', label: 'Reports & Crew Chief stats', types: [], area: 'team', actions: ['view'], feature: 'reports' },
   { key: 'reviews', label: 'Performance reviews', types: ['review'], area: 'team', feature: 'reviews' },
+  // AI assistant: photo fill, voice debrief, Ask RaceOps (needs the 'ai' licence add-on)
+  { key: 'ai', label: 'AI assistant', types: [], area: null, actions: ['view'], feature: 'ai' },
 ];
 
 export const ACTIONS = ['view', 'edit', 'delete'];
@@ -81,6 +83,7 @@ export const FEATURES = [
   { key: 'dyno', label: 'Shock & bar dyno', area: 'workshop' },
   { key: 'reports', label: 'Reports & Crew Chief stats', area: 'team' },
   { key: 'reviews', label: 'Performance reviews', area: 'team' },
+  { key: 'ai', label: 'AI assistant', area: null, addon: true },
 ];
 const ALL_FEATURE_KEYS = FEATURES.map((f) => f.key);
 
@@ -141,13 +144,13 @@ export const DEFAULT_ROLES = [
     description: 'Workshop and engine work; reads setups and track checks',
     permissions: [
       ...areas('track', 'workshop', 'engines'),
-      ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts'], ['view']),
+      ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts', 'ai'], ['view']),
       ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines'], ['view', 'edit']),
     ],
   },
   {
     name: 'Driver / Viewer',
     description: 'Read-only access at the track',
-    permissions: [...areas('track'), ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts'], ['view'])],
+    permissions: [...areas('track'), ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts', 'ai'], ['view'])],
   },
 ];

@@ -35,6 +35,7 @@ export const I = {
   list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
   server: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01',
   ticket: 'M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3zM13 4v16',
+  spark: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 15l.6 1.4L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.6z',
 };
 export const Icon = ({ d, size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
@@ -51,6 +52,7 @@ export const ADMIN_LINKS = [
   { to: '/admin/users', label: 'Users', icon: I.user },
   { to: '/admin/directory', label: 'Tracks & directory', icon: I.globe },
   { to: '/admin/lists', label: 'Pick-lists', icon: I.list },
+  { to: '/admin/ai', label: 'AI assistant', icon: I.spark },
   { to: '/admin/settings', label: 'Settings', icon: I.sliders },
   { to: '/admin/system', label: 'System & activity', icon: I.server },
 ];
@@ -138,7 +140,7 @@ function Suspended() {
 }
 
 export default function Layout() {
-  const { user, memberships, membership, switchTenant, platform, licence } = useSession();
+  const { user, memberships, membership, switchTenant, platform, licence, canModule } = useSession();
   const [drawer, setDrawer] = useState(false);
   const loc = useLocation();
   const groups = useNav();
@@ -165,6 +167,7 @@ export default function Layout() {
         ) : <div className="team-name">{membership?.tenant_name}</div>}
         <nav>
           <NavLink to="/" end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}><Icon d={I.home} size={18} /><span>Home</span></NavLink>
+          {canModule('ai') && <NavLink to="/ask" onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link ask-link${isActive ? ' active' : ''}`}><Icon d={I.spark} size={18} /><span>Ask RaceOps</span></NavLink>}
           {groups.map((g) => (
             <div key={g.area} className="nav-group">
               <NavLink to={AREA_PATH[g.area]} end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-area area-${g.area}${isActive ? ' active' : ''}`}>

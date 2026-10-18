@@ -15,7 +15,8 @@ import { AssetDetail, AssetList, CarList } from './pages/Assets.jsx';
 import RecordEdit from './pages/RecordEdit.jsx';
 import { FormBuilder, FormList } from './pages/Forms.jsx';
 import { Profile, Roles, Team } from './pages/Team.jsx';
-import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers } from './pages/Admin.jsx';
+import { AskPage } from './components/Ai.jsx';
+import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
 
 function NoTeam() {
   const { logout, user } = useSession();
@@ -96,6 +97,8 @@ function Routed() {
         <Route path="admin/lists" element={<AdminGate><AdminLists /></AdminGate>} />
         <Route path="admin/settings" element={<AdminGate><AdminSettings /></AdminGate>} />
         <Route path="admin/system" element={<AdminGate><AdminSystem /></AdminGate>} />
+        <Route path="admin/ai" element={<AdminGate><AdminAi /></AdminGate>} />
+        <Route path="ask" element={<AskPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

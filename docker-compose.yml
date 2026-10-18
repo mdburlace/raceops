@@ -33,6 +33,8 @@ services:
       LOGIN_MAX_PER_IP: ${LOGIN_MAX_PER_IP:-20}
       LOGIN_WINDOW_MINUTES: ${LOGIN_WINDOW_MINUTES:-15}
       LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-15}
+      # AI assistant (optional): your Anthropic API key — turn AI on under Platform admin → AI assistant
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Proxies whose X-Forwarded-For is trusted (pfSense HAProxy on a private network is covered)
       TRUST_PROXY: ${TRUST_PROXY:-loopback, linklocal, uniquelocal}
     volumes:

@@ -5,6 +5,7 @@ import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { fullResync, getSyncStatus, subscribeSync, syncNow } from '../lib/sync.js';
+import { TeamAiSection } from '../components/Ai.jsx';
 import { ACTIONS, ADMIN_PERMISSIONS, AREAS, MODULES, moduleActions } from '@shared/catalog.js';
 
 export function OnlineOnly({ children }) {
@@ -50,6 +51,7 @@ export function Team() {
           </dl>
           <p className="muted small">Your platform administrator manages plans, seats and licence dates.</p>
         </Section>
+        <TeamAiSection Section={Section} />
         {can('team.manage') && (
           <Section title="Team settings">
             <div className="inline-row">

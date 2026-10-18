@@ -18,6 +18,7 @@ import { licenceState } from '../../shared/platform.js';
 import { loadSettings, settings, publicSettings, seatLimit, audit } from './settings.js';
 import * as limiter from './ratelimit.js';
 import { mountAdmin } from './admin.js';
+import { mountAi } from './ai.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -370,6 +371,8 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
     [req.tid, name || null, settings ? JSON.stringify(settings) : null]);
   res.json(t);
 }));
+
+mountAi(T);
 
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {

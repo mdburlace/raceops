@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AREAS, FEATURES } from '@shared/catalog.js';
-import { ANNOUNCE_LEVELS, TEAM_STATUS } from '@shared/platform.js';
+import { AI_FEATURES, ANNOUNCE_LEVELS, TEAM_STATUS } from '@shared/platform.js';
 import { ADMIN_LINKS, I, Icon } from '../components/Layout.jsx';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
@@ -20,7 +20,7 @@ const ACTION_LABEL = {
   'team.create': 'Created team', 'team.update': 'Updated team', 'team.delete': 'Deleted team', 'team.join': 'Joined team',
   'plan.create': 'Added plan', 'plan.update': 'Updated plan', 'plan.delete': 'Removed plan', 'plan.reset': 'Reset plan',
   'user.update': 'Updated user', 'user.reset_password': 'Reset password', 'user.remove_from_team': 'Removed from team',
-  'settings.general': 'Changed settings', 'list.update': 'Edited pick-list', 'list.reset': 'Reset pick-list',
+  'settings.general': 'Changed settings', 'settings.ai': 'Changed AI settings', 'list.update': 'Edited pick-list', 'list.reset': 'Reset pick-list',
   'auth.lockout': 'Sign-in locked out', 'auth.unlock': 'Unlocked sign-in',
   'tracks.import': 'Imported tracks', 'tracks.reseed': 'Re-applied bundled tracks', 'system.upgrade_forms': 'Upgraded base forms',
 };
@@ -54,13 +54,13 @@ function Stat({ label, value, sub, to }) {
   return to ? <Link to={to} className="admin-stat">{body}</Link> : <div className="admin-stat">{body}</div>;
 }
 
-function PoolBar({ used, pool }) {
+function PoolBar({ used, pool, text }) {
   if (pool === null || pool === undefined) return <span className="muted small">No pool limit</span>;
   const pct = pool ? Math.min(1, used / pool) : 1;
   return (
     <span className="pool">
       <span className={`pool-bar${used > pool ? ' over' : used === pool ? ' full' : ''}`}><i style={{ width: `${pct * 100}%` }} /></span>
-      <span className="small">{used} of {pool} licences{used > pool ? ' — over-allocated' : ''}</span>
+      <span className="small">{text || `${used} of ${pool} licences${used > pool ? ' — over-allocated' : ''}`}</span>
     </span>
   );
 }
@@ -190,12 +190,13 @@ function TeamEditor({ t, plans, onSaved, onDeleted }) {
   const [f, setF] = useState({
     name: t.name, plan: t.plan, status: t.status, features: t.features || {},
     seats: t.seats ?? '', licence_expires: t.licence_expires ? String(t.licence_expires).slice(0, 10) : '', admin_notes: t.admin_notes || '',
+    ai_budget_usd: t.ai_budget_usd ?? '',
   });
   const [act, box] = useAct();
   const set = (k, val) => setF((x) => ({ ...x, [k]: val }));
   const planSeats = plans[f.plan]?.seats;
   const save = () => act(async () => {
-    await api(`/admin/tenants/${t.id}`, { method: 'PATCH', body: { ...f, seats: f.seats === '' ? null : Number(f.seats), licence_expires: f.licence_expires || null } });
+    await api(`/admin/tenants/${t.id}`, { method: 'PATCH', body: { ...f, seats: f.seats === '' ? null : Number(f.seats), licence_expires: f.licence_expires || null, ai_budget_usd: f.ai_budget_usd === '' ? null : Number(f.ai_budget_usd) } });
     onSaved(); refresh();
   }, 'Saved. Members pick up the change the next time their app syncs.');
   const open = () => act(async () => {
@@ -231,6 +232,10 @@ function TeamEditor({ t, plans, onSaved, onDeleted }) {
         <div className="field"><label htmlFor={`te-${t.id}`}>Licence ends</label>
           <input id={`te-${t.id}`} type="date" value={f.licence_expires} onChange={(e) => set('licence_expires', e.target.value)} />
           <p className="help">After this date the team can read but not change its data. Blank = no end date.</p>
+        </div>
+        <div className="field"><label htmlFor={`tai-${t.id}`}>AI allowance (US$ / month)</label>
+          <input id={`tai-${t.id}`} inputMode="decimal" value={f.ai_budget_usd} placeholder="Server default" onChange={(e) => set('ai_budget_usd', e.target.value.replace(/[^\d.]/g, ''))} />
+          <p className="help">Blank uses the default on the AI page; 0 turns AI off for this team.</p>
         </div>
         <div className="field"><label htmlFor={`tnote-${t.id}`}>Admin notes</label>
           <input id={`tnote-${t.id}`} value={f.admin_notes} onChange={(e) => set('admin_notes', e.target.value)} placeholder="Only platform admins see this" />
@@ -402,6 +407,12 @@ function PlanCard({ k, p, usage, onSaved }) {
             ))}
           </div>
         ))}
+        <div className="plan-area area-admin">
+          <span className="toggle small strong"><span>Add-ons</span></span>
+          {FEATURES.filter((x) => x.addon).map((x) => (
+            <label key={x.key} className="toggle small"><input type="checkbox" checked={has.has(x.key)} onChange={(e) => toggle(x.key, e.target.checked)} aria-label={`${p.label}: ${x.label}`} /><span>{x.label}</span></label>
+          ))}
+        </div>
       </div>
       <div className="inline-row end">
         {p.builtin && p.customised && <button type="button" className="btn ghost small" onClick={reset}>Restore original</button>}
@@ -814,6 +825,108 @@ function SignInProtection() {
         </>
       )}
     </Section>
+  );
+}
+
+// ---------------- AI assistant ----------------
+const usd = (x) => `US$${Number(x || 0).toFixed(Number(x) && Number(x) < 0.1 ? 4 : 2)}`;
+
+export function AdminAi() {
+  const [res, reload] = useLoad(() => api('/admin/ai'), []);
+  const d = res.data;
+  return (
+    <div>
+      <PageHeader title="AI assistant" sub="Fill from photo, voice debrief and Ask RaceOps — models, allowances and usage" />
+      {!d ? <p className="muted">{res.err || 'Loading…'}</p> : <AiSettings d={d} reload={reload} />}
+    </div>
+  );
+}
+
+function AiSettings({ d, reload }) {
+  const { refresh } = useSession();
+  const s = d.settings;
+  const [f, setF] = useState({ enabled: s.enabled, model_fast: s.model_fast, model_smart: s.model_smart, monthly_usd: s.monthly_usd, prices: s.prices });
+  const [act, box] = useAct();
+  const [test, setTest] = useState(null);
+  const ids = d.models.map((m) => m.id);
+  const modelSel = (key, label, help) => (
+    <div className="field"><label htmlFor={`ai-${key}`}>{label}</label>
+      <select id={`ai-${key}`} value={ids.includes(f[key]) ? f[key] : '__custom'} onChange={(e) => setF({ ...f, [key]: e.target.value === '__custom' ? '' : e.target.value })}>
+        {d.models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+        <option value="__custom">Other model ID…</option>
+      </select>
+      {!ids.includes(f[key]) && <input aria-label={`${label} model ID`} value={f[key]} placeholder="model ID" onChange={(e) => setF({ ...f, [key]: e.target.value.trim() })} />}
+      <p className="help">{help}</p>
+    </div>
+  );
+  const save = () => act(async () => { await api('/admin/ai', { method: 'PUT', body: { ...f, monthly_usd: Number(f.monthly_usd) || 0 } }); reload(); refresh(); }, 'AI settings saved.');
+  const used = [...new Set([f.model_fast, f.model_smart])].filter(Boolean);
+  return (
+    <>
+      {box}
+      <div className="admin-stats">
+        <Stat label="Status" value={s.enabled ? 'On' : 'Off'} sub={d.key_configured ? (d.provider === 'mock' ? 'Test provider (mock)' : 'API key configured') : 'No API key — add ANTHROPIC_API_KEY in Portainer'} />
+        <Stat label="This month" value={usd(d.month.spent)} sub={`${d.month.requests} requests · estimated`} />
+        <Stat label="Tokens" value={`${Math.round((d.month.input_tokens + d.month.output_tokens) / 1000)}k`} sub={`${Math.round(d.month.input_tokens / 1000)}k in · ${Math.round(d.month.output_tokens / 1000)}k out`} />
+        <Stat label="Default allowance" value={usd(s.monthly_usd)} sub="per team per month" />
+      </div>
+      <Section title="Settings">
+        <label className="toggle"><input type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} /><span>Turn on the AI assistant for teams whose plan includes it</span></label>
+        <div className="grid-3">
+          {modelSel('model_fast', 'Model for photo fill & debrief', 'Reading photos and tidying debriefs — fast and low cost is best.')}
+          {modelSel('model_smart', 'Model for Ask RaceOps', 'Answering questions across your records.')}
+          <div className="field"><label htmlFor="ai-month">Default allowance (US$ / team / month)</label>
+            <input id="ai-month" inputMode="decimal" value={f.monthly_usd} onChange={(e) => setF({ ...f, monthly_usd: e.target.value.replace(/[^\d.]/g, '') })} />
+            <p className="help">Set a different amount per team on Teams & licences. AI stops for the month when it’s reached.</p></div>
+        </div>
+        <h4 className="sub-head">Prices used for cost estimates (US$ per million tokens)</h4>
+        <table className="table admin-table price-table">
+          <thead><tr><th>Model</th><th>Input</th><th>Output</th></tr></thead>
+          <tbody>
+            {used.map((m) => (
+              <tr key={m}>
+                <td>{d.models.find((x) => x.id === m)?.label || m}</td>
+                {['in', 'out'].map((k) => (
+                  <td key={k}><input aria-label={`${m} ${k === 'in' ? 'input' : 'output'} price`} inputMode="decimal" value={f.prices[m]?.[k] ?? ''}
+                    onChange={(e) => setF({ ...f, prices: { ...f.prices, [m]: { ...(f.prices[m] || { in: 0, out: 0 }), [k]: e.target.value.replace(/[^\d.]/g, '') } } })} /></td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="muted small">Check current prices at platform.claude.com/docs — estimates here are for allowances only; your Anthropic invoice is the real cost.</p>
+        <div className="inline-row end">
+          <button type="button" className="btn small" onClick={() => act(async () => { const r = await api('/admin/ai/test', { method: 'POST' }); setTest(r); reload(); })}>Test connection</button>
+          <button type="button" className="btn primary small" onClick={save}>Save AI settings</button>
+        </div>
+        {test && <div className={`notice ${test.ok ? 'info' : 'error'}`}>{test.ok ? `Connected to ${test.model} in ${test.ms} ms — replied “${test.reply}”.` : `Test failed (${test.model}): ${test.error}`}</div>}
+      </Section>
+      <div className="grid-2 admin-cols">
+        <Section title="Teams this month">
+          <table className="table admin-table">
+            <thead><tr><th>Team</th><th className="num">Requests</th><th className="num">Spent</th><th>Allowance</th></tr></thead>
+            <tbody>{d.teams.map((t) => (
+              <tr key={t.id}><td>{t.name}{t.ai_off ? <span className="muted small"> · off by team</span> : null}</td><td className="num">{t.requests}</td><td className="num">{usd(t.spent)}</td>
+                <td><PoolBar used={t.spent} pool={t.budget} text={`${usd(t.spent)} of ${usd(t.budget)}`} /></td></tr>
+            ))}</tbody>
+          </table>
+        </Section>
+        <Section title="Recent requests">
+          {!d.recent.length ? <Empty>No AI requests yet.</Empty> : (
+            <div className="list activity">
+              {d.recent.map((r) => (
+                <div key={r.id} className="list-row">
+                  <span className="grow">
+                    <span className="row-title">{AI_FEATURES[r.feature] || r.feature}{r.team ? ` — ${r.team}` : ''} {!r.ok && <Pill level="over">Failed</Pill>}</span>
+                    <span className="row-sub">{r.user_name || 'Unknown'} · {fmtDateTime(r.at)} · {r.model} · {r.input_tokens + r.output_tokens} tokens · {usd(r.cost_usd)}{r.error ? ` · ${r.error}` : ''}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      </div>
+    </>
   );
 }
 
