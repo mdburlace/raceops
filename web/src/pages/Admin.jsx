@@ -21,6 +21,7 @@ const ACTION_LABEL = {
   'plan.create': 'Added plan', 'plan.update': 'Updated plan', 'plan.delete': 'Removed plan', 'plan.reset': 'Reset plan',
   'user.update': 'Updated user', 'user.reset_password': 'Reset password', 'user.remove_from_team': 'Removed from team',
   'settings.general': 'Changed settings', 'list.update': 'Edited pick-list', 'list.reset': 'Reset pick-list',
+  'auth.lockout': 'Sign-in locked out', 'auth.unlock': 'Unlocked sign-in',
   'tracks.import': 'Imported tracks', 'tracks.reseed': 'Re-applied bundled tracks', 'system.upgrade_forms': 'Upgraded base forms',
 };
 const auditDetail = (a) => {
@@ -475,7 +476,9 @@ function UserRow({ u, me, onChanged }) {
           </span>
         ) : (
           <span className="grow">
-            <span className="row-title">{u.name}{u.id === me ? ' (you)' : ''} {u.is_platform_admin && <Pill level="info">Platform admin</Pill>} {u.disabled && <Pill level="over">Disabled</Pill>}</span>
+            <span className="row-title">{u.name}{u.id === me ? ' (you)' : ''} {u.is_platform_admin && <Pill level="info">Platform admin</Pill>} {u.disabled && <Pill level="over">Disabled</Pill>}
+              {u.signin?.locked && <Pill level="over">Sign-in locked until {new Date(u.signin.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Pill>}
+              {!u.signin?.locked && u.signin?.fails > 0 && <Pill level="warn">{u.signin.fails} failed sign-in{u.signin.fails === 1 ? '' : 's'}</Pill>}</span>
             <span className="row-sub">{u.email} · joined {fmtDate(u.created_at)} · last sign-in {u.last_login_at ? fmtDateTime(u.last_login_at) : 'never'}</span>
             <span className="user-teams">
               {u.teams.length ? u.teams.map((t) => (
@@ -490,6 +493,9 @@ function UserRow({ u, me, onChanged }) {
         )}
         {!edit && (
           <span className="row-actions wrap-actions">
+            {u.signin?.locked && (
+              <button type="button" className="btn small" onClick={() => act(async () => { await api('/admin/lockouts', { method: 'DELETE', body: { key: `acct:${u.email}` } }); onChanged(); })}>Unlock sign-in</button>
+            )}
             <button type="button" className="btn small ghost" onClick={() => setEdit(true)}>Edit</button>
             <button type="button" className="btn small ghost" onClick={() => window.confirm(`Set a new temporary password for ${u.name}? Their current password stops working.`)
               && act(async () => { const r = await api(`/admin/users/${u.id}/reset-password`, { method: 'POST' }); setTemp(r.password); })}>Reset password</button>
@@ -763,15 +769,51 @@ export function AdminSystem() {
           </Section>
         </div>
       )}
+      <SignInProtection />
       <Section title="Admin activity" actions={(
         <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Activity filter">
           <option value="">Everything</option><option value="team">Teams</option><option value="plan">Plans</option><option value="user">Users</option>
-          <option value="settings">Settings</option><option value="list">Pick-lists</option><option value="tracks">Tracks</option><option value="system">System</option>
+          <option value="settings">Settings</option><option value="auth">Sign-in</option><option value="list">Pick-lists</option><option value="tracks">Tracks</option><option value="system">System</option>
         </select>
       )}>
         {!log.data ? <p className="muted">{log.err || 'Loading…'}</p> : <ActivityList rows={log.data} />}
       </Section>
     </div>
+  );
+}
+
+function SignInProtection() {
+  const [res, reload] = useLoad(() => api('/admin/lockouts'), []);
+  const [act, box] = useAct();
+  const d = res.data;
+  return (
+    <Section title="Sign-in protection" actions={<button type="button" className="btn ghost small" onClick={reload}>Refresh</button>}>
+      {box}
+      {!d ? <p className="muted">{res.err || 'Loading…'}</p> : (
+        <>
+          <p className="muted small">
+            After {d.limits.account} wrong passwords for one account, or {d.limits.ip} from one address, within {d.limits.windowMinutes} minutes,
+            sign-in is locked for {d.limits.lockMinutes} minutes (doubling for repeat lockouts). Change these with the LOGIN_* settings in Portainer.
+          </p>
+          {!d.entries.length ? <Empty>No failed sign-ins recently.</Empty> : (
+            <div className="list">
+              {d.entries.map((e) => (
+                <div key={e.key} className="list-row">
+                  <span className="grow">
+                    <span className="row-title">{e.value} <span className="muted small">({e.type})</span></span>
+                    <span className="row-sub">{e.locked ? `Locked until ${fmtDateTime(e.until)}` : `${e.fails} of ${e.limit} failed attempts`}</span>
+                  </span>
+                  {e.locked ? <Pill level="over">Locked</Pill> : <Pill level="warn">Watching</Pill>}
+                  <button type="button" className="btn small" onClick={() => act(async () => { await api('/admin/lockouts', { method: 'DELETE', body: { key: e.key } }); reload(); }, `Cleared ${e.value}.`)}>
+                    {e.locked ? 'Unlock' : 'Clear'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </Section>
   );
 }
 

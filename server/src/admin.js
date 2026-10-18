@@ -9,6 +9,7 @@ import { HttpError, hashPassword, randomToken } from './auth.js';
 import { FEATURES } from '../../shared/catalog.js';
 import { LISTS, DEFAULT_GENERAL, ANNOUNCE_LEVELS, TEAM_STATUS, licenceState, mergePlans } from '../../shared/platform.js';
 import { settings, saveSetting, audit, seatLimit } from './settings.js';
+import * as limiter from './ratelimit.js';
 
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg); };
@@ -198,7 +199,8 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
         coalesce((SELECT json_agg(json_build_object('tenant_id', t.id, 'tenant_name', t.name, 'role', r.name, 'is_owner', r.is_owner) ORDER BY t.name)
           FROM memberships m JOIN tenants t ON t.id=m.tenant_id JOIN roles r ON r.id=m.role_id WHERE m.user_id=u.id), '[]'::json) AS teams
       FROM users u ORDER BY u.name`);
-    res.json(rows);
+    const locks = new Map(limiter.list().filter((l) => l.type === 'account').map((l) => [l.value, l]));
+    res.json(rows.map((u) => ({ ...u, signin: locks.get(u.email) || null })));
   }));
 
   A.patch('/users/:id', h(async (req, res) => {
@@ -223,6 +225,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
       [u.id, b.name !== undefined ? String(b.name).trim() || u.name : u.name, email,
         typeof b.is_platform_admin === 'boolean' ? b.is_platform_admin : u.is_platform_admin,
         typeof b.disabled === 'boolean' ? b.disabled : u.disabled]);
+    if (u.disabled && !r.disabled) limiter.clear(`acct:${r.email}`); // re-enabled: start with a clean slate
     const changed = ['name', 'email', 'is_platform_admin', 'disabled'].filter((k) => u[k] !== r[k]);
     if (changed.length) await audit(req.user.id, 'user.update', r.email, Object.fromEntries(changed.map((k) => [k, r[k]])));
     res.json(r);
@@ -234,6 +237,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
     need(u, 404, 'User not found');
     const temp = crypto.randomBytes(9).toString('base64url');
     await q('UPDATE users SET password_hash=$2 WHERE id=$1', [u.id, await hashPassword(temp)]);
+    limiter.clear(`acct:${u.email}`);
     await audit(req.user.id, 'user.reset_password', u.email);
     res.json({ password: temp });
   }));
@@ -251,6 +255,19 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
     const { rows: [u] } = await q('SELECT email FROM users WHERE id=$1', [req.params.id]);
     await audit(req.user.id, 'user.remove_from_team', u?.email, { team: m.name });
     res.json({ ok: true });
+  }));
+
+  // ---------- sign-in lockouts ----------
+  A.get('/lockouts', h(async (_req, res) => {
+    res.json({ limits: { ...limiter.LIMITS, windowMinutes: limiter.LIMITS.windowMs / 60000, lockMinutes: limiter.LIMITS.lockMs / 60000 }, entries: limiter.list() });
+  }));
+
+  A.delete('/lockouts', h(async (req, res) => {
+    const key = String(req.body?.key || '');
+    need(/^(acct|ip):/.test(key), 400, 'Unknown lockout');
+    limiter.clear(key);
+    await audit(req.user.id, 'auth.unlock', key.slice(key.indexOf(':') + 1), { type: key.startsWith('ip:') ? 'address' : 'account' });
+    res.json({ entries: limiter.list() });
   }));
 
   // ---------- shared directory ----------

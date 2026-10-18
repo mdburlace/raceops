@@ -15,7 +15,8 @@ import { BASE_FORMS } from '../../shared/baseForms.js';
 import { FORM_REPLACE, applyUpgrades } from '../../shared/baseForms2.js';
 import { SEED_GEAR_LISTS } from '../../shared/gearLists.js';
 import { licenceState } from '../../shared/platform.js';
-import { loadSettings, settings, publicSettings, seatLimit } from './settings.js';
+import { loadSettings, settings, publicSettings, seatLimit, audit } from './settings.js';
+import * as limiter from './ratelimit.js';
 import { mountAdmin } from './admin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,6 +28,9 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const app = express();
 app.disable('x-powered-by');
+// Behind a reverse proxy (pfSense HAProxy, Nginx…) the client address comes from X-Forwarded-For.
+// Trust it only from proxies on private networks unless TRUST_PROXY says otherwise.
+app.set('trust proxy', process.env.TRUST_PROXY || 'loopback, linklocal, uniquelocal');
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 
@@ -34,6 +38,22 @@ const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(
 const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg); };
 const perm = (p) => (req, _res, next) => next(can(req.role, p) ? undefined : new HttpError(403, 'Not permitted'));
 const cleanEmail = (e) => String(e || '').trim().toLowerCase();
+
+/** Refuse while an account or address is locked out after too many wrong passwords. */
+function guardSignIn(req, res, keys) {
+  const b = limiter.blocked(keys);
+  if (!b) return;
+  res.setHeader('Retry-After', String(b.retryAfter));
+  const mins = Math.ceil(b.retryAfter / 60);
+  throw new HttpError(429, `Too many sign-in attempts. Try again in ${mins} minute${mins === 1 ? '' : 's'}, or ask your administrator to unlock it.`);
+}
+/** Count a wrong password; a lockout is written to the admin activity log. */
+function signInFailed(req, keys) {
+  limiter.fail(keys, (key, until) => {
+    console.warn(`Sign-in lockout: ${key} until ${until.toISOString()} (from ${req.ip})`);
+    audit(null, 'auth.lockout', key.slice(key.indexOf(':') + 1), { type: key.startsWith('ip:') ? 'address' : 'account', ip: req.ip, until: until.toISOString() }).catch(() => {});
+  });
+}
 
 // ---------- helpers ----------
 async function membershipsFor(userId) {
@@ -246,8 +266,14 @@ app.post('/api/setup', h(async (req, res) => {
 
 app.post('/api/auth/login', h(async (req, res) => {
   const { email, password } = req.body || {};
+  const keys = limiter.keysFor(req, cleanEmail(email));
+  guardSignIn(req, res, keys);
   const { rows: [u] } = await q('SELECT * FROM users WHERE email=$1', [cleanEmail(email)]);
-  need(u && (await checkPassword(password || '', u.password_hash)), 401, 'Email or password is incorrect');
+  if (!(u && (await checkPassword(password || '', u.password_hash)))) {
+    signInFailed(req, keys);
+    throw new HttpError(401, 'Email or password is incorrect');
+  }
+  limiter.succeed(keys);
   need(!u.disabled, 403, 'This account has been disabled');
   await q('UPDATE users SET last_login_at=now() WHERE id=$1', [u.id]);
   res.json(await authPayload(u));
@@ -268,6 +294,10 @@ app.get('/api/invites/:token', h(async (req, res) => {
 // Accept: new users supply name+password; existing users supply password (or a bearer token).
 app.post('/api/invites/:token/accept', h(async (req, res) => {
   const { name, password } = req.body || {};
+  const { rows: [inv] } = await q('SELECT email FROM invites WHERE token=$1', [req.params.token]);
+  const keys = limiter.keysFor(req, inv?.email || 'invite');
+  guardSignIn(req, res, keys);
+  let wrongPassword = false;
   const user = await tx(async (c) => {
     const { rows: [i] } = await c.query('SELECT * FROM invites WHERE token=$1 FOR UPDATE', [req.params.token]);
     need(i && !i.accepted_at && new Date(i.expires_at) > new Date(), 410, 'Invite is no longer valid');
@@ -280,7 +310,10 @@ app.post('/api/invites/:token/accept', h(async (req, res) => {
     }
     if (u) {
       need(!u.disabled, 403, 'This account has been disabled');
-      need(await checkPassword(password || '', u.password_hash), 401, 'Password is incorrect for this existing account');
+      if (!(await checkPassword(password || '', u.password_hash))) {
+        wrongPassword = true;
+        throw new HttpError(400, 'Password is incorrect for this existing account');
+      }
     } else {
       need(name && password && String(password).length >= 8, 400, 'Name and an 8+ character password are required');
       ({ rows: [u] } = await c.query(
@@ -292,7 +325,8 @@ app.post('/api/invites/:token/accept', h(async (req, res) => {
        ON CONFLICT (user_id,tenant_id) DO UPDATE SET role_id=EXCLUDED.role_id`, [u.id, i.tenant_id, i.role_id]);
     await c.query('UPDATE invites SET accepted_at=now() WHERE id=$1', [i.id]);
     return u;
-  });
+  }).catch((e) => { if (wrongPassword) signInFailed(req, keys); throw e; });
+  limiter.succeed(keys);
   res.json(await authPayload(user));
 }));
 
@@ -307,8 +341,14 @@ app.patch('/api/me', h(async (req, res) => {
   const { name, current_password, new_password } = req.body || {};
   if (name) await q('UPDATE users SET name=$1 WHERE id=$2', [name, req.user.id]);
   if (new_password) {
+    const keys = limiter.keysFor(req, req.user.email);
+    guardSignIn(req, res, keys);
     const { rows: [u] } = await q('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
-    need(await checkPassword(current_password || '', u.password_hash), 400, 'Current password is incorrect');
+    if (!(await checkPassword(current_password || '', u.password_hash))) {
+      signInFailed(req, keys);
+      throw new HttpError(400, 'Current password is incorrect');
+    }
+    limiter.succeed(keys);
     need(String(new_password).length >= 8, 400, 'Password must be at least 8 characters');
     await q('UPDATE users SET password_hash=$1 WHERE id=$2', [await hashPassword(new_password), req.user.id]);
   }

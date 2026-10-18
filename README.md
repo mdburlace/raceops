@@ -33,11 +33,68 @@ The data lives in two named volumes: `raceops_db` (Postgres) and `raceops_upload
 
 ### HTTPS is required for phones
 
-Browsers only allow the offline app (service worker) and "Add to Home Screen" over **HTTPS**; `localhost` is the only exception. Put RaceOps behind whatever you already use, for example:
-- **Nginx Proxy Manager** or **Traefik**, with a Let's Encrypt certificate, proxying to `app:8080`
-- **Cloudflare Tunnel** or **Tailscale Serve**, if you don't want to open ports
+Browsers only allow the offline app (service worker) and "Add to Home Screen" over **HTTPS**; `localhost` is the only exception. Use one hostname, e.g. `raceops.yourdomain.com`, with one trusted certificate, both inside your network and on the internet. An installed app belongs to the address it was installed from, so a different address at home and away would mean two separate installs and two offline copies.
 
-Allow uploads up to `MAX_UPLOAD_MB` in your proxy. In Nginx Proxy Manager, add `client_max_body_size 25m;` under Advanced.
+Any reverse proxy works: **pfSense** (below), **Nginx Proxy Manager**, **Traefik**, **Cloudflare Tunnel** or **Tailscale Serve**. Allow uploads up to `MAX_UPLOAD_MB`; in Nginx Proxy Manager, add `client_max_body_size 25m;` under Advanced. HAProxy has no limit by default.
+
+### Publishing through pfSense (HAProxy + Let's Encrypt)
+
+**You need:**
+- A domain you control, ideally with DNS at Cloudflare or another provider supported by pfSense's ACME package.
+- A public IP on the WAN. Behind carrier-grade NAT (CGNAT), port forwarding won't work, so see *Without opening ports* below.
+- The **acme** and **haproxy** packages, installed from System → Package Manager.
+
+**1. Free up port 443 on pfSense.** In System → Advanced → Admin Access, move the webConfigurator to another port (e.g. `8443`) and tick *Disable webConfigurator redirect rule*.
+
+**2. Certificate (Services → Acme Certificates)**
+1. In your DNS, add an A record `raceops.yourdomain.com` pointing to your WAN IP. Use pfSense Dynamic DNS if the IP changes.
+2. *Account keys*: add one for **Let's Encrypt Production**, then register it.
+3. *Certificates*: add one for `raceops.yourdomain.com`, with method **DNS-Cloudflare** (an API token with *Zone → DNS → Edit*). DNS validation means port 80 never has to be open for renewals.
+4. In the certificate's *Actions list*, add the shell command `/usr/local/etc/rc.d/haproxy.sh restart`.
+5. Click **Issue**. It renews automatically.
+
+**3. HAProxy (Services → HAProxy)**
+- **Backend** `raceops`:
+  - Server: the Docker host's LAN IP, port `8080` (`APP_PORT`).
+  - Health check: HTTP `GET /api/health`.
+- **Frontend** `https`:
+  - Listen on **WAN address : 443** and **LAN address : 443**, both with *SSL offloading* ticked.
+  - Type *http / https (offloading)*. Certificate: the ACME certificate.
+  - ACL *Host matches* `raceops.yourdomain.com` → backend `raceops`.
+  - Tick **Use "forwardfor" option**, so RaceOps sees each person's real address for sign-in protection.
+  - Optional: a response header `Strict-Transport-Security: max-age=31536000`.
+- Optional: a frontend on WAN and LAN port 80 that redirects to https.
+- *Settings*: tick **Enable HAProxy**, then Save and Apply.
+
+**4. Firewall.** In Firewall → Rules → WAN, allow **TCP 443** (plus 80 if you added the redirect) to destination **This Firewall**. No NAT port forward is needed, because HAProxy runs on pfSense itself.
+
+**5. HTTPS inside your network.** In Services → DNS Resolver → **Host Overrides**, add `raceops` · `yourdomain.com` → **pfSense's LAN IP**. Phones on your Wi-Fi then reach HAProxy directly with the same valid certificate, with no warnings and no NAT reflection. Phones set to use private DNS (DNS-over-HTTPS) can bypass the override; turn that off on any phone that doesn't resolve the name. Then open `https://raceops.yourdomain.com` on each phone and **Add to Home Screen** (iPhone) or **Install app** (Android).
+
+**6. Lock down the Docker host.**
+- Only pfSense should be able to reach port 8080. Firewall the Docker host or its VLAN so other devices can't connect to it directly.
+- Keep `JWT_SECRET` (long and random) and `POSTGRES_PASSWORD` in Portainer's stack environment, never in the repo.
+
+**Without opening ports**
+- **Cloudflare Tunnel:** add a `cloudflared` container to the stack. You get public HTTPS with no inbound ports, and it works behind CGNAT. Keep the pfSense host override for fast LAN access.
+- **Tailscale** (`tailscale serve`): HTTPS for your team only. Nothing is exposed to the internet, which suits a crew-only setup.
+
+### Security
+
+- **Sign-in protection.** After **5 wrong passwords for one account**, or **20 from one address**, within 15 minutes, sign-in is locked for 15 minutes. Each repeat lockout doubles that, up to 24 hours. A correct password still gets "Too many sign-in attempts" while the lock is on, and people already signed in are not affected. The same rules apply to accepting an invite with an existing account and to changing a password.
+  - Lockouts are recorded in **Platform admin → System & activity**, which also lists accounts and addresses with recent failures and lets you **Unlock** or **Clear** them.
+  - **Platform admin → Users** shows a locked account with an **Unlock sign-in** button. Resetting someone's password also clears their lock.
+  - Lockouts are kept in memory, so restarting the container clears them.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `LOGIN_MAX_PER_ACCOUNT` | `5` | Wrong passwords allowed per account within the window |
+| `LOGIN_MAX_PER_IP` | `20` | Wrong passwords allowed per client address within the window |
+| `LOGIN_WINDOW_MINUTES` | `15` | Window for counting failures |
+| `LOGIN_LOCK_MINUTES` | `15` | First lockout length (doubles on repeats, max 24 h) |
+| `TRUST_PROXY` | `loopback, linklocal, uniquelocal` | Which proxies' `X-Forwarded-For` is trusted. The default covers a proxy on a private network such as pfSense. If your proxy has a public address, set its IP here. |
+
+- **Accounts.** Platform admins can disable an account (it's signed out everywhere), reset a password, and see each person's last sign-in. Teams can be suspended or set to read-only (expired licence) from the admin area.
+- **Sessions** last `JWT_TTL` (60 days by default) so the app keeps working offline over a race weekend. Changing `JWT_SECRET` signs everyone out.
 
 ### Pre-building the image (optional)
 

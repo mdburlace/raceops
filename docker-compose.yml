@@ -28,6 +28,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET to a long random string}
       JWT_TTL: ${JWT_TTL:-60d}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      # Sign-in protection (see README → Security)
+      LOGIN_MAX_PER_ACCOUNT: ${LOGIN_MAX_PER_ACCOUNT:-5}
+      LOGIN_MAX_PER_IP: ${LOGIN_MAX_PER_IP:-20}
+      LOGIN_WINDOW_MINUTES: ${LOGIN_WINDOW_MINUTES:-15}
+      LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-15}
+      # Proxies whose X-Forwarded-For is trusted (pfSense HAProxy on a private network is covered)
+      TRUST_PROXY: ${TRUST_PROXY:-loopback, linklocal, uniquelocal}
     volumes:
       - raceops_uploads:/data/uploads
     ports:
