@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { assetRefId, display, evalFormula, LEVEL_INCLUDES, optionsOf, titleOf, v } from '../lib/data.js';
+import { assetRefId, display, evalFormula, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
+import { useSession } from '../lib/session.jsx';
 
 function Opt({ o }) {
   const value = typeof o === 'object' ? o.value : o;
@@ -56,8 +57,31 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
           {optionsOf(field, form, data).map((o) => <Opt key={typeof o === 'object' ? o.value : o} o={o} />)}
         </select>
       );
+    case 'member':
+      return (
+        <select {...common} value={value || ''} onChange={(e) => onChange(e.target.value)}>
+          <option value="">—</option>
+          {membersList().map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          {value && !membersList().some((m) => m.id === value) && <option value={value}>Former member</option>}
+        </select>
+      );
+    case 'multiref': {
+      const sel = Array.isArray(value) ? value : [];
+      return (
+        <div className="chips multi">
+          {data.list(field.ref).map((r) => (
+            <label key={r.id} className={`chip${sel.includes(r.id) ? ' active' : ''}`}>
+              <input type="checkbox" hidden checked={sel.includes(r.id)}
+                onChange={(e) => onChange(e.target.checked ? [...sel, r.id] : sel.filter((x) => x !== r.id))} />
+              {titleOf(r, data)}
+            </label>
+          ))}
+          {data.list(field.ref).length === 0 && <span className="muted small">None yet</span>}
+        </div>
+      );
+    }
     case 'ref': {
-      const opts = data.list(field.ref).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
+      const opts = data.list(field.ref).filter((r) => !field.category || v(r, 'category') === field.category || r.id === value).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
       return (
         <select {...common} value={value || ''} onChange={(e) => onChange(e.target.value)}>
           <option value="">—</option>
@@ -93,6 +117,35 @@ function Corners({ field, value, onChange, data, form, readOnly }) {
                 onChange={(x) => onChange({ ...val, [c]: x })} />}
         </div>
       ))}
+    </div>
+  );
+}
+
+function TableField({ field, value, onChange, readOnly }) {
+  const cols = field.columns || [];
+  const rows = Array.isArray(value) && value.length ? value : (field.defaultRows || [{}]);
+  const set = (i, k, x) => onChange(rows.map((r, j) => (j === i ? { ...r, [k]: x } : r)));
+  return (
+    <div className="data-table-wrap">
+      <table className="data-table">
+        <thead><tr>{cols.map((c) => <th key={c.key}>{c.label}{c.unit ? <small> {c.unit}</small> : null}</th>)}{!readOnly && <th />}</tr></thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {cols.map((c) => (
+                <td key={c.key}>
+                  {readOnly ? (r[c.key] ?? '') : (
+                    <input inputMode="decimal" className="num" aria-label={`${c.label} row ${i + 1}`} value={r[c.key] ?? ''}
+                      onChange={(e) => set(i, c.key, e.target.value)} />
+                  )}
+                </td>
+              ))}
+              {!readOnly && <td><button type="button" className="icon-btn" aria-label="Remove row" onClick={() => onChange(rows.filter((_, j) => j !== i))}>✕</button></td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {!readOnly && <button type="button" className="btn small ghost" onClick={() => onChange([...rows, {}])}>+ Row</button>}
     </div>
   );
 }
@@ -133,6 +186,7 @@ const visible = (field, values) => {
 };
 
 export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [] }) {
+  useSession(); // re-render when the cached member list arrives
   const suggestions = useMemo(() => {
     const out = {};
     for (const s of form?.data.sections || []) for (const f of s.fields) {
@@ -184,11 +238,13 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
 }
 
 function Field({ f, values, onChange, data, form, readOnly, errors, suggestions }) {
-  const wide = f.type === 'textarea' || f.type === 'corners';
+  const wide = ['textarea', 'corners', 'table', 'multiref'].includes(f.type);
   let body;
   if (f.type === 'calc') {
     const r = evalFormula(f.formula, values);
     body = <div className="calc">{r ?? '—'}{r !== null && f.unit ? <small> {f.unit}</small> : null}</div>;
+  } else if (f.type === 'table') {
+    body = <TableField field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'corners') {
     body = <Corners field={f} value={values[f.key]} data={data} form={form} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
   } else if (readOnly) {

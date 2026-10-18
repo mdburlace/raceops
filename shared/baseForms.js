@@ -11,7 +11,7 @@ const CORNERS = ['LF', 'RF', 'LR', 'RR'];
 const REARS = ['LR', 'RR'];
 
 export const ASSET_CATEGORIES = [
-  'Chassis', 'Engine', 'Shock', 'Torsion Bar', 'Rear End', 'Quick Change Gear', 'Tire', 'Wheel',
+  'Chassis', 'Engine', 'Shock', 'Torsion Bar', 'Rear End', 'Wheel',
   'Wing', 'Front Axle', 'Rear Axle', 'Torque Tube', 'Radius Rod', 'Brakes', 'Fuel System',
   'Driveline', 'Steering', 'Safety Equipment', 'Electrical', 'Trailer / Tools', 'Other',
 ];
@@ -61,6 +61,7 @@ const setupForm = {
       { key: 'event', label: 'Event', type: 'ref', ref: 'event', core: true, required: true },
       { key: 'car', label: 'Car', type: 'ref', ref: 'car', core: true, required: true },
       { key: 'session', label: 'Session', type: 'select', core: true, required: true, optionsFrom: 'sessions' },
+      { key: 'crew_chief', label: 'Crew Chief', type: 'member', core: true, defaultSelf: true },
     ] },
     { id: 'weather', title: 'Weather', carry: false, fields: [
       { key: 'temp', label: 'Temp', type: 'number', unit: '°' },
@@ -75,7 +76,7 @@ const setupForm = {
       { key: 'headers', label: 'Headers', type: 'text' },
       { key: 'pump', label: 'Pump', type: 'text' },
       { key: 'nozzles', label: 'Nozzles', type: 'text' },
-      { key: 'gear', label: 'Gear', type: 'asset', category: 'Quick Change Gear' },
+      { key: 'gear', label: 'Gear', type: 'ref', ref: 'gear' },
       { key: 'main_jet', label: 'Main', type: 'text', unit: '#' },
       { key: 'ls_bypass', label: 'LS', type: 'text', placeholder: '/ #' },
       { key: 'hs_bypass', label: 'HS', type: 'text', placeholder: '/ #' },
@@ -257,4 +258,6 @@ const measurementForm = {
   ],
 };
 
-export const BASE_FORMS = [carForm, eventForm, setupForm, maintenanceForm, assetForm, scheduleForm, measurementForm];
+export { PHASE2_FORMS } from './baseForms2.js';
+import { PHASE2_FORMS } from './baseForms2.js';
+export const BASE_FORMS = [carForm, eventForm, setupForm, maintenanceForm, assetForm, scheduleForm, measurementForm, ...PHASE2_FORMS];

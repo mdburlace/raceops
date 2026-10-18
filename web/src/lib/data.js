@@ -67,11 +67,23 @@ export function titleOf(rec, data) {
     case 'maintenance': return `${levelLabel(vals.level)} service`;
     case 'measurement': return `${vals.kind || 'Measurement'}: ${vals.value ?? ''} ${vals.unit || ''}`.trim();
     case 'form': return rec.data.name;
+    case 'gear': return `${vals.name || 'Gear'}${vals.upper && vals.lower ? ` (${vals.upper}/${vals.lower})` : ''}`;
+    case 'tire': return vals.name || 'Tire';
+    case 'track_check': return `Check${vals.after_session ? ` after ${vals.after_session}` : ''}${data?.byId[vals.event] ? ` · ${titleOf(data.byId[vals.event])}` : ''}`;
+    case 'dyno_run': return `${vals.label || 'Dyno run'}${data?.byId[vals.asset] ? ` · ${titleOf(data.byId[vals.asset])}` : ''}`;
+    case 'engine_build': return `${vals.build_type || 'Build'}${data?.byId[vals.engine] ? ` · ${titleOf(data.byId[vals.engine])}` : ''}`;
+    case 'review': return `Review${vals.period ? ` · ${vals.period}` : ''}`;
     default: return rec.type;
   }
 }
 
 const LEVELS = { weekly: 'Weekly', race2: 'Every 2nd race', monthly: 'Monthly / 4th race' };
+// Team members are cached on the device so member fields work offline.
+let MEMBERS = {};
+export const setMembersCache = (list) => { MEMBERS = Object.fromEntries((list || []).map((m) => [m.id, m])); };
+export const memberName = (id) => (id ? MEMBERS[id]?.name || 'Former member' : '');
+export const membersList = () => Object.values(MEMBERS).sort((a, b) => a.name.localeCompare(b.name));
+
 export const levelLabel = (k) => LEVELS[k] || k || '';
 export const LEVEL_INCLUDES = { weekly: ['weekly'], race2: ['weekly', 'race2'], monthly: ['weekly', 'race2', 'monthly'] };
 
@@ -81,7 +93,10 @@ export const assetRefId = (val) => (val && typeof val === 'object' ? val.asset :
 export function display(field, val, data) {
   if (val === null || val === undefined || val === '') return '';
   switch (field.type) {
-    case 'ref': return titleOf(data?.byId[val], data) || '(missing)';
+    case 'ref': return typeof val === 'string' ? titleOf(data?.byId[val], data) || '(missing)' : '';
+    case 'multiref': return (Array.isArray(val) ? val : []).map((id) => titleOf(data?.byId[id], data)).join(', ');
+    case 'member': return memberName(val);
+    case 'table': return Array.isArray(val) ? `${val.filter((r) => Object.keys(r).length > 1).length} rows` : '';
     case 'asset': return assetRefId(val) ? titleOf(data?.byId[assetRefId(val)]) : String(val);
     case 'checkbox': return val ? 'Yes' : 'No';
     case 'select': {
@@ -107,30 +122,62 @@ export const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-// ---------- safe formula evaluation (numbers, + - * / and parentheses only) ----------
+// ---------- safe formula evaluation ----------
+// Numbers, + - * / ( ), field keys, corner values (key.LF / key.#1), `pi`, and
+// functions over corner/table fields: avg(key) sum(key) min(key) max(key) slope(table, xcol, ycol)
+function cornerNums(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return [];
+  return Object.values(v).map(num).filter((x) => x !== null);
+}
+const FUNCS = {
+  avg: (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null),
+  sum: (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) : null),
+  min: (xs) => (xs.length ? Math.min(...xs) : null),
+  max: (xs) => (xs.length ? Math.max(...xs) : null),
+};
+export function linearSlope(rows, xk, yk) {
+  const pts = (Array.isArray(rows) ? rows : []).map((r) => [num(r?.[xk]), num(r?.[yk])]).filter(([x, y]) => x !== null && y !== null);
+  if (pts.length < 2) return null;
+  const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+  const my = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  const sxx = pts.reduce((a, p) => a + (p[0] - mx) ** 2, 0);
+  if (!sxx) return null;
+  return pts.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0) / sxx;
+}
+
 export function evalFormula(expr, values) {
-  const toks = String(expr || '').match(/\d+(?:\.\d+)?|[A-Za-z_][A-Za-z0-9_.]*|[-+*/()]/g) || [];
+  const toks = String(expr || '').match(/\d+(?:\.\d+)?|[A-Za-z_][A-Za-z0-9_]*(?:\.[#A-Za-z0-9_& ]*[A-Za-z0-9_])?|[-+*/(),]/g) || [];
   let i = 0;
   const peek = () => toks[i];
   const next = () => toks[i++];
+  const fail = () => { throw new Error('bad'); };
   const atom = () => {
     const t = next();
-    if (t === '(') { const x = sum(); next(); return x; }
+    if (t === '(') { const x = sum(); if (next() !== ')') fail(); return x; }
     if (t === '-') return -atom();
     if (/^\d/.test(t || '')) return parseFloat(t);
-    if (t) {
-      const [k, corner] = t.split('.');
-      const raw = corner ? values?.[k]?.[corner] : values?.[k];
-      const n = num(raw);
-      if (n === null) throw new Error('missing');
-      return n;
+    if (!t) fail();
+    if (t === 'pi') return Math.PI;
+    if (peek() === '(' && (FUNCS[t] || t === 'slope')) {
+      next();
+      const args = [];
+      while (peek() && peek() !== ')') { const a = next(); if (a !== ',') args.push(a); }
+      next();
+      const r = t === 'slope' ? linearSlope(values?.[args[0]], args[1], args[2]) : FUNCS[t](cornerNums(values?.[args[0]]));
+      if (r === null || r === undefined) fail();
+      return r;
     }
-    throw new Error('syntax');
+    const dot = t.indexOf('.');
+    const raw = dot > 0 ? values?.[t.slice(0, dot)]?.[t.slice(dot + 1)] : values?.[t];
+    const n = num(raw);
+    if (n === null) fail();
+    return n;
   };
   const prod = () => { let x = atom(); while (peek() === '*' || peek() === '/') { const op = next(); const y = atom(); x = op === '*' ? x * y : x / y; } return x; };
   const sum = () => { let x = prod(); while (peek() === '+' || peek() === '-') { const op = next(); const y = prod(); x = op === '+' ? x + y : x - y; } return x; };
   try {
     const r = sum();
+    if (i < toks.length) return null;
     return Number.isFinite(r) ? Math.round(r * 1000) / 1000 : null;
   } catch { return null; }
 }

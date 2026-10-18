@@ -71,9 +71,11 @@ export function Compare() {
   if (!data) return null;
   const ids = (params.get('ids') || '').split(',').filter(Boolean);
   const setups = ids.map((id) => data.byId[id]).filter(Boolean);
-  const form = formFor(data, 'setup', setups[0]?.data.form_id);
+  const type = setups[0]?.type || 'setup';
+  const isSetup = type === 'setup';
+  const form = formFor(data, type, setups[0]?.data.form_id);
   const setIds = (list) => setParams({ ids: list.join(',') });
-  const candidates = data.list('setup').filter((s) => !ids.includes(s.id))
+  const candidates = data.list(type).filter((s) => !ids.includes(s.id))
     .sort((a, b) => evDate(b, data).localeCompare(evDate(a, data)));
 
   const cell = (f, s) => {
@@ -85,7 +87,7 @@ export function Compare() {
 
   return (
     <div>
-      <PageHeader title="Compare setups" sub="Differences are highlighted" back="/setups">
+      <PageHeader title={isSetup ? 'Compare setups' : 'Compare builds'} sub="Differences are highlighted" back={isSetup ? '/setups' : -1}>
         <label className="toggle"><input type="checkbox" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} /><span>Only differences</span></label>
       </PageHeader>
       {setups.length < 4 && (
@@ -93,7 +95,7 @@ export function Compare() {
           <select value="" onChange={(e) => e.target.value && setIds([...ids, e.target.value])}>
             <option value="">+ Add a sheet to compare…</option>
             {candidates.slice(0, 200).map((s) => (
-              <option key={s.id} value={s.id}>{titleOf(data.byId[v(s, 'car')])} · {titleOf(s, data)} ({fmtDate(evDate(s, data))})</option>
+              <option key={s.id} value={s.id}>{isSetup ? `${titleOf(data.byId[v(s, 'car')])} · ` : ''}{titleOf(s, data)} ({fmtDate(isSetup ? evDate(s, data) : v(s, 'date'))})</option>
             ))}
           </select>
         </div>
@@ -106,15 +108,15 @@ export function Compare() {
                 <th />
                 {setups.map((s) => (
                   <th key={s.id}>
-                    <Link to={`/r/setup/${s.id}`}>{v(s, 'session')}</Link>
-                    <small>{titleOf(data.byId[v(s, 'event')])}<br />{titleOf(data.byId[v(s, 'car')])} · {fmtDate(evDate(s, data))}</small>
+                    <Link to={`/r/${type}/${s.id}`}>{isSetup ? v(s, 'session') : titleOf(s, data)}</Link>
+                    <small>{isSetup ? <>{titleOf(data.byId[v(s, 'event')])}<br />{titleOf(data.byId[v(s, 'car')])} · {fmtDate(evDate(s, data))}</> : fmtDate(v(s, 'date'))}</small>
                     <button type="button" className="link small" onClick={() => setIds(ids.filter((x) => x !== s.id))}>remove</button>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {form?.data.sections.filter((sec) => sec.id !== 'session').map((sec) => {
+              {form?.data.sections.filter((sec) => !['session', 'build'].includes(sec.id)).map((sec) => {
                 const rows = sec.fields.filter((f) => f.type !== 'heading').flatMap((f) => (f.type === 'corners'
                   ? (f.corners || []).map((c) => ({
                     key: `${f.key}.${c}`, label: `${f.label} ${c}`,

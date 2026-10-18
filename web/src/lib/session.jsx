@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api, loadSession, saveSession } from './api.js';
 import { db, getMeta, setMeta } from './store.js';
 import { fullResync, setSyncTenant, syncNow } from './sync.js';
-import { can as canP, canType as canT } from '@shared/catalog.js';
+import { can as canP, canType as canT, canArea as canA, canModule as canM, entitlements } from '@shared/catalog.js';
+import { setMembersCache } from './data.js';
 
 const Ctx = createContext(null);
 export const useSession = () => useContext(Ctx);
@@ -39,7 +40,7 @@ export function SessionProvider({ children }) {
       update(next);
       const m = me.memberships.find((x) => x.tenant_id === next.tenantId);
       if (m) {
-        const sig = JSON.stringify([m.role.is_owner, [...m.role.permissions].sort()]);
+        const sig = JSON.stringify([m.role.is_owner, [...m.role.permissions].sort(), m.plan, m.features]);
         const old = await getMeta(`perm:${m.tenant_id}`);
         await setMeta(`perm:${m.tenant_id}`, sig);
         if (old && old !== sig) fullResync(m.tenant_id);
@@ -56,6 +57,23 @@ export function SessionProvider({ children }) {
   }, [refresh, logout]);
 
   const membership = session?.memberships?.find((m) => m.tenant_id === session.tenantId) || null;
+  const ent = useMemo(() => entitlements(membership), [membership]);
+  const [membersVersion, setMembersVersion] = useState(0);
+
+  // Team member list: cached on the device so member fields work offline.
+  useEffect(() => {
+    const tid = membership?.tenant_id;
+    if (!tid) return;
+    let cancelled = false;
+    getMeta(`members:${tid}`, []).then((list) => { if (!cancelled) { setMembersCache(list); setMembersVersion((v) => v + 1); } });
+    if (navigator.onLine) {
+      api(`/t/${tid}/members`).then(async (list) => {
+        await setMeta(`members:${tid}`, list);
+        if (!cancelled) { setMembersCache(list); setMembersVersion((v) => v + 1); }
+      }).catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [membership?.tenant_id]);
 
   useEffect(() => {
     setSyncTenant(membership?.tenant_id || null);
@@ -69,11 +87,16 @@ export function SessionProvider({ children }) {
     membership,
     tid: membership?.tenant_id,
     role: membership?.role,
+    ent,
+    membersVersion,
     can: (p) => canP(membership?.role, p),
-    canType: (t, a) => canT(membership?.role, t, a),
+    canType: (t, a) => canT(membership?.role, ent, t, a),
+    canArea: (a) => canA(membership?.role, ent, a),
+    canModule: (m, a = 'view') => canM(membership?.role, ent, m, a),
+    licensed: (f) => ent.has(f),
     login, logout, refresh,
     switchTenant: (id) => update({ ...loadSession(), tenantId: id }),
-  }), [session, membership, login, logout, refresh, update]);
+  }), [session, membership, ent, membersVersion, login, logout, refresh, update]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

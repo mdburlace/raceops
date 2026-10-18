@@ -1,10 +1,17 @@
-# RaceOps — Race Team Manager (Phase 1)
+# RaceOps — Race Team Manager
 
 A self-hosted, multi-team app for race setups, maintenance and assets. You use it in any browser, or install it on iPhone, iPad, Android and desktop. It keeps working with no signal at the track and syncs when you're back online.
 
-**Phase 1 (this release):** events and setup sheets, maintenance checklists and schedules, assets with lifecycle tracking and measurements, a form editor, custom roles and permissions, invites, attachments and change history.
+The app is organised into four **areas**, each with its own access control and licensing:
 
-**Phase 2 (planned):** shock and torsion bar dyno runs (overlay graphs, history, links to setups), quick-change gear and tire inventory with stagger combinations, engine build sheets, dyno file import, and native store apps.
+| Area | What's in it |
+|---|---|
+| **At the Track** | Events, setup sheets per session (with Crew Chief), between-round checks, quick-change gear chart, tire inventory and stagger combinations |
+| **In the Workshop** | Car maintenance checklists and service schedules, asset lifecycle and measurements, shock dyno runs and torsion-bar rate tests with overlay graphs |
+| **Engine Builds** | Full build sheet per engine (from *Engine_Buildsheet_v5*): block, bores, crank, cam timing, pistons and rings, heads, valvetrain, fastener torque, with CID, compression ratio and cam calculations |
+| **Team Management** | Cars, members and invites, roles and permissions, forms, season reports (CSV), Crew Chief stats and performance reviews |
+
+The landing page shows the four areas with live status and each area's "Coming next" roadmap. Areas you can't use are shown locked, with the reason: *No access* (your role) or *Not in plan* (your licence).
 
 ---
 
@@ -66,6 +73,16 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 - **Conflicts:** last save wins, based on when each person pressed Save. The losing version stays in *Change history*, marked "overwritten by a newer save".
 - Sessions last 60 days (`JWT_TTL`), so a long offline weekend won't sign anyone out.
 
+### Areas, access and licensing
+
+Access to anything is checked in three layers, on the server (sync, history and attachments) and in the app:
+
+1. **Licence:** is the team licensed for this area or feature? Platform admins set this under **All teams & licences** by choosing a plan (Pro, Trackside or Engine shop) and ticking or unticking individual areas and features per team. Owners are bound by the licence too.
+2. **Area access:** does the role include *Enter "At the Track"* (and so on)?
+3. **Module action:** View / Edit / Delete for each module inside the area.
+
+Changing a role or licence takes effect on each device at its next sync. Data the person can no longer see is removed from their device.
+
 ### Teams, roles and permissions
 
 - **Multi-team:** one person can belong to several teams and switch between them in the sidebar. As platform admin, the first user can create more teams under **All teams**.
@@ -108,6 +125,6 @@ web/          React PWA · lib/store.js (IndexedDB) · lib/sync.js (push/pull) �
 - **Push:** `POST /api/t/:team/sync` checks edit or delete permission for each change, applies last-write-wins on `client_updated_at`, and writes every attempt to `record_history`.
 - Each team is isolated by `tenant_id` on every query, and membership plus role is checked on every request.
 
-### Path to native store apps (Phase 2)
+### Path to native store apps
 
 The installable web app already covers offline use on iOS and Android. For App Store or Play Store listings, the plan is to wrap this same web build with Capacitor, which adds native camera and file access and push notifications without a second codebase.

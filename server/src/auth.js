@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { q } from './db.js';
+import { entitlements } from '../../shared/catalog.js';
 
 const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 if (process.env.NODE_ENV === 'production' && (SECRET === 'dev-secret-change-me' || SECRET.length < 24)) {
@@ -38,13 +39,14 @@ export async function requireAuth(req, _res, next) {
 export async function requireMember(req, _res, next) {
   try {
     const { rows } = await q(
-      `SELECT r.id, r.name, r.permissions, r.is_owner
-         FROM memberships m JOIN roles r ON r.id = m.role_id
+      `SELECT r.id, r.name, r.permissions, r.is_owner, t.plan, t.features
+         FROM memberships m JOIN roles r ON r.id = m.role_id JOIN tenants t ON t.id = m.tenant_id
         WHERE m.user_id=$1 AND m.tenant_id=$2`,
       [req.user.id, req.params.tid]
     );
     if (!rows[0]) throw new HttpError(403, 'Not a member of this team');
     req.role = rows[0];
+    req.ent = entitlements(rows[0]);
     req.tid = req.params.tid;
     next();
   } catch (e) { next(e); }

@@ -1,11 +1,11 @@
-import { Fragment, useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Empty, PageHeader, Section, useOnline } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { fullResync, getSyncStatus, subscribeSync, syncNow } from '../lib/sync.js';
-import { ACTIONS, ADMIN_PERMISSIONS, MODULES } from '@shared/catalog.js';
+import { ACTIONS, ADMIN_PERMISSIONS, AREAS, FEATURES, MODULES, PLANS, entitlements, moduleActions } from '@shared/catalog.js';
 
 function OnlineOnly({ children }) {
   const online = useOnline();
@@ -104,7 +104,7 @@ export function Team() {
 }
 
 export function Roles() {
-  const { tid, can } = useSession();
+  const { tid, can, licensed } = useSession();
   const manage = can('roles.manage');
   const [roles, reload] = useLoad(() => api(`/t/${tid}/roles`), [tid]);
   const [edit, setEdit] = useState(null);
@@ -161,16 +161,33 @@ export function Roles() {
                     <div className="field"><label>Description</label><input disabled={!manage} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></div>
                   </div>
                   <table className="table perm-table">
-                    <thead><tr><th>Area</th>{ACTIONS.map((a) => <th key={a}>{a[0].toUpperCase() + a.slice(1)}</th>)}</tr></thead>
+                    <thead><tr><th>Area / module</th>{ACTIONS.map((a) => <th key={a}>{a[0].toUpperCase() + a.slice(1)}</th>)}</tr></thead>
                     <tbody>
-                      {MODULES.map((m) => (
-                        <tr key={m.key}>
-                          <th scope="row">{m.label}{m.phase === 2 && <small className="muted"> (next release)</small>}</th>
-                          {ACTIONS.map((a) => (
-                            <td key={a}><input type="checkbox" aria-label={`${m.label} ${a}`} disabled={!manage} checked={has(`${m.key}.${a}`)} onChange={(e) => toggle(`${m.key}.${a}`, e.target.checked)} /></td>
-                          ))}
-                        </tr>
-                      ))}
+                      {[{ key: null, label: 'Shared data' }, ...AREAS].map((ar) => {
+                        const mods = MODULES.filter((m) => m.area === ar.key);
+                        const areaOn = !ar.key || has(`area.${ar.key}`);
+                        return [
+                          <tr key={`a-${ar.key}`} className="area-row">
+                            <th scope="row" colSpan={ACTIONS.length + 1}>
+                              {ar.key ? (
+                                <label className="toggle small"><input type="checkbox" disabled={!manage} checked={has(`area.${ar.key}`)} onChange={(e) => toggle(`area.${ar.key}`, e.target.checked)} />
+                                  <span>{ar.label}</span></label>
+                              ) : <span>{ar.label}</span>}
+                              {ar.key && !licensed(ar.key) && <small className="muted"> — not in your plan</small>}
+                            </th>
+                          </tr>,
+                          ...mods.map((m) => (
+                            <tr key={m.key} className={areaOn ? '' : 'dim'}>
+                              <th scope="row" className="mod-name">{m.label}{m.feature && !licensed(m.feature) && <small className="muted"> (not in plan)</small>}</th>
+                              {ACTIONS.map((a) => (
+                                <td key={a}>{moduleActions(m).includes(a) && (
+                                  <input type="checkbox" aria-label={`${m.label} ${a}`} disabled={!manage || !areaOn} checked={has(`${m.key}.${a}`)} onChange={(e) => toggle(`${m.key}.${a}`, e.target.checked)} />
+                                )}</td>
+                              ))}
+                            </tr>
+                          )),
+                        ];
+                      })}
                     </tbody>
                   </table>
                   <h4 className="subhead">Administration</h4>
@@ -258,6 +275,45 @@ export function Profile() {
   );
 }
 
+function TeamLicence({ t, onSaved }) {
+  const [plan, setPlan] = useState(t.plan || 'pro');
+  const [features, setFeatures] = useState(t.features || {});
+  const [msg, setMsg] = useState('');
+  const ent = entitlements({ plan, features });
+  const planHas = new Set(PLANS[plan]?.features || []);
+  const flip = (k, on) => setFeatures((f) => {
+    const n = { ...f };
+    if (on === planHas.has(k)) delete n[k]; else n[k] = on;
+    return n;
+  });
+  const save = async () => {
+    setMsg('');
+    try { await api(`/admin/tenants/${t.id}`, { method: 'PATCH', body: { plan, features } }); setMsg('Saved'); onSaved(); } catch (e) { setMsg(e.message); }
+  };
+  return (
+    <section className="card">
+      <div className="card-head">
+        <div><h3 className="plain">{t.name}</h3><span className="muted small">{t.members} member{t.members === 1 ? '' : 's'} · created {fmtDate(t.created_at)}</span></div>
+        <select value={plan} onChange={(e) => setPlan(e.target.value)} aria-label="Plan">
+          {Object.entries(PLANS).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
+        </select>
+      </div>
+      <div className="feature-grid">
+        {FEATURES.map((f) => (
+          <label key={f.key} className={`toggle small${f.key in features ? ' overridden' : ''}`} title={f.key in features ? 'Override of the plan default' : 'Plan default'}>
+            <input type="checkbox" checked={ent.has(f.key)} onChange={(e) => flip(f.key, e.target.checked)} />
+            <span>{f.label}</span>
+          </label>
+        ))}
+      </div>
+      <div className="inline-row end">
+        {msg && <span className="muted small">{msg}</span>}
+        <button type="button" className="btn primary small" onClick={save}>Save licence</button>
+      </div>
+    </section>
+  );
+}
+
 export function AdminTeams() {
   const { user, refresh, switchTenant } = useSession();
   const [teams, reload] = useLoad(() => api('/admin/tenants'), []);
@@ -266,7 +322,7 @@ export function AdminTeams() {
   if (!user?.is_platform_admin) return <PageHeader title="Not permitted" />;
   return (
     <div>
-      <PageHeader title="All teams" sub="Platform administration — create a team, then invite its owner" />
+      <PageHeader title="All teams & licences" sub="Platform administration — create teams and choose which areas each one is licensed for" />
       <OnlineOnly>
         {err && <div className="notice error">{err}</div>}
         <Section title="Create a team">
@@ -279,14 +335,9 @@ export function AdminTeams() {
           </form>
           <p className="muted small">You become the first owner (so you can invite theirs). The team gets its own copy of the base forms and roles.</p>
         </Section>
-        <Section title="Teams">
-          {!teams.data ? <p className="muted">{teams.err || 'Loading…'}</p> : (
-            <table className="table">
-              <thead><tr><th>Team</th><th>Members</th><th>Created</th></tr></thead>
-              <tbody>{teams.data.map((t) => <Fragment key={t.id}><tr><td>{t.name}</td><td>{t.members}</td><td>{fmtDate(t.created_at)}</td></tr></Fragment>)}</tbody>
-            </table>
-          )}
-        </Section>
+        <p className="muted small">A plan sets the default areas and features; tick or untick to override for a single team. Locked areas show as “Not in plan” for that team. Billing hooks into this later.</p>
+        {!teams.data ? <p className="muted">{teams.err || 'Loading…'}</p>
+          : teams.data.map((t) => <TeamLicence key={t.id} t={t} onSaved={() => { reload(); refresh(); }} />)}
       </OnlineOnly>
     </div>
   );

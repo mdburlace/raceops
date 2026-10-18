@@ -91,7 +91,7 @@ export function AssetList() {
 export function AssetDetail() {
   const { id } = useParams();
   const data = useTeamData();
-  const { canType } = useSession();
+  const { canType, canModule } = useSession();
   const [kind, setKind] = useState('');
   if (!data) return null;
   const a = data.byId[id];
@@ -173,6 +173,23 @@ export function AssetDetail() {
           </>
         )}
       </Section>
+
+      {canModule('dyno') && ['Shock', 'Torsion Bar'].includes(v(a, 'category')) && (() => {
+        const runs = data.list('dyno_run').filter((r) => v(r, 'asset') === id).sort((x, y) => (v(y, 'date') || '').localeCompare(v(x, 'date') || ''));
+        const kind = v(a, 'category') === 'Shock' ? 'shock' : 'bar';
+        return (
+          <Section title={`Dyno history (${runs.length})`} actions={<Link className="btn small" to={`/workshop/dyno?kind=${kind}&asset=${id}`}>{runs.length ? 'Overlay runs' : 'Open dyno'}</Link>}>
+            {runs.length === 0 ? <p className="muted">No dyno runs for this {kind === 'shock' ? 'shock' : 'bar'} yet.</p> : (
+              <div className="list">{runs.slice(0, 6).map((r) => (
+                <Link key={r.id} to={`/r/dyno_run/${r.id}`} className="list-row">
+                  <span className="grow"><span className="row-title">{v(r, 'label') || 'Run'}</span><span className="row-sub">{v(r, 'purpose') || ''}</span></span>
+                  <span className="row-meta">{fmtDate(v(r, 'date'))}</span>
+                </Link>
+              ))}</div>
+            )}
+          </Section>
+        );
+      })()}
 
       <Section title="Maintenance schedules" actions={canType('schedule', 'edit') && (
         <Link className="btn small" to={`/r/schedule/new?applies_to=Asset&asset=${id}&back=${back}`}>+ Schedule</Link>

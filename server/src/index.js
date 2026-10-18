@@ -9,7 +9,7 @@ import { q, tx, migrate } from './db.js';
 import {
   requireAuth, requireMember, hashPassword, checkPassword, signToken, randomToken, HttpError,
 } from './auth.js';
-import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, canType, can } from '../../shared/catalog.js';
+import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, PLANS, FEATURES, canType, can } from '../../shared/catalog.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,7 +32,7 @@ const cleanEmail = (e) => String(e || '').trim().toLowerCase();
 // ---------- helpers ----------
 async function membershipsFor(userId) {
   const { rows } = await q(
-    `SELECT t.id AS tenant_id, t.name AS tenant_name, t.racing_type, t.settings,
+    `SELECT t.id AS tenant_id, t.name AS tenant_name, t.racing_type, t.settings, t.plan, t.features,
             json_build_object('id', r.id, 'name', r.name, 'permissions', r.permissions, 'is_owner', r.is_owner) AS role
        FROM memberships m JOIN tenants t ON t.id=m.tenant_id JOIN roles r ON r.id=m.role_id
       WHERE m.user_id=$1 ORDER BY t.name`, [userId]);
@@ -53,12 +53,49 @@ async function createTenant(c, name, ownerId) {
     const id = crypto.randomUUID();
     await c.query(
       `INSERT INTO records(id,tenant_id,type,data,created_by,updated_by) VALUES ($1,$2,'form',$3,$4,$4)`,
-      [id, t.id, JSON.stringify({ ...f, base: true }), ownerId]);
+      [id, t.id, JSON.stringify({ ...f, base: true, base_key: baseKey(f) }), ownerId]);
     await c.query(
       `INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,user_id,client_updated_at)
        VALUES ($1,$2,'form','create','applied',$3,$4,now())`, [id, t.id, JSON.stringify(f), ownerId]);
   }
   return t;
+}
+
+const baseKey = (f) => `${f.target}:${f.dyno_kind || 'default'}`;
+
+/** Give every team any base forms added in later releases, and upgrade Phase 1 setup sheets. */
+async function ensureBaseForms() {
+  const { rows: tenants } = await q('SELECT id FROM tenants');
+  for (const { id: tid } of tenants) {
+    const { rows: forms } = await q("SELECT id, data FROM records WHERE tenant_id=$1 AND type='form' AND NOT deleted", [tid]);
+    const have = new Set(forms.map((f) => f.data.base_key || (f.data.base ? `${f.data.target}:default` : null)).filter(Boolean));
+    for (const f of BASE_FORMS) {
+      if (have.has(baseKey(f))) continue;
+      const id = crypto.randomUUID();
+      const data = { ...f, base: true, base_key: baseKey(f) };
+      await q(`INSERT INTO records(id,tenant_id,type,data) VALUES ($1,$2,'form',$3)`, [id, tid, JSON.stringify(data)]);
+      await q(`INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,client_updated_at)
+               VALUES ($1,$2,'form','create','applied',$3,now())`, [id, tid, JSON.stringify(data)]);
+      console.log(`Added base form "${f.name}" to team ${tid}`);
+    }
+    // Phase 1 setup sheet: gear now links to the gear list; add Crew Chief.
+    for (const f of forms.filter((x) => x.data.target === 'setup' && x.data.base)) {
+      const d = f.data;
+      let changed = false;
+      for (const sec of d.sections) for (const fld of sec.fields) {
+        if (fld.key === 'gear' && fld.type === 'asset') { fld.type = 'ref'; fld.ref = 'gear'; delete fld.category; changed = true; }
+      }
+      const session = d.sections.find((s) => s.id === 'session');
+      if (session && !d.sections.some((s) => s.fields.some((x) => x.key === 'crew_chief'))) {
+        session.fields.push({ key: 'crew_chief', label: 'Crew Chief', type: 'member', core: true, defaultSelf: true });
+        changed = true;
+      }
+      if (changed) {
+        await q(`UPDATE records SET data=$2, updated_at=now(), client_updated_at=now(), seq=nextval('record_seq') WHERE id=$1`, [f.id, JSON.stringify(d)]);
+        console.log(`Upgraded setup form ${f.id} in team ${tid}`);
+      }
+    }
+  }
 }
 
 const authPayload = async (user) => ({
@@ -162,6 +199,19 @@ app.get('/api/admin/tenants', h(async (req, res) => {
   res.json(rows);
 }));
 
+app.patch('/api/admin/tenants/:id', h(async (req, res) => {
+  need(req.user.is_platform_admin, 403, 'Platform admin only');
+  const { plan, features } = req.body || {};
+  need(!plan || PLANS[plan], 400, 'Unknown plan');
+  const clean = features && Object.fromEntries(Object.entries(features)
+    .filter(([k, v]) => FEATURES.some((f) => f.key === k) && typeof v === 'boolean'));
+  const { rows: [t] } = await q(
+    'UPDATE tenants SET plan=COALESCE($2,plan), features=COALESCE($3,features) WHERE id=$1 RETURNING *',
+    [req.params.id, plan || null, clean ? JSON.stringify(clean) : null]);
+  need(t, 404, 'Team not found');
+  res.json(t);
+}));
+
 app.post('/api/admin/tenants', h(async (req, res) => {
   need(req.user.is_platform_admin, 403, 'Platform admin only');
   need(req.body?.name, 400, 'Team name is required');
@@ -184,7 +234,7 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {
   const since = Number(req.query.since || 0);
-  const types = RECORD_TYPES.filter((t) => canType(req.role, t, 'view'));
+  const types = RECORD_TYPES.filter((t) => canType(req.role, req.ent, t, 'view'));
   const limit = 2000;
   const { rows } = await q(
     `SELECT id, type, data, deleted, client_updated_at, updated_at, created_at, created_by, updated_by, seq::text AS seq
@@ -218,7 +268,7 @@ async function applyChange(c, req, ch) {
   if (cur && (cur.tenant_id !== req.tid || cur.type !== type)) return { id, status: 'denied' };
   const op = !cur ? 'create' : deleted && !cur.deleted ? 'delete' : 'update';
   const action = op === 'delete' ? 'delete' : 'edit';
-  if (!canType(req.role, type, action)) return { id, status: 'denied', record: canType(req.role, type, 'view') ? current(cur) : null };
+  if (!canType(req.role, req.ent, type, action)) return { id, status: 'denied', record: canType(req.role, req.ent, type, 'view') ? current(cur) : null };
 
   const history = (outcome) => c.query(
     `INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,user_id,client_updated_at)
@@ -247,7 +297,7 @@ async function applyChange(c, req, ch) {
 
 T.get('/records/:id/history', h(async (req, res) => {
   const { rows: [r] } = await q('SELECT type FROM records WHERE id=$1 AND tenant_id=$2', [req.params.id, req.tid]);
-  need(r && canType(req.role, r.type, 'view'), 404, 'Not found');
+  need(r && canType(req.role, req.ent, r.type, 'view'), 404, 'Not found');
   const { rows } = await q(
     `SELECT h.id, h.op, h.outcome, h.data, h.client_updated_at, h.created_at, u.name AS user_name
        FROM record_history h LEFT JOIN users u ON u.id=h.user_id
@@ -381,7 +431,7 @@ const upload = multer({
 async function recordForAttachment(req, recordId, action) {
   const { rows: [r] } = await q('SELECT type FROM records WHERE id=$1 AND tenant_id=$2', [recordId, req.tid]);
   need(r, 404, 'Save the record (and let it sync) before adding attachments');
-  need(canType(req.role, r.type, action), 403, 'Not permitted');
+  need(canType(req.role, req.ent, r.type, action), 403, 'Not permitted');
   return r;
 }
 
@@ -449,4 +499,5 @@ if (fs.existsSync(WEB_DIR)) {
 }
 
 await migrate();
+await ensureBaseForms();
 app.listen(PORT, () => console.log(`RaceOps listening on :${PORT}`));
