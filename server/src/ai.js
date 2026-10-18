@@ -24,7 +24,11 @@ async function callModel(body) {
   try {
     res = await fetch(API_URL, {
       method: 'POST', signal: ctl.signal,
-      headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      headers: {
+        'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01',
+        // only needed for keys that aren't limited to a single workspace
+        ...(process.env.ANTHROPIC_WORKSPACE_ID ? { 'anthropic-workspace-id': process.env.ANTHROPIC_WORKSPACE_ID } : {}),
+      },
       body: JSON.stringify(body),
     });
   } catch (e) {

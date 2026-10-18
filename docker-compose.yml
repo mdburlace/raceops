@@ -35,6 +35,8 @@ services:
       LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-15}
       # AI assistant (optional): your Anthropic API key — turn AI on under Platform admin → AI assistant
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Only if your key isn't limited to one workspace: that workspace's ID (wrkspc_…)
+      ANTHROPIC_WORKSPACE_ID: ${ANTHROPIC_WORKSPACE_ID:-}
       # Proxies whose X-Forwarded-For is trusted (pfSense HAProxy on a private network is covered)
       TRUST_PROXY: ${TRUST_PROXY:-loopback, linklocal, uniquelocal}
     volumes:

@@ -217,7 +217,7 @@ How licences are enforced:
 The AI features use Claude through the Anthropic API. They're off until a platform admin turns them on.
 
 **Setting it up**
-1. Create an API key at platform.claude.com, then add it to the Portainer stack as `ANTHROPIC_API_KEY`. The key stays on the server and is never sent to phones.
+1. In the Claude Console (platform.claude.com), create a workspace called *RaceOps* (Settings → Workspaces). Then create a key on the **API keys** page, choosing that workspace. Add it to the Portainer stack as `ANTHROPIC_API_KEY`. The key stays on the server and is never sent to phones.
 2. Go to **Platform admin → AI assistant** and tick *Turn on the AI assistant*. Then:
    - **Models:** choose the model for photo fill and debriefs (default Claude Haiku 5.5, fast and low cost) and for Ask RaceOps (default Claude Sonnet 5.5).
    - **Allowance:** set the default monthly allowance per team in US$.
@@ -245,6 +245,7 @@ The AI features use Claude through the Anthropic API. They're off until a platfo
 | Setting | Meaning |
 |---|---|
 | `ANTHROPIC_API_KEY` | Your Anthropic API key. Leave empty to keep AI unavailable. |
+| `ANTHROPIC_WORKSPACE_ID` | Only needed if your key isn't limited to one workspace: that workspace's ID (`wrkspc_…`, from Settings → Workspaces in the Claude Console). |
 | `AI_PROVIDER` | Leave unset. `mock` is a built-in stand-in used only by automated tests. |
 
 ### Teams, roles and permissions
