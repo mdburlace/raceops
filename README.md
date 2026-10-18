@@ -261,6 +261,27 @@ The AI features use Claude through the Anthropic API. They're off until a platfo
 
 Setup sheets also gained a **Weights & chassis** section with total weight, left/rear/cross %, wing position, nose wing, LR radius rod and rear steer, so more guide remedies can be tracked.
 
+### Track weather
+
+Each setup sheet's **Weather** section has three tools:
+
+- **Get track weather** pulls readings for the event's track (it needs the track's latitude and longitude in the directory) at the time you choose. That's the session time by default, and it can look back up to 92 days to fill in old sheets. Temperature, station and corrected barometer, humidity, dew point and wind come from Open-Meteo. Density altitude (ALT), ADR, wet bulb and water grains are calculated from them.
+- **Calculate from readings** works out ALT, ADR, grains and dew point from readings typed in by hand: temp, baro, and humidity or wet bulb. It works offline.
+- **Air Density Online ↗** opens that site. It has no API and requires a personal account, so RaceOps links to it rather than pulling from it.
+
+Values are always shown for review first. Readings typed in by hand start unticked, so they are never replaced without a tick. Units are a team setting: US (°F, inHg, ft) by default, or metric. A team owner or manager changes them in the weather panel.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `WEATHER_PROVIDER` | `open-meteo` | `open-meteo`, or `off` to hide the weather pull |
+| `OPEN_METEO_API_KEY` | *(empty)* | Open-Meteo's free API is for non-commercial use (under 10,000 calls a day). If you charge teams for RaceOps, buy a plan at open-meteo.com and put the key here. |
+
+Responses are cached for 10 minutes per track, so a whole pit area pulling at once makes one call.
+
+### Field descriptions
+
+Every standard field has an **ⓘ** beside its label: hover, focus or tap it to see what the field is for, what to enter and where to get the number. In **Forms**, a field's settings let a team write its own description and "where to find it" for any field, including custom ones. Left blank, the standard text is used.
+
 ### Themes and sidebar
 
 Each person picks their own look under **Profile & device → Appearance**. It is saved to their account, so it follows them to every device. Changes made offline are kept and sent when the device is back online.

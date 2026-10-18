@@ -37,6 +37,9 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Only if your key isn't limited to one workspace: that workspace's ID (wrkspc_…)
       ANTHROPIC_WORKSPACE_ID: ${ANTHROPIC_WORKSPACE_ID:-}
+      # Track weather: open-meteo (default, free for non-commercial use) or off. Paid Open-Meteo plans: set the key.
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-open-meteo}
+      OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
       # Proxies whose X-Forwarded-For is trusted (pfSense HAProxy on a private network is covered)
       TRUST_PROXY: ${TRUST_PROXY:-loopback, linklocal, uniquelocal}
     volumes:

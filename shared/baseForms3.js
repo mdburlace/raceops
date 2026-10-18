@@ -191,4 +191,12 @@ export const PHASE3_UPGRADES = [
   { target: 'event', section: 'event', after: 'surface', field: { key: 'banking', label: 'Banking', type: 'text' } },
   { target: 'setup', key: 'session', patch: { allowCustom: true } },
   { target: 'setup', insertSection: SETUP_CHASSIS_SECTION, before: 'feedback' },
+  // weather: units follow the team's choice (set in the weather panel); more readings for pulled or manual weather
+  { target: 'setup', key: 'baro', patch: { unit: '' } },
+  { target: 'setup', key: 'adr', patch: { unit: '%' } },
+  { target: 'setup', section: 'weather', after: 'wb', field: { key: 'humidity', label: 'Humidity', type: 'number', unit: '%' } },
+  { target: 'setup', section: 'weather', after: 'humidity', field: { key: 'dew_point', label: 'Dew point', type: 'number' } },
+  { target: 'setup', section: 'weather', after: 'dew_point', field: { key: 'grains', label: 'Water grains', type: 'number', unit: 'gr' } },
+  { target: 'setup', section: 'weather', after: 'grains', field: { key: 'wind', label: 'Wind', type: 'text', placeholder: 'e.g. 12 mph SE' } },
+  { target: 'setup', section: 'weather', after: 'wind', field: { key: 'weather_source', label: 'Weather from', type: 'text', placeholder: 'e.g. own weather station' } },
 ];

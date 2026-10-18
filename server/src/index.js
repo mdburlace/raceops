@@ -20,6 +20,7 @@ import { loadSettings, settings, publicSettings, seatLimit, audit } from './sett
 import * as limiter from './ratelimit.js';
 import { mountAdmin } from './admin.js';
 import { mountAi } from './ai.js';
+import { mountWeather } from './weather.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -397,6 +398,7 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
 }));
 
 mountAi(T);
+mountWeather(T);
 
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {

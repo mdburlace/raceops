@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { gearTeeth } from '../lib/gears.js';
 import { dayOf, orderSessions, previousSession } from '../lib/sessions.js';
 import { AiTools } from '../components/Ai.jsx';
+import { WeatherTools, useWeatherUnits, withWeatherUnits } from '../components/Weather.jsx';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
@@ -106,6 +107,7 @@ export default function RecordEdit() {
   const [dirty, setDirty] = useState(false);
 
   const form = data ? formFor(data, type, formId || rec?.data.form_id || params.get('form')) : null;
+  const wxUnits = useWeatherUnits();
 
   // initialise once data + record are available
   useEffect(() => {
@@ -342,8 +344,9 @@ export default function RecordEdit() {
         <AiTools type={type} form={form} values={values} setValues={(fn) => { setValues(fn); setDirty(true); }} />
       )}
 
-      <FormRenderer form={form} values={values} onChange={onChange} data={data} readOnly={readOnly}
-        level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors} />
+      <FormRenderer form={type === 'setup' ? withWeatherUnits(form, wxUnits) : form} values={values} onChange={onChange} data={data} readOnly={readOnly}
+        level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
+        sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined} />
 
       {type === 'dyno_run' && <DynoChart runs={[{ id: id || 'new', name: values.label || 'This run', values, form }]} />}
 

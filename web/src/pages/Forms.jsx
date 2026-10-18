@@ -5,6 +5,7 @@ import { allFields, formFor, optionsOf, useTeamData } from '../lib/data.js';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { TYPE_LABEL } from './RecordEdit.jsx';
+import { FIELD_INFO } from '@shared/fieldInfo.js';
 
 const TYPES = [
   ['text', 'Text'], ['number', 'Number'], ['textarea', 'Long text'], ['select', 'Dropdown'], ['date', 'Date'],
@@ -202,7 +203,19 @@ export function FormBuilder() {
                           <div className="field"><label>Required</label><label className="toggle"><input type="checkbox" disabled={f.core && f.required} checked={!!f.required} onChange={(e) => set({ required: e.target.checked })} /><span>{f.required ? 'Yes' : 'No'}</span></label></div>
                         </>
                       )}
-                      {f.type !== 'heading' && <div className="field span-all"><label>Help text</label><input value={f.help || ''} onChange={(e) => set({ help: e.target.value })} /></div>}
+                      {f.type !== 'heading' && <div className="field span-all"><label>Help text (shown under the field)</label><input value={f.help || ''} onChange={(e) => set({ help: e.target.value })} /></div>}
+                      {f.type !== 'heading' && (() => {
+                        const std = FIELD_INFO[draft.target]?.[f.key] || [];
+                        return (
+                          <>
+                            <div className="field span-all"><label htmlFor={`fi-${f.key}`}>Description (the ⓘ beside the label)</label>
+                              <textarea id={`fi-${f.key}`} rows={2} value={f.info || ''} placeholder={std[0] || 'What this field is for and what to enter'} onChange={(e) => set({ info: e.target.value || undefined })} /></div>
+                            <div className="field span-all"><label htmlFor={`fs-${f.key}`}>Where to find it</label>
+                              <input id={`fs-${f.key}`} value={f.source || ''} placeholder={std[1] || 'e.g. tyre gauge, dyno sheet, cam card'} onChange={(e) => set({ source: e.target.value || undefined })} /></div>
+                            {std[0] && !f.info && <small className="help span-all">Leave blank to keep the standard description shown as the placeholder.</small>}
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

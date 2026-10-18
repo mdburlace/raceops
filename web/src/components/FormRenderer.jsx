@@ -1,7 +1,48 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { infoFor } from '@shared/fieldInfo.js';
 import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { SweepField, TableField } from './TableFields.jsx';
+
+/** ⓘ beside a field label: shows on hover or keyboard focus, toggles on tap; Esc closes. */
+export function InfoTip({ info, label }) {
+  const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const [shift, setShift] = useState(0);
+  const tip = useRef(null);
+  const wrap = useRef(null);
+  const id = useId();
+  useLayoutEffect(() => {
+    if (!open || !tip.current) { setShift(0); return; }
+    // clientWidth, not innerWidth: on phones the layout viewport can grow to fit the tip itself
+    const vw = document.documentElement.clientWidth;
+    const r = tip.current.getBoundingClientRect();
+    const over = r.right - (vw - 8);
+    if (over > 0) setShift(-Math.min(over, r.left - 8));
+  }, [open]);
+  useEffect(() => {
+    if (!pinned) return undefined;
+    const away = (e) => { if (!wrap.current?.contains(e.target)) { setPinned(false); setOpen(false); } };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [pinned]);
+  if (!info) return null;
+  return (
+    <span className="info-wrap" ref={wrap} onMouseEnter={() => setOpen(true)} onMouseLeave={() => { if (!pinned) setOpen(false); }}>
+      <button type="button" className={`info-btn${open ? ' open' : ''}`} aria-label={`About ${label}`} aria-describedby={open ? id : undefined} aria-expanded={open}
+        onFocus={() => setOpen(true)} onBlur={() => { if (!pinned) setOpen(false); }}
+        onClick={(e) => { e.preventDefault(); const p = !pinned; setPinned(p); setOpen(p); }}
+        onKeyDown={(e) => { if (e.key === 'Escape') { setPinned(false); setOpen(false); } }}>i</button>
+      {open && (
+        <span role="tooltip" id={id} ref={tip} className="info-tip" style={shift ? { transform: `translateX(${shift}px)` } : undefined}
+          onClick={(e) => { e.preventDefault(); setPinned(false); setOpen(false); }}>
+          {info.text && <span className="info-text">{info.text}</span>}
+          {info.source && <span className="info-src"><b>Where to find it:</b> {info.source}</span>}
+        </span>
+      )}
+    </span>
+  );
+}
 
 function Opt({ o }) {
   const value = typeof o === 'object' ? o.value : o;
@@ -216,6 +257,7 @@ function CheckItem({ field, value, onChange, readOnly }) {
       <label className="check-main">
         <input type="checkbox" disabled={readOnly} checked={!!val.done} onChange={(e) => set({ done: e.target.checked })} />
         <span className="check-label">{field.label}</span>
+        {field.info && <InfoTip info={{ text: field.info, source: field.source }} label={field.label} />}
         <span className={`freq freq-${field.freq}`}>{{ weekly: 'W', race2: '2R', monthly: 'M' }[field.freq] || ''}</span>
       </label>
       <div className="check-extra">
@@ -238,7 +280,7 @@ function CheckItem({ field, value, onChange, readOnly }) {
 
 const visible = isVisible;
 
-export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [] }) {
+export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [], sectionExtras = {} }) {
   useSession(); // re-render when the cached member list arrives
   const suggestions = useMemo(() => {
     const out = {};
@@ -282,6 +324,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
         return (
           <section key={sec.id} className="card form-section">
             <h3>{sec.title}</h3>
+            {sectionExtras[sec.id] || null}
             <div className="field-grid">
               {shown.map((f, i) => f.type === 'heading'
                 ? <h4 key={`h${i}`} className="subhead span-all">{f.label}</h4>
@@ -315,10 +358,13 @@ function Field({ f, values, onChange, data, form, readOnly, errors, suggestions 
   }
   return (
     <div className={`field${wide ? ' span-all' : ''}${errors[f.key] ? ' has-error' : ''}`}>
-      <label htmlFor={`f-${f.key}`}>
-        {f.label}{f.required && !readOnly ? <span className="req">*</span> : null}
-        {f.unit && f.type !== 'calc' ? <span className="unit">{f.unit}</span> : null}
-      </label>
+      <div className="field-label">
+        <label htmlFor={`f-${f.key}`}>
+          {f.label}{f.required && !readOnly ? <span className="req">*</span> : null}
+          {f.unit && f.type !== 'calc' ? <span className="unit">{f.unit}</span> : null}
+        </label>
+        <InfoTip info={infoFor(form?.data?.target, f)} label={f.label} />
+      </div>
       {body}
       {f.help && !readOnly ? <small className="help">{f.help}</small> : null}
       {errors[f.key] ? <small className="error-text">{errors[f.key]}</small> : null}

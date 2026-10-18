@@ -1,5 +1,6 @@
 import { q } from './db.js';
 import { DEFAULT_GENERAL, DEFAULT_AI, LISTS, mergePlans, announcementActive } from '../../shared/platform.js';
+import { weatherEnabled } from './weather.js';
 
 // Platform settings are small and read on every request, so they are cached in memory
 // and reloaded whenever an admin saves (single server process).
@@ -38,6 +39,7 @@ export function publicSettings() {
     support_email: s.general.support_email || '',
     announcement: announcementActive(s.general.announcement) ? s.general.announcement : null,
     lists: s.lists,
+    weather: weatherEnabled(),
   };
 }
 
