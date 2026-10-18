@@ -30,7 +30,7 @@ export async function requireAuth(req, _res, next) {
     if (!token) throw new HttpError(401, 'Not signed in');
     let payload;
     try { payload = jwt.verify(token, SECRET); } catch { throw new HttpError(401, 'Session expired'); }
-    const { rows } = await q('SELECT id, email, name, is_platform_admin, disabled FROM users WHERE id=$1', [payload.sub]);
+    const { rows } = await q('SELECT id, email, name, is_platform_admin, disabled, prefs FROM users WHERE id=$1', [payload.sub]);
     if (!rows[0]) throw new HttpError(401, 'User not found');
     if (rows[0].disabled) throw new HttpError(401, 'This account has been disabled');
     req.user = rows[0];

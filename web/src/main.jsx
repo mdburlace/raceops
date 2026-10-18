@@ -3,7 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App.jsx';
 import { startSyncLoop } from './lib/sync.js';
+import { applyCachedTheme } from './lib/theme.js';
 import './styles.css';
+
+applyCachedTheme();
 
 // Offline app shell. New versions activate on next launch.
 registerSW({ immediate: true });

@@ -11,6 +11,7 @@ import {
 } from './auth.js';
 import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, GLOBAL_TYPES, canType, can, entitlements } from '../../shared/catalog.js';
 import { mapImportedTrack } from '../../shared/tracks.js';
+import { cleanPrefs } from '../../shared/themes.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
 import { FORM_REPLACE, applyUpgrades } from '../../shared/baseForms2.js';
 import { SEED_GEAR_LISTS } from '../../shared/gearLists.js';
@@ -252,7 +253,7 @@ async function ensureBaseForms() {
 
 const authPayload = async (user) => ({
   token: signToken(user),
-  user: { id: user.id, email: user.email, name: user.name, is_platform_admin: user.is_platform_admin },
+  user: { id: user.id, email: user.email, name: user.name, is_platform_admin: user.is_platform_admin, prefs: user.prefs || {} },
   memberships: await membershipsFor(user.id),
   platform: publicSettings(),
 });
@@ -356,8 +357,14 @@ app.get('/api/me', h(async (req, res) => {
 }));
 
 app.patch('/api/me', h(async (req, res) => {
-  const { name, current_password, new_password } = req.body || {};
+  const { name, current_password, new_password, prefs } = req.body || {};
   if (name) await q('UPDATE users SET name=$1 WHERE id=$2', [name, req.user.id]);
+  let saved;
+  if (prefs && typeof prefs === 'object') {
+    const clean = cleanPrefs(prefs);
+    need(JSON.stringify(clean).length < 20000, 400, 'Preferences are too large');
+    ({ rows: [saved] } = await q('UPDATE users SET prefs = prefs || $1::jsonb WHERE id=$2 RETURNING prefs', [JSON.stringify(clean), req.user.id]));
+  }
   if (new_password) {
     const keys = limiter.keysFor(req, req.user.email);
     guardSignIn(req, res, keys);
@@ -370,7 +377,7 @@ app.patch('/api/me', h(async (req, res) => {
     need(String(new_password).length >= 8, 400, 'Password must be at least 8 characters');
     await q('UPDATE users SET password_hash=$1 WHERE id=$2', [await hashPassword(new_password), req.user.id]);
   }
-  res.json({ ok: true });
+  res.json({ ok: true, ...(saved ? { prefs: saved.prefs } : {}) });
 }));
 
 mountAdmin(app, { createTenant, importTracks, ensureBaseForms, ensureGlobalTracks, UPLOAD_DIR, WEB_DIR });

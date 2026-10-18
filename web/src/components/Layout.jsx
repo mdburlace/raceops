@@ -35,6 +35,8 @@ export const I = {
   list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
   server: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01',
   ticket: 'M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3zM13 4v16',
+  chevron: 'M6 9l6 6 6-6',
+  palette: 'M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.1-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10zM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01M17 11h.01',
   spark: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 15l.6 1.4L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.6z',
 };
 export const Icon = ({ d, size = 20 }) => (
@@ -140,8 +142,11 @@ function Suspended() {
   );
 }
 
+/** Is the current page one of this sidebar section's pages? */
+export const inGroup = (g, path) => path.startsWith(AREA_PATH[g.area]) || g.links.some((l) => path === l.to || path.startsWith(`${l.to}/`));
+
 export default function Layout() {
-  const { user, memberships, membership, switchTenant, platform, licence, canModule } = useSession();
+  const { user, memberships, membership, switchTenant, platform, licence, canModule, prefs, setPrefs } = useSession();
   const [drawer, setDrawer] = useState(false);
   const loc = useLocation();
   const groups = useNav();
@@ -169,14 +174,26 @@ export default function Layout() {
         <nav>
           <NavLink to="/" end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}><Icon d={I.home} size={18} /><span>Home</span></NavLink>
           {canModule('ai') && <NavLink to="/ask" onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link ask-link${isActive ? ' active' : ''}`}><Icon d={I.spark} size={18} /><span>Ask RaceOps</span></NavLink>}
-          {groups.map((g) => (
-            <div key={g.area} className="nav-group">
-              <NavLink to={AREA_PATH[g.area]} end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-area area-${g.area}${isActive ? ' active' : ''}`}>
-                <Icon d={g.icon} size={16} /><span>{g.label}</span>
-              </NavLink>
-              {g.links.filter((l) => l.to !== AREA_PATH[g.area]).map(link)}
-            </div>
-          ))}
+          {groups.map((g) => {
+            const collapsed = (prefs.nav_collapsed || []).includes(g.area);
+            const here = inGroup(g, loc.pathname);
+            const toggle = () => setPrefs({ nav_collapsed: collapsed ? prefs.nav_collapsed.filter((k) => k !== g.area) : [...(prefs.nav_collapsed || []), g.area] });
+            return (
+              <div key={g.area} className={`nav-group${collapsed ? ' collapsed' : ''}`}>
+                <div className="nav-head">
+                  <NavLink to={AREA_PATH[g.area]} end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-area area-${g.area}${isActive ? ' active' : ''}`}>
+                    <Icon d={g.icon} size={16} /><span>{g.label}</span>
+                    {collapsed && here && <span className="nav-dot" title="You're in this section" />}
+                  </NavLink>
+                  <button type="button" className="nav-toggle" onClick={toggle} aria-expanded={!collapsed} aria-controls={`nav-${g.area}`}
+                    aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${g.label}`} title={collapsed ? 'Show links' : 'Hide links'}>
+                    <Icon d={I.chevron} size={16} />
+                  </button>
+                </div>
+                {!collapsed && <div id={`nav-${g.area}`} className="nav-links">{g.links.filter((l) => l.to !== AREA_PATH[g.area]).map(link)}</div>}
+              </div>
+            );
+          })}
           <div className="nav-sep" />
           {link({ to: '/profile', label: 'Profile & device', icon: I.user })}
         </nav>
@@ -194,7 +211,7 @@ export default function Layout() {
         <nav className="tabbar">
           <NavLink to="/" end className={({ isActive }) => `tab${isActive ? ' active' : ''}`}><Icon d={I.home} size={22} /><span>Home</span></NavLink>
           {groups.map((g) => {
-            const active = g.links.some((l) => loc.pathname === l.to || loc.pathname.startsWith(`${l.to}/`)) || loc.pathname.startsWith(AREA_PATH[g.area]);
+            const active = inGroup(g, loc.pathname);
             return (
               <NavLink key={g.area} to={AREA_PATH[g.area]} className={`tab area-${g.area}${active ? ' active' : ''}`}>
                 <Icon d={g.icon} size={22} /><span>{TAB_LABEL[g.area]}</span>

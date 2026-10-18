@@ -261,6 +261,14 @@ The AI features use Claude through the Anthropic API. They're off until a platfo
 
 Setup sheets also gained a **Weights & chassis** section with total weight, left/rear/cross %, wing position, nose wing, LR radius rod and rear steer, so more guide remedies can be tracked.
 
+### Themes and sidebar
+
+Each person picks their own look under **Profile & device → Appearance**. It is saved to their account, so it follows them to every device. Changes made offline are kept and sent when the device is back online.
+
+- **Standard themes:** Match this device (light or dark from the phone or computer setting), Paddock (light), Night race (dark), Sunlight (high contrast for bright sun), Racing green, Pit wall blue, Chequered flag, Midnight and Carbon & amber.
+- **Custom themes:** pick a light or dark base and five colours: page background, cards, text, accent and sidebar. Borders, faint text and soft highlights are derived from those. The whole app previews changes live and warns when text would be hard to read. Each person can keep up to 12.
+- **Sidebar sections:** the arrow beside each section heading (At the Track, In the Workshop, …) collapses it to just the heading. A dot on a collapsed heading shows that the current page is inside it. Sections can also be shown or hidden, or collapsed and expanded all at once, from Appearance.
+
 ### Teams, roles and permissions
 
 - **Multi-team:** one person can belong to several teams and switch between them in the sidebar. Platform admins create more teams under **Platform admin → Teams & licences**.

@@ -7,6 +7,7 @@ import { useSession } from '../lib/session.jsx';
 import { fullResync, getSyncStatus, subscribeSync, syncNow } from '../lib/sync.js';
 import { TeamAiSection } from '../components/Ai.jsx';
 import { ACTIONS, ADMIN_PERMISSIONS, AREAS, MODULES, moduleActions } from '@shared/catalog.js';
+import { Appearance } from '../components/Appearance.jsx';
 
 export function OnlineOnly({ children }) {
   const online = useOnline();
@@ -280,6 +281,7 @@ export function Profile() {
           </form>
         </Section>
       </div>
+      <Appearance />
       <button type="button" className="btn ghost danger" onClick={() => logout()}>Sign out of this device</button>
     </div>
   );

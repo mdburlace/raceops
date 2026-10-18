@@ -4,6 +4,12 @@ import { db, getMeta, setMeta } from './store.js';
 import { fullResync, setSyncTenant, syncNow } from './sync.js';
 import { can as canP, canType as canT, canArea as canA, canModule as canM, entitlements } from '@shared/catalog.js';
 import { setMembersCache, setPlatformLists } from './data.js';
+import { applyPrefsTheme } from './theme.js';
+
+// Preference changes made offline wait here (per user) until they reach the server.
+const pendingKey = (uid) => `raceops.prefs.pending.${uid}`;
+const readPending = (uid) => { try { return JSON.parse(localStorage.getItem(pendingKey(uid)) || 'null'); } catch { return null; } };
+const writePending = (uid, p) => { try { if (p) localStorage.setItem(pendingKey(uid), JSON.stringify(p)); else localStorage.removeItem(pendingKey(uid)); } catch { /* private mode */ } };
 
 const Ctx = createContext(null);
 export const useSession = () => useContext(Ctx);
@@ -34,6 +40,10 @@ export function SessionProvider({ children }) {
     const s = loadSession();
     if (!s?.token || !navigator.onLine) return;
     try {
+      const waiting = s.user?.id && readPending(s.user.id);
+      if (waiting) {
+        try { await api('/me', { method: 'PATCH', body: { prefs: waiting } }); writePending(s.user.id, null); } catch (e) { if (e.status === 400) writePending(s.user.id, null); }
+      }
       const me = await api('/me');
       const next = { ...s, user: me.user, memberships: me.memberships, platform: me.platform || s.platform };
       if (!me.memberships.some((m) => m.tenant_id === s.tenantId)) next.tenantId = me.memberships[0]?.tenant_id || null;
@@ -59,6 +69,26 @@ export function SessionProvider({ children }) {
   }, [refresh, logout]);
 
   const membership = session?.memberships?.find((m) => m.tenant_id === session.tenantId) || null;
+  const uid = session?.user?.id;
+  const prefs = useMemo(() => ({ ...(session?.user?.prefs || {}), ...(uid ? readPending(uid) || {} : {}) }), [session?.user, uid]);
+  const prefsSig = JSON.stringify(prefs);
+  useEffect(() => { if (uid) applyPrefsTheme(prefs); }, [uid, prefsSig]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save preferences: applied at once, kept on the device, and sent to the server when online.
+  const setPrefs = useCallback(async (patch) => {
+    const s = loadSession();
+    if (!s?.user) return;
+    const pending = { ...(readPending(s.user.id) || {}), ...patch };
+    writePending(s.user.id, pending);
+    update({ ...s, user: { ...s.user, prefs: { ...(s.user.prefs || {}), ...pending } } });
+    if (!navigator.onLine) return;
+    try {
+      const r = await api('/me', { method: 'PATCH', body: { prefs: pending } });
+      if (JSON.stringify(readPending(s.user.id)) === JSON.stringify(pending)) writePending(s.user.id, null);
+      const cur = loadSession();
+      if (r.prefs && cur?.user?.id === s.user.id) update({ ...cur, user: { ...cur.user, prefs: { ...r.prefs, ...(readPending(s.user.id) || {}) } } });
+    } catch { /* stays pending; sent on the next refresh */ }
+  }, [update]);
   const platform = session?.platform || null;
   setPlatformLists(platform?.lists);
   useEffect(() => { document.title = platform?.app_name || 'RaceOps'; }, [platform?.app_name]);
@@ -88,6 +118,8 @@ export function SessionProvider({ children }) {
   const value = useMemo(() => ({
     session,
     user: session?.user,
+    prefs,
+    setPrefs,
     memberships: session?.memberships || [],
     membership,
     tid: membership?.tenant_id,
@@ -103,7 +135,7 @@ export function SessionProvider({ children }) {
     licensed: (f) => ent.has(f),
     login, logout, refresh,
     switchTenant: (id) => update({ ...loadSession(), tenantId: id }),
-  }), [session, membership, ent, membersVersion, login, logout, refresh, update]);
+  }), [session, membership, ent, membersVersion, login, logout, refresh, update, prefs, setPrefs]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
