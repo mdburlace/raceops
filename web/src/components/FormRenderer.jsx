@@ -108,6 +108,16 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
         </label>
       );
     case 'select':
+      if (field.allowCustom) {
+        // pick from the list or type a name that isn't in it
+        const opts = optionsOf(field, form, data).map((o) => (typeof o === 'object' ? o.value : o));
+        return (
+          <>
+            <input {...common} list={`dl-${field.key}`} autoComplete="off" value={value ?? ''} placeholder={field.placeholder || 'Choose or type…'} onChange={(e) => onChange(e.target.value)} />
+            <datalist id={`dl-${field.key}`}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
+          </>
+        );
+      }
       return (
         <select {...common} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
           <option value="">—</option>
@@ -150,7 +160,13 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
       return <RefSearch id={common.id} recs={recs} value={value} data={data} onChange={onChange} />;
     }
     case 'ref': {
-      const opts = data.list(field.ref).filter((r) => !field.category || v(r, 'category') === field.category || r.id === value).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
+      let opts = data.list(field.ref).filter((r) => !field.category || v(r, 'category') === field.category || r.id === value).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
+      if (field.ref === 'track') {
+        // the team's own tracks first, then the rest of the directory; closed venues last
+        const ours = new Set(data.list('team_track').filter((l) => v(l, 'link') !== 'Hidden').map((l) => v(l, 'track')));
+        const rank = (r) => (ours.has(r.id) ? 0 : v(r, 'status') === 'Closed' ? 2 : 1);
+        opts = opts.sort((a, b) => rank(a) - rank(b));
+      }
       if (opts.length > 40) return <RefSearch id={common.id} recs={opts} value={value} data={data} onChange={onChange} />;
       return (
         <select {...common} value={value || ''} onChange={(e) => onChange(e.target.value)}>

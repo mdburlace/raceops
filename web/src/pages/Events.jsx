@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { Empty, PageHeader, Section } from '../components/ui.jsx';
 import { eventTrack, fmtDate, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
+import { saveRecord } from '../lib/store.js';
 
 /** Number of days an event runs (1 for single-day). */
 export function eventDays(ev) {
@@ -29,7 +30,7 @@ export function EventRow({ e, data, n }) {
       </span>
       <span className="grow">
         <span className="row-title">{v(e, 'name')}{eventDays(e) > 1 ? <span className="pill pill-info days-pill">{eventDays(e)} days</span> : null}</span>
-        <span className="row-sub">{[eventTrack(e, data), s && `${titleOf(s)}${v(e, 'round') ? ` · Rd ${v(e, 'round')}` : ''}`, !s && v(e, 'event_type')].filter(Boolean).join(' · ')}</span>
+        <span className="row-sub">{[data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')]), eventTrack(e, data), s && `${titleOf(s)}${v(e, 'round') ? ` · Rd ${v(e, 'round')}` : ''}`, !s && v(e, 'event_type')].filter(Boolean).join(' · ')}</span>
       </span>
       <span className="row-meta">{n ? `${n} sheet${n > 1 ? 's' : ''}` : ''}</span>
     </Link>
@@ -82,6 +83,59 @@ export function EventList() {
   );
 }
 
+/** Add one session at a time: pick a preset name or type your own. */
+function AddSession({ presets, used, onAdd, carLabel }) {
+  const next = presets.find((p) => !used.includes(p)) || '__other';
+  const [pick, setPick] = useState(next);
+  const [custom, setCustom] = useState('');
+  useEffect(() => { setPick(next); }, [next]);
+  const name = pick === '__other' ? custom.trim() : pick;
+  const add = () => { if (name) { onAdd(name); setCustom(''); } };
+  return (
+    <form className="add-session" onSubmit={(e) => { e.preventDefault(); add(); }}>
+      <select aria-label={`Session to add for ${carLabel}`} value={pick} onChange={(e) => setPick(e.target.value)}>
+        {presets.map((p) => <option key={p} value={p}>{p}{used.includes(p) ? ' — added' : ''}</option>)}
+        <option value="__other">Other — type a name…</option>
+      </select>
+      {pick === '__other' && (
+        <input autoFocus aria-label="Session name" placeholder="e.g. Heat 3, Last chance, Test & tune" value={custom} onChange={(e) => setCustom(e.target.value)} />
+      )}
+      <button className="btn primary" disabled={!name}>+ Add session</button>
+    </form>
+  );
+}
+
+function SessionCell({ s, back, label }) {
+  return (
+    <Link to={`/r/setup/${s.id}?back=${back}`} className={`session-cell has${s.dirty ? ' pending' : ''}`}>
+      <span className="sn">{label || v(s, 'session') || 'Session'}</span>
+      <span className="sd">{[v(s, 'start') && `Start ${v(s, 'start')}`, v(s, 'finish') && `Fin ${v(s, 'finish')}`].filter(Boolean).join(' → ') || 'Recorded'}</span>
+    </Link>
+  );
+}
+
+/** Pick the car for an event that doesn't have one yet (events made before the Car field). */
+function ChooseCar({ ev, data }) {
+  const { tid, user, canType } = useSession();
+  const cars = data.list('car').filter((c) => v(c, 'active') !== false);
+  const [car, setCar] = useState(cars.length === 1 ? cars[0].id : '');
+  if (!canType('event', 'edit')) return <div className="notice">No car has been set for this event yet.</div>;
+  return (
+    <Section title="Which car is racing at this event?">
+      {cars.length === 0 ? <Empty>Add a car first (Team → Cars).</Empty> : (
+        <div className="inline-row wrap">
+          <select aria-label="Car for this event" value={car} onChange={(e) => setCar(e.target.value)}>
+            <option value="">Choose a car…</option>
+            {cars.map((c) => <option key={c.id} value={c.id}>{titleOf(c)}</option>)}
+          </select>
+          <button type="button" className="btn primary" disabled={!car}
+            onClick={() => saveRecord(tid, 'event', ev.id, { ...ev.data, values: { ...ev.data.values, car } }, user.id)}>Set car</button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
 export function EventDetail() {
   const { id } = useParams();
   const data = useTeamData();
@@ -94,20 +148,51 @@ export function EventDetail() {
   const ev = data.byId[id];
   if (!ev) return <><PageHeader title="Event not found" back="/events" /></>;
   const form = formFor(data, 'setup');
-  const sessions = form?.data.sessions || [];
+  const presets = form?.data.sessions || [];
+  const order = (sn) => { const i = presets.indexOf(sn); return i < 0 ? presets.length : i; };
   const days = eventDays(ev);
   const day = dayState || (days > 1 ? Math.min(days, Math.max(1, Math.round((new Date(`${today()}T00:00:00`) - new Date(`${v(ev, 'date')}T00:00:00`)) / 864e5) + 1)) : 1);
   const dayOf = (s) => num(v(s, 'day')) || 1;
   const setups = data.list('setup').filter((s) => v(s, 'event') === id);
-  const daySetups = setups.filter((s) => days === 1 || dayOf(s) === day);
-  const carIds = new Set(setups.map((s) => v(s, 'car')));
-  const cars = data.list('car').filter((c) => v(c, 'active') !== false || carIds.has(c.id))
-    .sort((a, b) => String(v(a, 'number')).localeCompare(String(v(b, 'number')), undefined, { numeric: true }));
+  const daySetups = setups.filter((s) => days === 1 || dayOf(s) === day)
+    .sort((a, b) => order(v(a, 'session')) - order(v(b, 'session')) || (a.created_at || '').localeCompare(b.created_at || ''));
+  const car = data.byId[v(ev, 'car')];
+  // sheets recorded for other cars (before the event had a car) stay reachable
+  const otherCars = [...new Set(setups.map((s) => v(s, 'car')))].filter((c) => c && c !== car?.id).map((c) => data.byId[c]).filter(Boolean);
   const canEdit = canType('setup', 'edit');
   const back = encodeURIComponent(`/events/${id}${days > 1 ? `?day=${day}` : ''}`);
   const venue = data.byId[v(ev, 'venue')];
   const baselines = data.list('setup').filter((s) => v(s, 'baseline'));
   const series = data.byId[v(ev, 'series')];
+  const newSheet = (carId, session, from) => nav(`/r/setup/new?event=${id}&car=${carId}&session=${encodeURIComponent(session)}${days > 1 ? `&day=${day}` : ''}${from ? `&from=${from}` : ''}&back=${back}`);
+  const facts = [v(ev, 'location'), v(ev, 'track_length'), v(ev, 'surface'), v(ev, 'banking') && `Banking ${v(ev, 'banking')}`].filter(Boolean);
+
+  const carBlock = (c, primary) => {
+    const mine = daySetups.filter((s) => v(s, 'car') === c.id);
+    const used = mine.map((s) => v(s, 'session'));
+    const all = setups.filter((s) => v(s, 'car') === c.id);
+    const nextSession = presets.find((p) => !used.includes(p)) || 'Practice';
+    return (
+      <Section key={c.id} title={primary ? `${titleOf(c)} — sessions${days > 1 ? ` · Day ${day}` : ''}` : `${titleOf(c)} (earlier sheets)`} className={`event-car${primary ? '' : ' other-car'}`}
+        actions={(
+          <span className="row-actions">
+            {primary && canEdit && baselines.length > 0 && (
+              <select className="baseline-pick" aria-label={`Start ${titleOf(c)} from a baseline`} value=""
+                onChange={(e) => e.target.value && newSheet(c.id, nextSession, e.target.value)}>
+                <option value="">Start from baseline…</option>
+                {baselines.map((b) => <option key={b.id} value={b.id}>{v(b, 'baseline_name') || titleOf(b, data)}{v(b, 'car') !== c.id ? ` (${titleOf(data.byId[v(b, 'car')])})` : ''}</option>)}
+              </select>
+            )}
+            {all.length > 1 && <Link className="btn ghost small" to={`/compare?ids=${all.map((s) => s.id).join(',')}`}>Compare sessions</Link>}
+          </span>
+        )}>
+        {mine.length > 0 ? (
+          <div className="session-grid">{mine.map((s) => <SessionCell key={s.id} s={s} back={back} />)}</div>
+        ) : <p className="muted">{primary ? 'No sessions yet — add the first one below.' : 'No sheets on this day.'}</p>}
+        {primary && canEdit && <AddSession presets={presets} used={used} carLabel={titleOf(c)} onAdd={(name) => newSheet(c.id, name)} />}
+      </Section>
+    );
+  };
 
   return (
     <div>
@@ -115,66 +200,25 @@ export function EventDetail() {
         <Link className="btn ghost" to={`/r/event/${id}`}>{canType('event', 'edit') ? 'Edit event' : 'Details'}</Link>
       </PageHeader>
       <div className="event-meta">
+        {car && <span className="chip static car-chip">Car: {titleOf(car)}</span>}
         {venue && <Link className="chip" to={`/tracks/${venue.id}`}>Track: {v(venue, 'name')}</Link>}
         {series && <Link className="chip" to={`/series/${series.id}`}>{titleOf(series)}{v(ev, 'round') ? ` · Round ${v(ev, 'round')}` : ''}</Link>}
         {!series && <span className="chip static">Stand-alone event</span>}
         {days > 1 && <span className="chip static">{days}-day event</span>}
       </div>
+      {facts.length > 0 && <p className="muted small track-facts">{facts.join(' · ')}</p>}
       {v(ev, 'track_notes') && <div className="card"><p className="pre">{v(ev, 'track_notes')}</p></div>}
       {days > 1 && (
         <div className="tabs scroll">
           {Array.from({ length: days }, (_, i) => i + 1).map((d) => (
             <button type="button" key={d} className={d === day ? 'active' : ''} onClick={() => setDay(d)}>
-              Day {d} <small className="muted">{dayDate(ev, d)}</small> <span className="tab-count">{setups.filter((s) => dayOf(s) === d).length || ''}</span>
+              Day {d} <small className="muted">{dayDate(ev, d)}</small> <span className="tab-count">{setups.filter((s) => dayOf(s) === d && (!car || v(s, 'car') === car.id)).length || ''}</span>
             </button>
           ))}
         </div>
       )}
-      {cars.length === 0 && <Empty>Add a car first (Team → Cars) to record setups.</Empty>}
-      {cars.map((car) => {
-        const mine = daySetups.filter((s) => v(s, 'car') === car.id);
-        const extra = mine.filter((s) => !sessions.includes(v(s, 'session')));
-        const ids = setups.filter((s) => v(s, 'car') === car.id).map((s) => s.id).join(',');
-        return (
-          <Section key={car.id} title={titleOf(car)} className="event-car"
-            actions={(
-              <span className="row-actions">
-                {canEdit && baselines.length > 0 && (
-                  <select className="baseline-pick" aria-label={`Start ${titleOf(car)} from a baseline`} value=""
-                    onChange={(e) => e.target.value && nav(`/r/setup/new?event=${id}&car=${car.id}&session=${encodeURIComponent(sessions.find((sn) => !mine.some((x) => v(x, 'session') === sn)) || sessions[0] || '')}${days > 1 ? `&day=${day}` : ''}&from=${e.target.value}&back=${back}`)}>
-                    <option value="">Start from baseline…</option>
-                    {baselines.map((b) => <option key={b.id} value={b.id}>{v(b, 'baseline_name') || titleOf(b, data)}{v(b, 'car') !== car.id ? ` (${titleOf(data.byId[v(b, 'car')])})` : ''}</option>)}
-                  </select>
-                )}
-                {setups.filter((s) => v(s, 'car') === car.id).length > 1 && <Link className="btn ghost small" to={`/compare?ids=${ids}`}>Compare sessions</Link>}
-              </span>
-            )}>
-            <div className="session-grid">
-              {sessions.map((sn) => {
-                const list = mine.filter((s) => v(s, 'session') === sn);
-                if (list.length) {
-                  return list.map((s) => (
-                    <Link key={s.id} to={`/r/setup/${s.id}?back=${back}`} className={`session-cell has${s.dirty ? ' pending' : ''}`}>
-                      <span className="sn">{sn}</span>
-                      <span className="sd">{[v(s, 'start') && `Start ${v(s, 'start')}`, v(s, 'finish') && `Fin ${v(s, 'finish')}`].filter(Boolean).join(' → ') || 'Recorded'}</span>
-                    </Link>
-                  ));
-                }
-                return canEdit ? (
-                  <Link key={sn} to={`/r/setup/new?event=${id}&car=${car.id}&session=${encodeURIComponent(sn)}${days > 1 ? `&day=${day}` : ''}&back=${back}`} className="session-cell add">
-                    <span className="sn">{sn}</span><span className="sd">+ Add sheet</span>
-                  </Link>
-                ) : <div key={sn} className="session-cell none"><span className="sn">{sn}</span><span className="sd">—</span></div>;
-              })}
-              {extra.map((s) => (
-                <Link key={s.id} to={`/r/setup/${s.id}?back=${back}`} className="session-cell has">
-                  <span className="sn">{v(s, 'session') || 'Session'}</span><span className="sd">Recorded</span>
-                </Link>
-              ))}
-            </div>
-          </Section>
-        );
-      })}
+      {car ? carBlock(car, true) : <ChooseCar ev={ev} data={data} />}
+      {otherCars.map((c) => carBlock(c, false))}
       <ContactLinks data={data} entity={ev} />
     </div>
   );

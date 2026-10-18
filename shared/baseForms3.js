@@ -154,4 +154,12 @@ export const PHASE3_UPGRADES = [
   { target: 'setup', section: 'weather', sectionPatch: { carry: true } },
   { target: 'setup', insertSection: SETUP_FEEDBACK_SECTION, before: 'notes' },
   { target: 'track_check', section: 'when', after: 'after_session', field: { key: 'day', label: 'Day', type: 'number', placeholder: '1' } },
+  // events: the directory track drives the event's track details; one car per event; free-text session names
+  { target: 'event', key: 'venue', patch: { label: 'Track', help: 'Search the track directory — location, length, surface and banking fill in from it.' } },
+  { target: 'event', key: 'track', patch: { label: 'Track name (not in the directory)', showIf: 'venue=', required: true, help: 'Only needed if the track isn’t in the directory.' } },
+  { target: 'event', section: 'event', after: 'track', field: { key: 'car', label: 'Car', type: 'ref', ref: 'car', core: true, required: true, help: 'The car being raced at this event.' } },
+  { target: 'event', key: 'location', patch: { help: 'From the track — change it if needed.' } },
+  { target: 'event', section: 'event', after: 'track_length', field: { key: 'surface', label: 'Surface', type: 'text' } },
+  { target: 'event', section: 'event', after: 'surface', field: { key: 'banking', label: 'Banking', type: 'text' } },
+  { target: 'setup', key: 'session', patch: { allowCustom: true } },
 ];

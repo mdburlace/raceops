@@ -702,3 +702,13 @@ input.le-add { flex: 1 1 140px; width: auto !important; min-height: 30px !import
 @media (max-width: 900px) { .grid-2.admin-cols { grid-template-columns: minmax(0, 1fr); } }
 .activity .row-sub { overflow-wrap: anywhere; }
 @media (max-width: 560px) { .admin-table .pool { min-width: 84px; } .admin-table th, .admin-table td { padding: 6px 4px; } }
+
+/* events: one car, sessions added one by one */
+.add-session { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.add-session select { flex: 0 1 240px; width: auto; }
+.add-session input { flex: 1 1 200px; width: auto; }
+.add-session .btn { flex: none; }
+.event-car.other-car { opacity: .85; }
+.track-facts { margin: -4px 0 12px; }
+.car-chip { font-weight: 700; }
+@media (max-width: 560px) { .add-session select, .add-session input { flex: 1 1 100%; } .add-session .btn { flex: 1; } }

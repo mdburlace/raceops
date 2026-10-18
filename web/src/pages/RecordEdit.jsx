@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { gearTeeth } from '../lib/gears.js';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
@@ -64,6 +64,18 @@ function carryValues(form, source, skip = CARRY.setup.skip) {
   return out;
 }
 
+/** Event fields that come from the chosen directory track. */
+export function trackDetails(t) {
+  if (!t) return {};
+  return {
+    track: v(t, 'name') || '',
+    location: [v(t, 'city'), v(t, 'region'), v(t, 'country')].filter(Boolean).join(', '),
+    track_length: v(t, 'length') || '',
+    surface: v(t, 'surface') || '',
+    banking: v(t, 'banking') || '',
+  };
+}
+
 const eventDate = (s, data) => v(data.byId[v(s, 'event')], 'date') || '';
 const recDate = (r, data) => (r.type === 'setup' ? eventDate(r, data) : v(r, 'date') || '');
 const sortSetupsDesc = (list, data) => list.slice().sort((a, b) =>
@@ -104,6 +116,11 @@ export default function RecordEdit() {
     for (const fd of allFields(f)) if (fd.defaultSelf && !init[fd.key]) init[fd.key] = user.id;
     if (type === 'dyno_run' && init.asset && v(data.byId[init.asset], 'adjust_type')) init.adjust_type = v(data.byId[init.asset], 'adjust_type');
     if (allFields(f).some((fd) => fd.key === 'date' && fd.type === 'date')) init.date ||= today();
+    if (type === 'event' && !init.car) {
+      const active = data.list('car').filter((c) => v(c, 'active') !== false);
+      if (active.length === 1) init.car = active[0].id; // the only car the team runs
+    }
+    if (type === 'event' && init.venue) Object.assign(init, trackDetails(data.byId[init.venue]));
     const cfg = CARRY[type];
     if (cfg && params.get('from') && data.byId[params.get('from')]) {
       const src = data.byId[params.get('from')];
@@ -117,6 +134,17 @@ export default function RecordEdit() {
     setFormId(f?.id);
     setValues(init);
   }, [data, rec, isNew]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // event: picking a different track fills location, length, surface and banking from the directory
+  const venueRef = useRef(undefined);
+  useEffect(() => {
+    if (type !== 'event' || !values || !data) return;
+    if (venueRef.current === undefined) { venueRef.current = values.venue || ''; return; }
+    if ((values.venue || '') === venueRef.current) return;
+    venueRef.current = values.venue || '';
+    const t = data.byId[values.venue];
+    if (t) setValues((x) => ({ ...x, ...trackDetails(t) }));
+  }, [type, values?.venue, data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // setup: final drive = ring & pinion on the car × spur ratio of the chosen gear set and position
   const carRp = type === 'setup' && data && values ? num(v(data.byId[values.car], 'rp_ratio')) : null;
