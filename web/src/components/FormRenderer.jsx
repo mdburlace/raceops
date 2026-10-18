@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { infoFor } from '@shared/fieldInfo.js';
+import { FieldCalc } from './Calculator.jsx';
 import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { SweepField, TableField } from './TableFields.jsx';
@@ -280,7 +281,7 @@ function CheckItem({ field, value, onChange, readOnly }) {
 
 const visible = isVisible;
 
-export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [], sectionExtras = {} }) {
+export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [], sectionExtras = {}, calcCtx = null }) {
   useSession(); // re-render when the cached member list arrives
   const suggestions = useMemo(() => {
     const out = {};
@@ -317,7 +318,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
                 ? <h4 key={`h${i}`} className="subhead">{f.label}</h4>
                 : f.type === 'check'
                   ? <CheckItem key={f.key} field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />
-                  : <Field key={f.key} f={f} {...{ values, onChange, data, form, readOnly, errors, suggestions }} />)}
+                  : <Field key={f.key} f={f} {...{ values, onChange, data, form, readOnly, errors, suggestions, calcCtx }} />)}
             </section>
           );
         }
@@ -328,7 +329,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
             <div className="field-grid">
               {shown.map((f, i) => f.type === 'heading'
                 ? <h4 key={`h${i}`} className="subhead span-all">{f.label}</h4>
-                : <Field key={f.key} f={f} {...{ values, onChange, data, form, readOnly, errors, suggestions }} />)}
+                : <Field key={f.key} f={f} {...{ values, onChange, data, form, readOnly, errors, suggestions, calcCtx }} />)}
             </div>
           </section>
         );
@@ -337,7 +338,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
   );
 }
 
-function Field({ f, values, onChange, data, form, readOnly, errors, suggestions }) {
+function Field({ f, values, onChange, data, form, readOnly, errors, suggestions, calcCtx }) {
   const wide = ['textarea', 'corners', 'table', 'multiref', 'sweep', 'tags'].includes(f.type);
   let body;
   if (f.type === 'derived') {
@@ -364,6 +365,7 @@ function Field({ f, values, onChange, data, form, readOnly, errors, suggestions 
           {f.unit && f.type !== 'calc' ? <span className="unit">{f.unit}</span> : null}
         </label>
         <InfoTip info={infoFor(form?.data?.target, f)} label={f.label} />
+        {calcCtx && !readOnly && <FieldCalc target={form?.data?.target} field={f} ctx={calcCtx} onUse={(x) => onChange(f.key, x)} />}
       </div>
       {body}
       {f.help && !readOnly ? <small className="help">{f.help}</small> : null}

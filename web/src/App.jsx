@@ -16,6 +16,7 @@ import RecordEdit from './pages/RecordEdit.jsx';
 import { FormBuilder, FormList } from './pages/Forms.jsx';
 import { Profile, Roles, Team } from './pages/Team.jsx';
 import { AskPage } from './components/Ai.jsx';
+import { Calculators } from './pages/Calculators.jsx';
 import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
 import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
 
@@ -103,6 +104,7 @@ function Routed() {
         <Route path="admin/system" element={<AdminGate><AdminSystem /></AdminGate>} />
         <Route path="admin/ai" element={<AdminGate><AdminAi /></AdminGate>} />
         <Route path="ask" element={<AskPage />} />
+        <Route path="calculators" element={<Calculators />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

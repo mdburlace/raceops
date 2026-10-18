@@ -36,6 +36,7 @@ export const I = {
   server: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01',
   ticket: 'M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3zM13 4v16',
   chevron: 'M6 9l6 6 6-6',
+  calc: 'M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM8 6h8v3H8zM8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01',
   palette: 'M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.1-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10zM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01M17 11h.01',
   spark: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 15l.6 1.4L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.6z',
 };
@@ -72,14 +73,17 @@ export function useNav() {
       canModule('setups') && { to: '/track/advisor', label: 'Setup advisor', icon: I.sliders },
       canModule('trackside') && { to: '/track/checks', label: 'Between-round checks', icon: I.check },
       canModule('gears') && { to: '/track/gears', label: 'Gears & tires', icon: I.gear },
+      { to: '/calculators?area=track', label: 'Calculators', icon: I.calc },
     ] },
     { area: 'workshop', label: 'In the Workshop', icon: I.shop, show: canArea('workshop'), links: [
       canModule('maintenance') && { to: '/maintenance', label: 'Car maintenance', icon: I.wrench },
       canModule('assets') && { to: '/assets', label: 'Assets', icon: I.box },
       canModule('dyno') && { to: '/workshop/dyno', label: 'Shock & bar dyno', icon: I.wave },
+      { to: '/calculators?area=workshop', label: 'Calculators', icon: I.calc },
     ] },
     { area: 'engines', label: 'Engine Builds', icon: I.engine, show: canArea('engines'), links: [
       canModule('engines') && { to: '/engines', label: 'Engines & builds', icon: I.engine, end: true },
+      { to: '/calculators?area=engines', label: 'Calculators', icon: I.calc },
     ] },
     { area: 'team', label: 'Team Management', icon: I.team, show: canArea('team') || admin, links: [
       canModule('cars') && { to: '/cars', label: 'Cars', icon: I.car },
@@ -157,7 +161,8 @@ export default function Layout() {
   const mark = (words.length > 1 ? words.map((w) => w[0]).join('') : caps.length > 1 ? caps : appName).slice(0, 2).toUpperCase() || 'RO';
 
   const link = (n) => (
-    <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+    <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setDrawer(false)}
+      className={({ isActive }) => `nav-link${(n.to.includes('?') ? `${loc.pathname}${loc.search}`.startsWith(n.to) : isActive) ? ' active' : ''}`}>
       <Icon d={n.icon} size={18} /><span>{n.label}</span>
     </NavLink>
   );

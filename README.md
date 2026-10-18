@@ -278,6 +278,22 @@ Values are always shown for review first. Readings typed in by hand start untick
 
 Responses are cached for 10 minutes per track, so a whole pit area pulling at once makes one call.
 
+### Calculators
+
+**Calculators** is in the sidebar under At the Track, In the Workshop and Engine Builds. Each opens the same page filtered for that area. There are 47 calculators, all working offline, and each shows how its answer is worked out. The last inputs are remembered on the device.
+
+- **Air & weather:** air correction (ADR, density altitude, STD and SAE correction factors, dew point, wet bulb, grains, pressure altitude), density altitude ↔ ADR, altimeter ↔ station pressure, standard-day lap time.
+- **Fuel injection & tuning:** main pill for new air (mechanical injection, using the share of pump flow between nozzles and bypass), high-speed bypass, orifice area, change, flow and parallel orifices, fuel flow and pump size, EFI injector size, engine airflow, methanol hydrometer check.
+- **Chassis, tyres & weights:** corner weights ↔ percentages, ballast for a target %, stagger for a turn, hot vs cold tyres, tyre size, wheel offset ↔ backspacing.
+- **Gearing, speed & laps:** quick-change final drive (with the closest sets on your gear chart), new rpm after a change, speed ↔ rpm, ratio for a target rpm, lap time ↔ speed, lap analysis, fuel for a race.
+- **Engine builder:** displacement, bore and stroke, compression ratio, dynamic compression, cam specs from events, valve events from the cam card, valve lift, piston speed and rod ratio, compression height, chamber and dish/dome by burette, gasket volume, dyno correction, HP estimate, flow at another test pressure, bobweight, ring gap.
+- **Workshop:** torsion bar rate, wheel rate (motion ratio), torque wrench with an extension, unit converter.
+
+**On the sheets:**
+- A small calculator button beside a field (main jet, high-speed bypass, stagger, ADR, ALT, dyno HP, cam centreline and others) opens the matching calculator, filled in from the sheet. The main jet calculator also uses the previous session's ADR and pill. **Use** puts the answer in the field.
+- On setup sheets, entering the four **corner weights** fills in total, left %, rear % and cross %.
+- Engine build sheets get a **Clearances & checks** card: main, rod and cam bearing oil clearances, piston-to-wall, ring gap per inch of bore, rod ratio, piston speed and bobweight. It is worked out from the measurements already entered.
+
 ### Field descriptions
 
 Every standard field has an **ⓘ** beside its label: hover, focus or tap it to see what the field is for, what to enter and where to get the number. In **Forms**, a field's settings let a team write its own description and "where to find it" for any field, including custom ones. Left blank, the standard text is used.

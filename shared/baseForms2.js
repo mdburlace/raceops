@@ -356,8 +356,8 @@ export function applyUpgrades(form) {
     if (has(u.field.key)) continue;
     const sec = form.sections.find((s) => s.id === u.section) || form.sections.find((s) => s.fields.some((f) => f.key === u.after));
     if (!sec) continue;
-    const i = sec.fields.findIndex((f) => f.key === u.after);
-    sec.fields.splice(i >= 0 ? i + 1 : sec.fields.length, 0, { ...u.field });
+    const i = u.first ? -1 : sec.fields.findIndex((f) => f.key === u.after);
+    sec.fields.splice(u.first ? 0 : i >= 0 ? i + 1 : sec.fields.length, 0, { ...u.field });
     changed = true;
   }
   return changed;

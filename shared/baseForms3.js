@@ -193,6 +193,7 @@ export const PHASE3_UPGRADES = [
   { target: 'setup', insertSection: SETUP_CHASSIS_SECTION, before: 'feedback' },
   // weather: units follow the team's choice (set in the weather panel); more readings for pulled or manual weather
   { target: 'setup', key: 'baro', patch: { unit: '' } },
+  { target: 'setup', section: 'weights', first: true, field: { key: 'corner_weights', label: 'Corner weights', type: 'corners', input: 'number', corners: ['LF', 'RF', 'LR', 'RR'], unit: 'lb', help: 'Enter all four and total, left, rear and cross fill in.' } },
   { target: 'setup', key: 'adr', patch: { unit: '%' } },
   { target: 'setup', section: 'weather', after: 'wb', field: { key: 'humidity', label: 'Humidity', type: 'number', unit: '%' } },
   { target: 'setup', section: 'weather', after: 'humidity', field: { key: 'dew_point', label: 'Dew point', type: 'number' } },

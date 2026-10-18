@@ -61,6 +61,7 @@ export const FIELD_INFO = {
     fuel_used: ['Fuel used = started − finished. Calculated for you.'],
     tach_low: ['Lowest rpm recorded (tach recall), usually in the slowest corner.', 'Tach / data logger recall.'],
     tach_high: ['Highest rpm recorded (tach recall), usually at the end of the straight.', 'Tach / data logger recall.'],
+    corner_weights: ['Scale reading at each corner with the driver in. Fills in total, left %, rear % and cross % for you.', 'Corner-weight scales, on a level pad, at race tyre pressures.'],
     total_weight: ['Total car weight with driver (and fuel load you note).', 'Corner-weight scales.'],
     left_pct: ['Left-side weight as a % of total.', 'Corner-weight scales.'],
     rear_pct: ['Rear weight as a % of total.', 'Corner-weight scales.'],

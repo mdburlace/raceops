@@ -3,6 +3,9 @@ import { gearTeeth } from '../lib/gears.js';
 import { dayOf, orderSessions, previousSession } from '../lib/sessions.js';
 import { AiTools } from '../components/Ai.jsx';
 import { WeatherTools, useWeatherUnits, withWeatherUnits } from '../components/Weather.jsx';
+import { calcContext } from '../components/Calculator.jsx';
+import { EngineChecks } from '../components/EngineChecks.jsx';
+import { FIELD_CALCS, cornerPercents } from '@shared/calcs.js';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
@@ -166,6 +169,11 @@ export default function RecordEdit() {
       const next = { ...s, [k]: val };
       // dyno run: picking a shock brings its adjuster type across
       if (type === 'dyno_run' && k === 'asset' && data?.byId[val] && v(data.byId[val], 'adjust_type')) next.adjust_type = v(data.byId[val], 'adjust_type');
+      // setup: four corner weights fill in total, left, rear and cross
+      if (type === 'setup' && k === 'corner_weights') {
+        const p = cornerPercents(val);
+        if (p) Object.assign(next, { total_weight: String(Math.round(p.total)), left_pct: p.left.toFixed(1), rear_pct: p.rear.toFixed(1), cross_pct: p.cross.toFixed(1) });
+      }
       return next;
     });
     setDirty(true);
@@ -346,7 +354,9 @@ export default function RecordEdit() {
 
       <FormRenderer form={type === 'setup' ? withWeatherUnits(form, wxUnits) : form} values={values} onChange={onChange} data={data} readOnly={readOnly}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
-        sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined} />
+        sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}
+        calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />
+      {type === 'engine_build' && <EngineChecks values={values} />}
 
       {type === 'dyno_run' && <DynoChart runs={[{ id: id || 'new', name: values.label || 'This run', values, form }]} />}
 
