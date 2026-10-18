@@ -65,4 +65,4 @@ export const DEFAULT_AI = {
   monthly_usd: 10, // default allowance per team per calendar month
   prices: Object.fromEntries(AI_MODELS.map((m) => [m.id, m.price])),
 };
-export const AI_FEATURES = { extract: 'Fill from photo', debrief: 'Voice debrief', ask: 'Ask RaceOps', test: 'Connection test' };
+export const AI_FEATURES = { extract: 'Fill from photo', debrief: 'Voice debrief', ask: 'Ask RaceOps', advise: 'Setup advisor', guide_import: 'Guide import', test: 'Connection test' };

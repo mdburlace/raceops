@@ -16,6 +16,7 @@ import RecordEdit from './pages/RecordEdit.jsx';
 import { FormBuilder, FormList } from './pages/Forms.jsx';
 import { Profile, Roles, Team } from './pages/Team.jsx';
 import { AskPage } from './components/Ai.jsx';
+import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
 import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
 
 function NoTeam() {
@@ -62,6 +63,9 @@ function Routed() {
         <Route path="series" element={<AreaGate area="track" module="events"><SeriesList /></AreaGate>} />
         <Route path="series/:id" element={<AreaGate area="track" module="events"><SeriesDetail /></AreaGate>} />
         <Route path="setups" element={<AreaGate area="track" module="setups"><SetupList /></AreaGate>} />
+        <Route path="track/advisor" element={<AreaGate area="track" module="setups"><AdvisorPage /></AreaGate>} />
+        <Route path="track/advisor/guides" element={<AreaGate area="track" module="setups"><GuideList /></AreaGate>} />
+        <Route path="track/advisor/guides/:id" element={<AreaGate area="track" module="setups"><GuideEdit /></AreaGate>} />
         <Route path="track/checks" element={<AreaGate area="track" module="trackside"><TrackChecks /></AreaGate>} />
         <Route path="track/gears" element={<AreaGate area="track" module="gears"><GearsTires /></AreaGate>} />
         {/* Workshop */}

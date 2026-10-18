@@ -248,6 +248,19 @@ The AI features use Claude through the Anthropic API. They're off until a platfo
 | `ANTHROPIC_WORKSPACE_ID` | Only needed if your key isn't limited to one workspace: that workspace's ID (`wrkspc_…`, from Settings → Workspaces in the Claude Console). |
 | `AI_PROVIDER` | Leave unset. `mock` is a built-in stand-in used only by automated tests. |
 
+### Setup advisor
+
+**At the Track → Setup advisor**, or the **Setup advisor** button on any saved setup sheet. Pick what the car is doing (loose/tight on entry, centre or exit, or no rear bite). From a sheet, this is pre-filled from the driver and crew feedback. Then choose track conditions, car and track. The advisor shows two things:
+
+- **What's worked for you.** It finds every sheet where the driver or crew reported that problem, compares it with the next session's sheet to see what was changed, and checks that session's feedback to see whether the complaint was gone. Changes are grouped, for example "Stagger ↓ tried 4×, gone next session 3×, still there 1×", with links to the sheets. Sessions at the same track, with the same car or in the same conditions count for more. This builds up as the team records feedback and changes. It runs on the device, so it works offline.
+- **Guide recommendations.** Remedies from the tuning guides for that problem. Each shows its effectiveness rating (where the guide gives one), your team's results when you've made that change, the sheet's current value, and a **guides disagree** flag where two guides point opposite ways.
+
+**+ Add to changes** appends a remedy to the sheet's *Changes for next session*. With the AI add-on, **Talk it through** weighs the history against the guides and suggests one to four changes in order, linked to the sessions and guide rules they're based on.
+
+**Tuning guides** (from the advisor page) lists the guides. Two shared guides are seeded for every team: *XXX Tech Department — Recommended Chassis Adjustments* and *J & J Auto Racing — Chassis Adjustment Guide*. Only the platform admin can edit shared guides. Teams can add their own, type rules in, or **Import a guide from PDF or photo** (AI) and check the rules before saving. A rule linked to a setup setting and direction (e.g. *Stagger ↓*) can be matched against the team's history. Rules without one are still listed.
+
+Setup sheets also gained a **Weights & chassis** section with total weight, left/rear/cross %, wing position, nose wing, LR radius rod and rear steer, so more guide remedies can be tracked.
+
 ### Teams, roles and permissions
 
 - **Multi-team:** one person can belong to several teams and switch between them in the sidebar. Platform admins create more teams under **Platform admin → Teams & licences**.

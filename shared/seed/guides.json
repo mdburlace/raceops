@@ -1,0 +1,667 @@
+{
+ "guides": [
+  {
+   "seed_key": "xxx-tech-chassis",
+   "name": "Recommended Chassis Adjustments",
+   "publisher": "XXX Tech Department",
+   "applies_to": "Winged sprint cars",
+   "notes": "Symptom → remedies list. Remedies are listed in the order given in the guide; it does not rate effectiveness.",
+   "rules": [
+    {
+     "problem": "Loose entry",
+     "remedy": "Reduce right rear air pressure",
+     "field": "pressure_cold",
+     "corner": "RR",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Move right rear wheel in",
+     "field": "wheel_spacing",
+     "corner": "RR",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Use narrower right rear wheel or more offset",
+     "field": "wheel_width",
+     "corner": "RR",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Raise chassis ride height front and rear",
+     "field": "ride_height",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Take out tilt (raise left side)",
+     "field": "ride_height",
+     "corner": "left",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Add right rear cross weight"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Use less bar split",
+     "field": "bars"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Use softer right rear bar",
+     "field": "bars",
+     "corner": "RR",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Drive car in straighter",
+     "note": "Driving"
+    },
+    {
+     "problem": "Loose centre",
+     "remedy": "Move right rear tire in (start with 1\")",
+     "field": "wheel_spacing",
+     "corner": "RR",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose centre",
+     "remedy": "Reduce stagger",
+     "field": "stagger_cold",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose centre",
+     "remedy": "Raise ride height front and rear",
+     "field": "ride_height",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose centre",
+     "remedy": "Use softer rebound shock valving at left front and left rear",
+     "field": "shock_adjust",
+     "corner": "left"
+    },
+    {
+     "problem": "Loose centre",
+     "remedy": "Use higher gear",
+     "field": "final_drive"
+    },
+    {
+     "problem": "Loose centre",
+     "remedy": "Take tilt out (raise left side)",
+     "field": "ride_height",
+     "corner": "left",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose centre",
+     "remedy": "Raise forward end of left rear radius rod",
+     "field": "lr_radius_rod"
+    },
+    {
+     "problem": "Loose centre",
+     "remedy": "Move wing back or use more wing angle",
+     "field": "wing_angle",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Reduce stagger",
+     "field": "stagger_cold",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Raise front ride height",
+     "field": "ride_height",
+     "corner": "front",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Use higher gear",
+     "field": "final_drive"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Move wing back or use more wing angle",
+     "field": "wing_angle",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Use softer rebound shock valving at right front",
+     "field": "shock_adjust",
+     "corner": "RF"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Increase left rear cross weight",
+     "field": "cross_pct"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Use softer right front spring rate",
+     "field": "bars",
+     "corner": "RF",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Use softer spring rate at right front and right rear",
+     "field": "bars",
+     "corner": "right",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Roll into the throttle smoother",
+     "note": "Driving"
+    },
+    {
+     "problem": "Loose everywhere",
+     "remedy": "Raise ride height front and rear",
+     "field": "ride_height",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose everywhere",
+     "remedy": "Take out tilt (raise left side)",
+     "field": "ride_height",
+     "corner": "left",
+     "dir": "+"
+    },
+    {
+     "problem": "Loose everywhere",
+     "remedy": "Reduce stagger",
+     "field": "stagger_cold",
+     "dir": "-"
+    },
+    {
+     "problem": "Loose everywhere",
+     "remedy": "Move wing back",
+     "field": "wing_position"
+    },
+    {
+     "problem": "Loose everywhere",
+     "remedy": "Use softer spring rate at right front and right rear",
+     "field": "bars",
+     "corner": "right",
+     "dir": "-"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Increase right rear air pressure",
+     "field": "pressure_cold",
+     "corner": "RR",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Move right rear wheel out",
+     "field": "wheel_spacing",
+     "corner": "RR",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Use less wheel offset at right rear",
+     "field": "wheel_offset",
+     "corner": "RR",
+     "dir": "-"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Use wider right rear wheel",
+     "field": "wheel_width",
+     "corner": "RR",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Add tilt (lower left side)",
+     "field": "ride_height",
+     "corner": "left",
+     "dir": "-"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Use more bar split front & rear",
+     "field": "bars"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Use stiffer right rear torsion arm",
+     "field": "bars",
+     "corner": "RR"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Use softer left rear & left front torsion bars",
+     "field": "bars",
+     "corner": "left",
+     "dir": "-"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Use stiffer shock rebound valving at left rear",
+     "field": "shock_adjust",
+     "corner": "LR"
+    },
+    {
+     "problem": "Tight centre",
+     "remedy": "Move right rear tire out (start with 1\")",
+     "field": "wheel_spacing",
+     "corner": "RR",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight centre",
+     "remedy": "Increase stagger",
+     "field": "stagger_cold",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight centre",
+     "remedy": "Lower chassis ride height",
+     "field": "ride_height",
+     "dir": "-"
+    },
+    {
+     "problem": "Tight centre",
+     "remedy": "Use more tilt (lower left side)",
+     "field": "ride_height",
+     "corner": "left",
+     "dir": "-"
+    },
+    {
+     "problem": "Tight centre",
+     "remedy": "Lower left rear radius rod forward end",
+     "field": "lr_radius_rod"
+    },
+    {
+     "problem": "Tight centre",
+     "remedy": "Move wing forward",
+     "field": "wing_position"
+    },
+    {
+     "problem": "Tight centre",
+     "remedy": "Use stiffer shock rebound valving left front",
+     "field": "shock_adjust",
+     "corner": "LF"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Increase stagger",
+     "field": "stagger_cold",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Lower the front ride height",
+     "field": "ride_height",
+     "corner": "front",
+     "dir": "-"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Move wing forward",
+     "field": "wing_position"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Increase nose wing angle",
+     "field": "nose_wing",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Use stiffer shock rebound valving on both front shocks",
+     "field": "shock_adjust",
+     "corner": "front"
+    },
+    {
+     "problem": "Tight everywhere",
+     "remedy": "Increase right rear air pressure",
+     "field": "pressure_cold",
+     "corner": "RR",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight everywhere",
+     "remedy": "Increase stagger",
+     "field": "stagger_cold",
+     "dir": "+"
+    },
+    {
+     "problem": "Tight everywhere",
+     "remedy": "Move wing forward",
+     "field": "wing_position"
+    },
+    {
+     "problem": "Tight everywhere",
+     "remedy": "Use softer left front torsion bar",
+     "field": "bars",
+     "corner": "LF",
+     "dir": "-"
+    },
+    {
+     "problem": "Tight everywhere",
+     "remedy": "Move right rear wheel out",
+     "field": "wheel_spacing",
+     "corner": "RR",
+     "dir": "+"
+    },
+    {
+     "problem": "Not enough RR bite",
+     "remedy": "Stiffen up the left front bar",
+     "field": "bars",
+     "corner": "LF",
+     "dir": "+"
+    },
+    {
+     "problem": "Not enough RR bite",
+     "remedy": "Straight valve left front shock (as written: \"Straight value\")",
+     "field": "shock_adjust",
+     "corner": "LF"
+    },
+    {
+     "problem": "Not enough RR bite",
+     "remedy": "Riser left front shock (as written)",
+     "field": "shocks",
+     "corner": "LF"
+    }
+   ]
+  },
+  {
+   "seed_key": "jj-chassis-adjustment",
+   "name": "Chassis Adjustment Guide",
+   "publisher": "J & J Auto Racing",
+   "applies_to": "Sprint cars (J&J chassis)",
+   "notes": "Ratings from the guide: ** highly effective, * effective, otherwise least effective.\n\"Tighten in\" = car loose on entry; \"Loosen in\" = tight on entry; \"Tighten off\" = loose on exit; \"Loosen off\" = tight on exit.\n\nBaseline from the guide:\n- Block 3\" in front, block 4\" in rear to race\n- Torsion bars: 1.000 LF, 1.025 RF, 1.025 LR, 1.025 RR\n- Shocks: 7500 in front, 9500 in rear\n\nRod lengths (wheelbase/frame: 86½-40 | 86½-39 | 87½-40 | 88½-40 | 88½-40½)\n- Front rod (×3): 21½ | 22½ | 22½ | 23½ | 23½\n- Sway bar: 19 | 19 | 19 | 19 | 19\n- Left rear: 23½ | 23½ | 23½ | 23½ | 24\n- Right rear: 24 | 24 | 24 | 24 | 24½\n- Tie rod: 45½ | 45½ | 45½ | 45½ | 45½\n- Drag length: 49 | 49 | 50 | 51 | 51",
+   "rules": [
+    {
+     "problem": "Loose entry",
+     "remedy": "Front springs: stiffen left",
+     "field": "bars",
+     "corner": "LF",
+     "dir": "+",
+     "effect": "high"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Front springs: soften left",
+     "field": "bars",
+     "corner": "LF",
+     "dir": "-",
+     "effect": "effective"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Front springs: stiffen right",
+     "field": "bars",
+     "corner": "RF",
+     "dir": "+",
+     "effect": "high"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Front springs: soften right",
+     "field": "bars",
+     "corner": "RF",
+     "dir": "-",
+     "effect": "high"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Front shocks: soften extension",
+     "field": "shock_adjust",
+     "corner": "front",
+     "effect": "effective"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Front shocks: stiffen extension",
+     "field": "shock_adjust",
+     "corner": "front",
+     "effect": "effective"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Rear springs: stiffen right",
+     "field": "bars",
+     "corner": "RR",
+     "dir": "+",
+     "effect": "effective"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Rear springs: soften right",
+     "field": "bars",
+     "corner": "RR",
+     "dir": "-",
+     "effect": "least"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Rear springs: stiffen left and/or soften right",
+     "field": "bars",
+     "corner": "LR",
+     "dir": "+",
+     "effect": "high"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Rear springs: soften left and/or stiffen right",
+     "field": "bars",
+     "corner": "LR",
+     "dir": "-",
+     "effect": "high"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Rear shocks: soften left",
+     "field": "shock_adjust",
+     "corner": "LR",
+     "effect": "high"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Rear shocks: stiffen left extension",
+     "field": "shock_adjust",
+     "corner": "LR",
+     "effect": "high"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Rear shocks: soften left compression",
+     "field": "shock_adjust",
+     "corner": "LR",
+     "effect": "effective"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Stagger: decrease",
+     "field": "stagger_cold",
+     "dir": "-",
+     "effect": "effective"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Stagger: increase",
+     "field": "stagger_cold",
+     "dir": "+",
+     "effect": "effective"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Stagger: decrease",
+     "field": "stagger_cold",
+     "dir": "-",
+     "effect": "effective"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Stagger: increase",
+     "field": "stagger_cold",
+     "dir": "+",
+     "effect": "effective"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Track alignment: move rear centreline to left",
+     "effect": "least"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Track alignment: move rear centreline to right",
+     "effect": "least"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Track alignment: move rear centreline to left",
+     "effect": "high"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Track alignment: move rear centreline to right",
+     "effect": "effective"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Bite (left rear): decrease",
+     "effect": "least"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Bite (left rear): increase",
+     "effect": "least"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Bite (left rear): increase",
+     "effect": "high"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Bite (left rear): decrease",
+     "effect": "high"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Gear ratio: decrease (generally)",
+     "field": "final_drive",
+     "dir": "-",
+     "effect": "effective"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Gear ratio: increase (generally)",
+     "field": "final_drive",
+     "dir": "+",
+     "effect": "least"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Left side weight: decrease",
+     "field": "left_pct",
+     "dir": "-",
+     "effect": "effective"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Left side weight: increase",
+     "field": "left_pct",
+     "dir": "+",
+     "effect": "high"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Rear weight: increase (generally)",
+     "field": "rear_pct",
+     "dir": "+",
+     "effect": "least"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Rear weight: decrease (generally)",
+     "field": "rear_pct",
+     "dir": "-",
+     "effect": "least"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Rear weight: increase (generally)",
+     "field": "rear_pct",
+     "dir": "+",
+     "effect": "high"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Rear weight: decrease (generally)",
+     "field": "rear_pct",
+     "dir": "-",
+     "effect": "effective"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Rear steer: lead right rear",
+     "field": "rear_steer",
+     "effect": "least"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Rear steer: lead left rear",
+     "field": "rear_steer",
+     "effect": "least"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Rear steer: lead right rear",
+     "field": "rear_steer",
+     "effect": "effective"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Rear steer: lead left rear",
+     "field": "rear_steer",
+     "effect": "least"
+    },
+    {
+     "problem": "Loose entry",
+     "remedy": "Centre of gravity: raise",
+     "field": "ride_height",
+     "dir": "+",
+     "effect": "least"
+    },
+    {
+     "problem": "Tight entry",
+     "remedy": "Centre of gravity: lower",
+     "field": "ride_height",
+     "dir": "-",
+     "effect": "least"
+    },
+    {
+     "problem": "Loose exit",
+     "remedy": "Centre of gravity: raise",
+     "field": "ride_height",
+     "dir": "+",
+     "effect": "effective"
+    },
+    {
+     "problem": "Tight exit",
+     "remedy": "Centre of gravity: lower",
+     "field": "ride_height",
+     "dir": "-",
+     "effect": "least"
+    }
+   ]
+  }
+ ]
+}

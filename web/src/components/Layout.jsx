@@ -67,6 +67,7 @@ export function useNav() {
       canModule('events') && { to: '/series', label: 'Series', icon: I.trophy },
       canModule('tracks') && { to: '/tracks', label: 'Tracks', icon: I.pin },
       canModule('setups') && { to: '/setups', label: 'Setup sheets', icon: I.sheet },
+      canModule('setups') && { to: '/track/advisor', label: 'Setup advisor', icon: I.sliders },
       canModule('trackside') && { to: '/track/checks', label: 'Between-round checks', icon: I.check },
       canModule('gears') && { to: '/track/gears', label: 'Gears & tires', icon: I.gear },
     ] },

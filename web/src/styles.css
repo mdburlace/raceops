@@ -769,3 +769,25 @@ input.le-add { flex: 1 1 140px; width: auto !important; min-height: 30px !import
 .ask-box textarea { min-height: 48px; resize: none; }
 @media (max-width: 900px) { .ask-box { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); } }
 @media (max-width: 560px) { .ai-item { grid-template-columns: auto 1fr; } .ai-vals { grid-column: 2; } .msg { max-width: 100%; } }
+
+/* setup advisor */
+.adv-h { font-size: 14px; margin: 4px 0 8px; }
+.advisor-row { padding: 10px 4px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.advisor-row:last-child { border-bottom: 0; }
+.advisor-row .examples { margin: 4px 0 0 18px; padding: 0; display: grid; gap: 4px; }
+.advice ol { margin: 8px 0; padding-left: 20px; display: grid; gap: 10px; }
+.advice p { margin: 8px 0; }
+.sessions-found { margin-top: 10px; }
+.sessions-found summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.guide-head .span-all { grid-column: 1 / -1; }
+.rules-table { min-width: 980px; }
+.rules-table td { padding: 4px 6px; vertical-align: top; }
+.rules-table td:nth-child(2) input { min-width: 260px; }
+.rules-table select, .rules-table input { width: 100%; }
+.adv-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.adv-line > * { flex: 0 0 auto; }
+.adv-line .adv-title { flex: 1 1 220px; min-width: 0; }
+.adv-conds { margin: 6px 0 10px; }
+.adv-conds summary { cursor: pointer; margin-bottom: 8px; }
+.advisor .toolbar select { min-width: 0; max-width: 100%; flex: 1 1 160px; }
+.carry-bar select { min-width: 0; max-width: 100%; }

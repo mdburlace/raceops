@@ -228,6 +228,23 @@ async function applyTrackUpdates() {
   return n;
 }
 
+/** Shared tuning guides for the setup advisor; added once each, later edits by admins are kept. */
+async function ensureGlobalGuides() {
+  const file = path.join(__dirname, '..', '..', 'shared', 'seed', 'guides.json');
+  if (!fs.existsSync(file)) return;
+  const { guides = [] } = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const { rows } = await q(`SELECT data->'values'->>'seed_key' AS k FROM records WHERE tenant_id IS NULL AND type='tuning_guide'`);
+  const have = new Set(rows.map((r) => r.k));
+  for (const g of guides) {
+    if (have.has(g.seed_key)) continue;
+    const data = { scope: 'global', values: g };
+    const id = crypto.randomUUID();
+    await q(`INSERT INTO records(id,tenant_id,type,data) VALUES ($1,NULL,'tuning_guide',$2)`, [id, JSON.stringify(data)]);
+    await q(`INSERT INTO record_history(record_id,tenant_id,type,op,outcome,data,client_updated_at) VALUES ($1,NULL,'tuning_guide','create','applied',$2,now())`, [id, JSON.stringify(data)]);
+    console.log(`Added tuning guide "${g.name}"`);
+  }
+}
+
 async function ensureBaseForms() {
   const { rows: tenants } = await q('SELECT id FROM tenants');
   for (const { id } of tenants) await tx((c) => ensureTeamBase(c, id));
@@ -659,4 +676,5 @@ await migrate();
 await loadSettings();
 await ensureBaseForms();
 await ensureGlobalTracks();
+await ensureGlobalGuides();
 app.listen(PORT, () => console.log(`RaceOps listening on :${PORT}`));

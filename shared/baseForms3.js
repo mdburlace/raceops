@@ -117,7 +117,35 @@ const seriesForm = {
   ],
 };
 
-export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm];
+// Tuning guides for the setup advisor: rules are edited on the guide page (values.rules).
+const tuningGuideForm = {
+  target: 'tuning_guide', name: 'Tuning Guide', is_default: true,
+  sections: [
+    { id: 'guide', title: 'Guide', fields: [
+      t('name', 'Guide name', { core: true, required: true }),
+      t('publisher', 'From / publisher', { core: true, suggest: true }),
+      t('applies_to', 'Applies to', { placeholder: 'e.g. Winged sprint cars' }),
+      t('source', 'Source', { placeholder: 'Document name or web address' }),
+      { key: 'notes', label: 'Notes & baseline', type: 'textarea' },
+    ] },
+  ],
+};
+
+export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm];
+
+// Optional chassis numbers on the setup sheet, so the advisor can learn from weight, wing and rod changes.
+export const SETUP_CHASSIS_SECTION = {
+  id: 'weights', title: 'Weights & chassis', fields: [
+    { key: 'total_weight', label: 'Total weight', type: 'number', unit: 'lb' },
+    { key: 'left_pct', label: 'Left side', type: 'number', unit: '%' },
+    { key: 'rear_pct', label: 'Rear', type: 'number', unit: '%' },
+    { key: 'cross_pct', label: 'Cross', type: 'number', unit: '%' },
+    { key: 'wing_position', label: 'Wing position', type: 'number', unit: 'in', help: 'Slider position — higher number = further back.' },
+    { key: 'nose_wing', label: 'Nose wing angle', type: 'number', unit: '°' },
+    { key: 'lr_radius_rod', label: 'LR radius rod (front mount)', type: 'text', placeholder: 'e.g. hole 3' },
+    { key: 'rear_steer', label: 'Rear steer', type: 'text', placeholder: 'e.g. lead RR 1/8"' },
+  ],
+};
 
 export const TRACK_CONDITIONS = ['Wet', 'Heavy', 'Tacky', 'Moist', 'Grippy', 'Fast', 'Drying out', 'Slick', 'Dry slick', 'Black slick',
   'Rubbered up', 'Greasy', 'Dusty', 'Rough', 'Choppy', 'Rutted', 'Holes in turns', 'Cushion building', 'Big cushion', 'No cushion',
@@ -162,4 +190,5 @@ export const PHASE3_UPGRADES = [
   { target: 'event', section: 'event', after: 'track_length', field: { key: 'surface', label: 'Surface', type: 'text' } },
   { target: 'event', section: 'event', after: 'surface', field: { key: 'banking', label: 'Banking', type: 'text' } },
   { target: 'setup', key: 'session', patch: { allowCustom: true } },
+  { target: 'setup', insertSection: SETUP_CHASSIS_SECTION, before: 'feedback' },
 ];

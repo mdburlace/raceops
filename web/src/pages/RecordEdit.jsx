@@ -243,6 +243,7 @@ export default function RecordEdit() {
     <div className={`record-edit type-${type}`}>
       <PageHeader title={title} sub={sub} back={params.get('back') || (isNew ? -1 : afterSave(type, rec || { data: { values } }))}>
         {type === 'setup' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
+        {type === 'setup' && !isNew && <Link className="btn ghost advisor-link" to={`/track/advisor?setup=${id}`} title="What’s worked before for this handling problem, and what the tuning guides suggest">Setup advisor</Link>}
         {type === 'setup' && !isNew && canModule('dyno') && <Link className="btn ghost" to={`/workshop/dyno?setup=${id}`}>Shock dyno</Link>}
         {type === 'engine_build' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
         {!isNew && canType(type, 'delete') && <button type="button" className="btn ghost danger" onClick={remove}>Delete</button>}

@@ -36,7 +36,7 @@ export const MODULES = [
   { key: 'contacts', label: 'Contacts & suppliers', types: ['contact', 'contact_link', 'supplier'], area: null },
   { key: 'tracks', label: 'Tracks', types: ['track', 'team_track'], area: 'track' },
   { key: 'events', label: 'Events & series', types: ['event', 'series'], area: 'track' },
-  { key: 'setups', label: 'Setup sheets', types: ['setup'], area: 'track' },
+  { key: 'setups', label: 'Setup sheets & advisor', types: ['setup', 'tuning_guide'], area: 'track' },
   { key: 'trackside', label: 'At-track checks', types: ['track_check'], area: 'track', feature: 'trackside' },
   { key: 'gears', label: 'Gears & tires', types: ['gear', 'gear_list', 'tire'], area: 'track', feature: 'gears' },
   { key: 'maintenance', label: 'Car maintenance', types: ['maintenance', 'schedule'], area: 'workshop' },
@@ -73,7 +73,7 @@ export const RECORD_TYPES = [...Object.keys(TYPE_MODULE), 'form'];
 
 // Types that can live in the shared, cross-team directory (tenant_id NULL on the server).
 // Only platform admins create or change global records; every team can read them.
-export const GLOBAL_TYPES = ['track', 'contact', 'supplier', 'contact_link'];
+export const GLOBAL_TYPES = ['track', 'contact', 'supplier', 'contact_link', 'tuning_guide'];
 
 // ---------------- licensing ----------------
 export const FEATURES = [
