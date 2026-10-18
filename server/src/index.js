@@ -9,11 +9,14 @@ import { q, tx, migrate } from './db.js';
 import {
   requireAuth, requireMember, hashPassword, checkPassword, signToken, randomToken, HttpError,
 } from './auth.js';
-import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, PLANS, FEATURES, GLOBAL_TYPES, canType, can } from '../../shared/catalog.js';
+import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, GLOBAL_TYPES, canType, can, entitlements } from '../../shared/catalog.js';
 import { mapImportedTrack } from '../../shared/tracks.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
 import { FORM_REPLACE, applyUpgrades } from '../../shared/baseForms2.js';
 import { SEED_GEAR_LISTS } from '../../shared/gearLists.js';
+import { licenceState } from '../../shared/platform.js';
+import { loadSettings, settings, publicSettings, seatLimit } from './settings.js';
+import { mountAdmin } from './admin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -36,14 +39,21 @@ const cleanEmail = (e) => String(e || '').trim().toLowerCase();
 async function membershipsFor(userId) {
   const { rows } = await q(
     `SELECT t.id AS tenant_id, t.name AS tenant_name, t.racing_type, t.settings, t.plan, t.features,
+            t.status, t.licence_expires, t.seats,
             json_build_object('id', r.id, 'name', r.name, 'permissions', r.permissions, 'is_owner', r.is_owner) AS role
        FROM memberships m JOIN tenants t ON t.id=m.tenant_id JOIN roles r ON r.id=m.role_id
       WHERE m.user_id=$1 ORDER BY t.name`, [userId]);
-  return rows;
+  // plans are editable by the platform admin, so the server works out each team's features
+  return rows.map((m) => ({ ...m, entitlements: [...entitlements(m, settings().plans)], licence: licenceState(m), seat_limit: seatLimit(m),
+    plan_label: settings().plans[m.plan]?.label || m.plan }));
 }
 
-async function createTenant(c, name, ownerId) {
-  const { rows: [t] } = await c.query('INSERT INTO tenants(name) VALUES ($1) RETURNING *', [name]);
+async function createTenant(c, name, ownerId, opts = {}) {
+  const g = settings().general;
+  const plan = settings().plans[opts.plan] ? opts.plan : (settings().plans[g.default_plan] ? g.default_plan : 'pro');
+  const { rows: [t] } = await c.query(
+    'INSERT INTO tenants(name,plan,status,seats,licence_expires) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+    [name, plan, opts.status || 'active', opts.seats ?? g.default_seats ?? null, opts.licence_expires || null]);
   let ownerRole;
   for (const r of DEFAULT_ROLES) {
     const { rows: [role] } = await c.query(
@@ -51,9 +61,9 @@ async function createTenant(c, name, ownerId) {
       [t.id, r.name, r.description, JSON.stringify(r.permissions), !!r.is_owner]);
     if (r.is_owner) ownerRole = role;
   }
-  await c.query('INSERT INTO memberships(user_id,tenant_id,role_id) VALUES ($1,$2,$3)', [ownerId, t.id, ownerRole.id]);
+  if (ownerId) await c.query('INSERT INTO memberships(user_id,tenant_id,role_id) VALUES ($1,$2,$3)', [ownerId, t.id, ownerRole.id]);
   await ensureTeamBase(c, t.id);
-  return t;
+  return { ...t, owner_role_id: ownerRole.id };
 }
 
 const baseKey = (f) => `${f.target}:${f.dyno_kind || 'default'}`;
@@ -150,7 +160,7 @@ async function importTracks(tracks, mode, userId = null) {
 }
 
 /** Seed the global track directory on first start (and add any new seed tracks later). */
-async function ensureGlobalTracks() {
+async function ensureGlobalTracks(force = false) {
   const file = path.join(__dirname, '..', '..', 'shared', 'seed', 'tracks.json');
   if (!fs.existsSync(file)) return;
   const raw = fs.readFileSync(file, 'utf8');
@@ -158,10 +168,11 @@ async function ensureGlobalTracks() {
   // Each new version of the seed file adds new tracks and fills blank fields once; later admin edits are kept.
   const marker = `seed:tracks:${crypto.createHash('sha1').update(raw).digest('hex').slice(0, 12)}`;
   const { rows } = await q('SELECT 1 FROM schema_migrations WHERE name=$1', [marker]);
-  if (rows.length) return;
+  if (rows.length && !force) return null;
   const r = await importTracks(seed.map(mapImportedTrack).filter(Boolean), 'fill');
   await q('INSERT INTO schema_migrations(name) VALUES ($1) ON CONFLICT DO NOTHING', [marker]);
   console.log(`Track directory: ${r.added} added, ${r.updated} filled in`);
+  return r;
 }
 
 async function ensureBaseForms() {
@@ -173,6 +184,7 @@ const authPayload = async (user) => ({
   token: signToken(user),
   user: { id: user.id, email: user.email, name: user.name, is_platform_admin: user.is_platform_admin },
   memberships: await membershipsFor(user.id),
+  platform: publicSettings(),
 });
 
 // ---------- public ----------
@@ -204,6 +216,8 @@ app.post('/api/auth/login', h(async (req, res) => {
   const { email, password } = req.body || {};
   const { rows: [u] } = await q('SELECT * FROM users WHERE email=$1', [cleanEmail(email)]);
   need(u && (await checkPassword(password || '', u.password_hash)), 401, 'Email or password is incorrect');
+  need(!u.disabled, 403, 'This account has been disabled');
+  await q('UPDATE users SET last_login_at=now() WHERE id=$1', [u.id]);
   res.json(await authPayload(u));
 }));
 
@@ -226,7 +240,14 @@ app.post('/api/invites/:token/accept', h(async (req, res) => {
     const { rows: [i] } = await c.query('SELECT * FROM invites WHERE token=$1 FOR UPDATE', [req.params.token]);
     need(i && !i.accepted_at && new Date(i.expires_at) > new Date(), 410, 'Invite is no longer valid');
     let { rows: [u] } = await c.query('SELECT * FROM users WHERE email=$1', [i.email]);
+    const { rows: [t] } = await c.query('SELECT * FROM tenants WHERE id=$1', [i.tenant_id]);
+    const limit = seatLimit(t);
+    if (limit !== null) {
+      const { rows: [n] } = await c.query('SELECT count(*)::int AS n FROM memberships WHERE tenant_id=$1 AND user_id <> ALL(SELECT id FROM users WHERE email=$2)', [t.id, i.email]);
+      need(n.n < limit, 409, `${t.name} has used all ${limit} of its licensed seats. Ask the team owner to free a seat.`);
+    }
     if (u) {
+      need(!u.disabled, 403, 'This account has been disabled');
       need(await checkPassword(password || '', u.password_hash), 401, 'Password is incorrect for this existing account');
     } else {
       need(name && password && String(password).length >= 8, 400, 'Name and an 8+ character password are required');
@@ -247,7 +268,7 @@ app.post('/api/invites/:token/accept', h(async (req, res) => {
 app.use('/api', requireAuth);
 
 app.get('/api/me', h(async (req, res) => {
-  res.json({ user: req.user, memberships: await membershipsFor(req.user.id) });
+  res.json({ user: req.user, memberships: await membershipsFor(req.user.id), platform: publicSettings() });
 }));
 
 app.patch('/api/me', h(async (req, res) => {
@@ -262,47 +283,13 @@ app.patch('/api/me', h(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// Platform admin: create and list teams (invite-only onboarding for now).
-app.get('/api/admin/tenants', h(async (req, res) => {
-  need(req.user.is_platform_admin, 403, 'Platform admin only');
-  const { rows } = await q(`SELECT t.*, (SELECT count(*)::int FROM memberships m WHERE m.tenant_id=t.id) AS members
-                              FROM tenants t ORDER BY t.created_at`);
-  res.json(rows);
-}));
-
-app.patch('/api/admin/tenants/:id', h(async (req, res) => {
-  need(req.user.is_platform_admin, 403, 'Platform admin only');
-  const { plan, features } = req.body || {};
-  need(!plan || PLANS[plan], 400, 'Unknown plan');
-  const clean = features && Object.fromEntries(Object.entries(features)
-    .filter(([k, v]) => FEATURES.some((f) => f.key === k) && typeof v === 'boolean'));
-  const { rows: [t] } = await q(
-    'UPDATE tenants SET plan=COALESCE($2,plan), features=COALESCE($3,features) WHERE id=$1 RETURNING *',
-    [req.params.id, plan || null, clean ? JSON.stringify(clean) : null]);
-  need(t, 404, 'Team not found');
-  res.json(t);
-}));
-
-// Import / refresh the global track directory from a JSON export (same layout as the seed files).
-app.post('/api/admin/tracks/import', h(async (req, res) => {
-  need(req.user.is_platform_admin, 403, 'Platform admin only');
-  const list = Array.isArray(req.body?.tracks) ? req.body.tracks : [];
-  const mode = ['add', 'fill', 'overwrite'].includes(req.body?.mode) ? req.body.mode : 'fill';
-  need(list.length && list.length <= 5000, 400, 'No tracks found in the file');
-  const result = await importTracks(list.map(mapImportedTrack).filter(Boolean), mode, req.user.id);
-  res.json(result);
-}));
-
-app.post('/api/admin/tenants', h(async (req, res) => {
-  need(req.user.is_platform_admin, 403, 'Platform admin only');
-  need(req.body?.name, 400, 'Team name is required');
-  const t = await tx((c) => createTenant(c, req.body.name, req.user.id));
-  res.json(t);
-}));
+mountAdmin(app, { createTenant, importTracks, ensureBaseForms, ensureGlobalTracks, UPLOAD_DIR, WEB_DIR });
 
 // ---------- tenant scoped ----------
 const T = express.Router({ mergeParams: true });
 app.use('/api/t/:tid', requireMember, T);
+T.use((req, _res, next) => next(req.readOnly && req.method !== 'GET'
+  ? new HttpError(403, 'The team licence has expired, so the data is read-only. Contact the platform administrator to renew.') : undefined));
 
 T.patch('/', perm('team.manage'), h(async (req, res) => {
   const { name, settings } = req.body || {};
@@ -450,10 +437,17 @@ T.post('/invites', perm('members.manage'), h(async (req, res) => {
   const { rows: [role] } = await q('SELECT * FROM roles WHERE id=$1 AND tenant_id=$2', [req.body?.role_id, req.tid]);
   need(role, 400, 'Unknown role');
   if (role.is_owner) need(req.role.is_owner, 403, 'Only owners can invite owners');
+  const { rows: [t] } = await q(`SELECT t.*, (SELECT count(*)::int FROM memberships m WHERE m.tenant_id=t.id) AS members,
+      (SELECT count(*)::int FROM invites i WHERE i.tenant_id=t.id AND i.accepted_at IS NULL AND i.expires_at > now()) AS pending
+      FROM tenants t WHERE id=$1`, [req.tid]);
+  const limit = seatLimit(t);
+  need(limit === null || t.members + t.pending < limit, 409,
+    `All ${limit} licensed seats are used (${t.members} members, ${t.pending} pending invites). Remove a member or invite, or ask for more seats.`);
+  const days = Math.max(1, Number(settings().general.invite_days) || 14);
   const { rows: [i] } = await q(
     `INSERT INTO invites(tenant_id,email,role_id,token,created_by,expires_at)
-     VALUES ($1,$2,$3,$4,$5, now() + interval '14 days') RETURNING id, email, token, expires_at`,
-    [req.tid, email, role.id, randomToken(), req.user.id]);
+     VALUES ($1,$2,$3,$4,$5, now() + make_interval(days => $6)) RETURNING id, email, token, expires_at`,
+    [req.tid, email, role.id, randomToken(), req.user.id, days]);
   res.json(i);
 }));
 
@@ -587,6 +581,7 @@ if (fs.existsSync(WEB_DIR)) {
 }
 
 await migrate();
+await loadSettings();
 await ensureBaseForms();
 await ensureGlobalTracks();
 app.listen(PORT, () => console.log(`RaceOps listening on :${PORT}`));

@@ -4,7 +4,7 @@ import { classMatches } from '@shared/tracks.js';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { Empty, PageHeader, Pill, Section, useOnline } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
-import { fmtDate, titleOf, useTeamData, v } from '../lib/data.js';
+import { fmtDate, titleOf, useTeamData, v, platformList } from '../lib/data.js';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { dateRange } from './Events.jsx';
@@ -39,7 +39,7 @@ function TeamClasses({ data, classes }) {
   const [list, setList] = useState(classes);
   const [text, setText] = useState('');
   const [err, setErr] = useState('');
-  const all = useMemo(() => [...new Set(data.list('track').flatMap((t) => v(t, 'classes') || []))].sort(), [data]);
+  const all = useMemo(() => [...new Set([...(platformList('race_classes') || []), ...[...new Set(data.list('track').flatMap((t) => v(t, 'classes') || []))].sort()])], [data]);
   const carClasses = [...new Set(data.list('car').map((c) => v(c, 'class')).filter(Boolean))];
   const save = async () => {
     try {

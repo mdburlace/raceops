@@ -91,8 +91,9 @@ export const PLANS = {
 };
 
 /** Effective feature set for a team: plan defaults, then per-team overrides { key: bool }. */
-export function entitlements(tenant) {
-  const plan = PLANS[tenant?.plan] || PLANS.pro;
+export function entitlements(tenant, plans = PLANS) {
+  if (Array.isArray(tenant?.entitlements)) return new Set(tenant.entitlements); // computed by the server
+  const plan = plans[tenant?.plan] || plans.pro || PLANS.pro;
   const set = new Set(plan.features);
   for (const [k, on] of Object.entries(tenant?.features || {})) { if (on) set.add(k); else set.delete(k); }
   return set;

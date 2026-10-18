@@ -30,13 +30,30 @@ export const I = {
   pin: 'M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4',
   book: 'M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h11M9 8h5',
   truck: 'M3 6h11v10H3zM14 9h4l3 3v4h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4M17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4',
+  admin: 'M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6zM9 12l2 2 4-4',
+  sliders: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4',
+  list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+  server: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01',
+  ticket: 'M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3zM13 4v16',
 };
 export const Icon = ({ d, size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
 );
 
-export const AREA_ICON = { track: I.track, workshop: I.shop, engines: I.engine, team: I.team };
-export const AREA_PATH = { track: '/track', workshop: '/workshop', engines: '/engines', team: '/team' };
+export const AREA_ICON = { track: I.track, workshop: I.shop, engines: I.engine, team: I.team, admin: I.admin };
+export const AREA_PATH = { track: '/track', workshop: '/workshop', engines: '/engines', team: '/team', admin: '/admin' };
+const TAB_LABEL = { track: 'Track', workshop: 'Workshop', engines: 'Engines', team: 'Team', admin: 'Admin' };
+
+export const ADMIN_LINKS = [
+  { to: '/admin', label: 'Overview', icon: I.admin, end: true },
+  { to: '/admin/teams', label: 'Teams & licences', icon: I.users },
+  { to: '/admin/plans', label: 'Plans & allocation', icon: I.ticket },
+  { to: '/admin/users', label: 'Users', icon: I.user },
+  { to: '/admin/directory', label: 'Tracks & directory', icon: I.globe },
+  { to: '/admin/lists', label: 'Pick-lists', icon: I.list },
+  { to: '/admin/settings', label: 'Settings', icon: I.sliders },
+  { to: '/admin/system', label: 'System & activity', icon: I.server },
+];
 
 /** Navigation tree; each link declares what it needs so locked items disappear. */
 export function useNav() {
@@ -69,17 +86,67 @@ export function useNav() {
       canModule('reports') && { to: '/team/reports', label: 'Reports', icon: I.chart },
       canModule('reports') && { to: '/team/stats', label: 'Crew Chief stats', icon: I.star },
       canModule('reviews') && { to: '/team/reviews', label: 'Performance reviews', icon: I.user },
-      user?.is_platform_admin && { to: '/admin/teams', label: 'All teams & licences', icon: I.globe },
     ] },
+    { area: 'admin', label: 'Platform admin', icon: I.admin, show: !!user?.is_platform_admin, links: ADMIN_LINKS },
   ].map((g) => ({ ...g, links: g.links.filter(Boolean) }));
   return groups.filter((g) => g.show && g.links.length);
 }
 
+function Banners() {
+  const { platform, licence, user } = useSession();
+  const a = platform?.announcement;
+  const key = a ? `raceops.ann.${a.text}` : '';
+  const [hidden, setHidden] = useState(() => { try { return !!(key && localStorage.getItem(key)); } catch { return false; } });
+  return (
+    <>
+      {licence === 'expired' && (
+        <div className="banner banner-critical" role="alert">
+          <span className="grow">
+            The team licence has expired, so this team is <b>read-only</b>.{user?.is_platform_admin ? ' (You can still edit as platform admin.)' : ' Changes can’t be saved — contact your administrator to renew.'}
+            {platform?.support_email && <> <a href={`mailto:${platform.support_email}`}>{platform.support_email}</a></>}
+          </span>
+        </div>
+      )}
+      {licence === 'suspended' && <div className="banner banner-critical" role="alert"><span className="grow">This team is suspended. Only platform admins can open it.</span></div>}
+      {a && !hidden && (
+        <div className={`banner banner-${a.level}`} role="status">
+          <span className="grow">{a.text}</span>
+          {a.level !== 'critical' && (
+            <button type="button" className="banner-x" aria-label="Dismiss" onClick={() => { try { localStorage.setItem(key, '1'); } catch { /* private mode */ } setHidden(true); }}>×</button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+function Suspended() {
+  const { membership, memberships, switchTenant, platform, logout } = useSession();
+  return (
+    <div className="auth-wrap"><div className="auth-card card">
+      <h1>{membership?.tenant_name} is suspended</h1>
+      <p className="muted">This team’s access has been suspended by the platform administrator.{platform?.support_email ? ` Contact ${platform.support_email}.` : ''}</p>
+      {memberships.filter((m) => m.licence !== 'suspended').length > 0 && (
+        <select className="team-switch light" value="" onChange={(e) => switchTenant(e.target.value)} aria-label="Switch team">
+          <option value="">Switch to another team…</option>
+          {memberships.filter((m) => m.licence !== 'suspended').map((m) => <option key={m.tenant_id} value={m.tenant_id}>{m.tenant_name}</option>)}
+        </select>
+      )}
+      <button type="button" className="btn" onClick={() => logout()}>Sign out</button>
+    </div></div>
+  );
+}
+
 export default function Layout() {
-  const { user, memberships, membership, switchTenant } = useSession();
+  const { user, memberships, membership, switchTenant, platform, licence } = useSession();
   const [drawer, setDrawer] = useState(false);
   const loc = useLocation();
   const groups = useNav();
+  if (licence === 'suspended' && !user?.is_platform_admin) return <Suspended />;
+  const appName = platform?.app_name || 'RaceOps';
+  const words = appName.trim().split(/\s+/);
+  const caps = appName.replace(/[^A-Z]/g, '');
+  const mark = (words.length > 1 ? words.map((w) => w[0]).join('') : caps.length > 1 ? caps : appName).slice(0, 2).toUpperCase() || 'RO';
 
   const link = (n) => (
     <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
@@ -90,7 +157,7 @@ export default function Layout() {
   return (
     <div className="shell">
       <aside className={`sidebar${drawer ? ' open' : ''}`}>
-        <div className="brand"><span className="brand-mark">RO</span><span>RaceOps</span></div>
+        <div className="brand"><span className="brand-mark">{mark}</span><span>{appName}</span></div>
         {memberships.length > 1 ? (
           <select className="team-switch" value={membership?.tenant_id} onChange={(e) => { switchTenant(e.target.value); setDrawer(false); }}>
             {memberships.map((m) => <option key={m.tenant_id} value={m.tenant_id}>{m.tenant_name}</option>)}
@@ -118,6 +185,7 @@ export default function Layout() {
           <span className="topbar-team">{membership?.tenant_name}</span>
           <SyncBadge />
         </div>
+        <Banners />
         <main key={loc.pathname.split('/')[1]} className="content"><Outlet /></main>
         <nav className="tabbar">
           <NavLink to="/" end className={({ isActive }) => `tab${isActive ? ' active' : ''}`}><Icon d={I.home} size={22} /><span>Home</span></NavLink>
@@ -125,7 +193,7 @@ export default function Layout() {
             const active = g.links.some((l) => loc.pathname === l.to || loc.pathname.startsWith(`${l.to}/`)) || loc.pathname.startsWith(AREA_PATH[g.area]);
             return (
               <NavLink key={g.area} to={AREA_PATH[g.area]} className={`tab area-${g.area}${active ? ' active' : ''}`}>
-                <Icon d={g.icon} size={22} /><span>{{ track: 'Track', workshop: 'Workshop', engines: 'Engines', team: 'Team' }[g.area]}</span>
+                <Icon d={g.icon} size={22} /><span>{TAB_LABEL[g.area]}</span>
               </NavLink>
             );
           })}

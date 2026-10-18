@@ -13,7 +13,7 @@ export function ContactList() {
   const data = useTeamData();
   const { canType } = useSession();
   const [q, setQ] = useState('');
-  const [scope, setScope] = useState('');
+  const [scope, setScope] = useState(() => new URLSearchParams(window.location.search).get('scope') || '');
   const [role, setRole] = useState('');
   if (!data) return null;
   const links = data.list('contact_link');

@@ -1,6 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './store.js';
 import { useSession } from './session.jsx';
+import { listForField } from '@shared/platform.js';
+
+// Pick-lists managed by the platform admin (kept with the session so they work offline).
+let PLATFORM_LISTS = {};
+export const setPlatformLists = (lists) => { PLATFORM_LISTS = lists || {}; };
+export const platformList = (key) => PLATFORM_LISTS[key] || null;
 
 /** All live (non-deleted) records of the current team, indexed by type and id. */
 export function useTeamData() {
@@ -35,6 +41,8 @@ export const allFields = (form) => (form?.data.sections || []).flatMap((s) => s.
 export const fieldDef = (form, key) => allFields(form).find((f) => f.key === key);
 
 export function optionsOf(field, form, data) {
+  const lk = field.list !== false && listForField(form?.data?.target, field.key);
+  if (lk && PLATFORM_LISTS[lk]?.length) return PLATFORM_LISTS[lk];
   if (field.optionsFrom === 'sessions') return form?.data.sessions || [];
   if (field.optionsFrom === 'levels') return (form?.data.levels || []).map((l) => ({ value: l.key, label: l.label }));
   if (field.optionsFrom && data) {

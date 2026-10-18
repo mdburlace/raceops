@@ -5,15 +5,14 @@ import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { fullResync, getSyncStatus, subscribeSync, syncNow } from '../lib/sync.js';
-import { TrackImport } from './Tracks.jsx';
-import { ACTIONS, ADMIN_PERMISSIONS, AREAS, FEATURES, MODULES, PLANS, entitlements, moduleActions } from '@shared/catalog.js';
+import { ACTIONS, ADMIN_PERMISSIONS, AREAS, MODULES, moduleActions } from '@shared/catalog.js';
 
-function OnlineOnly({ children }) {
+export function OnlineOnly({ children }) {
   const online = useOnline();
   return online ? children : <div className="notice">Team administration needs an internet connection.</div>;
 }
 
-function useLoad(fn, deps) {
+export function useLoad(fn, deps) {
   const [state, setState] = useState({ data: null, err: '' });
   const reload = () => fn().then((data) => setState({ data, err: '' })).catch((e) => setState({ data: null, err: e.message }));
   useEffect(() => { reload(); }, deps); // eslint-disable-line react-hooks/exhaustive-deps
@@ -43,6 +42,14 @@ export function Team() {
       <PageHeader title="Team" sub={membership?.tenant_name} />
       <OnlineOnly>
         {err && <div className="notice error">{err}</div>}
+        <Section title="Licence">
+          <dl className="kv">
+            <dt>Plan</dt><dd>{membership?.plan_label || membership?.plan}</dd>
+            <dt>Seats</dt><dd>{members.data ? members.data.length : '…'} member{members.data?.length === 1 ? '' : 's'}{(invites.data || []).length ? ` + ${invites.data.length} pending invite${invites.data.length === 1 ? '' : 's'}` : ''} · {membership?.seat_limit == null ? 'unlimited seats' : `${membership.seat_limit} seats`}</dd>
+            <dt>Licence</dt><dd>{{ active: 'Active', trial: 'Trial', expired: 'Expired — read-only', suspended: 'Suspended' }[membership?.licence] || 'Active'}{membership?.licence_expires ? ` · ends ${fmtDate(membership.licence_expires)}` : ''}</dd>
+          </dl>
+          <p className="muted small">Your platform administrator manages plans, seats and licence dates.</p>
+        </Section>
         {can('team.manage') && (
           <Section title="Team settings">
             <div className="inline-row">
@@ -61,7 +68,7 @@ export function Team() {
               </select>
               <button className="btn primary">Create invite link</button>
             </form>
-            <p className="muted small">The link is copied for you to send by text, email or WhatsApp. It works for 14 days, and people already on another team can use it to add this team to their account.</p>
+            <p className="muted small">The link is copied for you to send by text, email or WhatsApp. It works for a limited time (shown below), and people already on another team can use it to add this team to their account.</p>
             {(invites.data || []).length > 0 && (
               <div className="list">
                 {invites.data.map((i) => (
@@ -272,75 +279,6 @@ export function Profile() {
         </Section>
       </div>
       <button type="button" className="btn ghost danger" onClick={() => logout()}>Sign out of this device</button>
-    </div>
-  );
-}
-
-function TeamLicence({ t, onSaved }) {
-  const [plan, setPlan] = useState(t.plan || 'pro');
-  const [features, setFeatures] = useState(t.features || {});
-  const [msg, setMsg] = useState('');
-  const ent = entitlements({ plan, features });
-  const planHas = new Set(PLANS[plan]?.features || []);
-  const flip = (k, on) => setFeatures((f) => {
-    const n = { ...f };
-    if (on === planHas.has(k)) delete n[k]; else n[k] = on;
-    return n;
-  });
-  const save = async () => {
-    setMsg('');
-    try { await api(`/admin/tenants/${t.id}`, { method: 'PATCH', body: { plan, features } }); setMsg('Saved'); onSaved(); } catch (e) { setMsg(e.message); }
-  };
-  return (
-    <section className="card">
-      <div className="card-head">
-        <div><h3 className="plain">{t.name}</h3><span className="muted small">{t.members} member{t.members === 1 ? '' : 's'} · created {fmtDate(t.created_at)}</span></div>
-        <select value={plan} onChange={(e) => setPlan(e.target.value)} aria-label="Plan">
-          {Object.entries(PLANS).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
-        </select>
-      </div>
-      <div className="feature-grid">
-        {FEATURES.map((f) => (
-          <label key={f.key} className={`toggle small${f.key in features ? ' overridden' : ''}`} title={f.key in features ? 'Override of the plan default' : 'Plan default'}>
-            <input type="checkbox" checked={ent.has(f.key)} onChange={(e) => flip(f.key, e.target.checked)} />
-            <span>{f.label}</span>
-          </label>
-        ))}
-      </div>
-      <div className="inline-row end">
-        {msg && <span className="muted small">{msg}</span>}
-        <button type="button" className="btn primary small" onClick={save}>Save licence</button>
-      </div>
-    </section>
-  );
-}
-
-export function AdminTeams() {
-  const { user, refresh, switchTenant } = useSession();
-  const [teams, reload] = useLoad(() => api('/admin/tenants'), []);
-  const [name, setName] = useState('');
-  const [err, setErr] = useState('');
-  if (!user?.is_platform_admin) return <PageHeader title="Not permitted" />;
-  return (
-    <div>
-      <PageHeader title="All teams & licences" sub="Platform administration — create teams and choose which areas each one is licensed for" />
-      <OnlineOnly>
-        {err && <div className="notice error">{err}</div>}
-        <Section title="Create a team">
-          <form className="inline-row" onSubmit={async (e) => {
-            e.preventDefault(); setErr('');
-            try { const t = await api('/admin/tenants', { method: 'POST', body: { name } }); setName(''); await reload(); await refresh(); switchTenant(t.id); } catch (x) { setErr(x.message); }
-          }}>
-            <input required placeholder="Team name" value={name} onChange={(e) => setName(e.target.value)} />
-            <button className="btn primary">Create</button>
-          </form>
-          <p className="muted small">You become the first owner (so you can invite theirs). The team gets its own copy of the base forms and roles.</p>
-        </Section>
-        <TrackImport />
-        <p className="muted small">A plan sets the default areas and features; tick or untick to override for a single team. Locked areas show as “Not in plan” for that team. Billing hooks into this later.</p>
-        {!teams.data ? <p className="muted">{teams.err || 'Loading…'}</p>
-          : teams.data.map((t) => <TeamLicence key={t.id} t={t} onSaved={() => { reload(); refresh(); }} />)}
-      </OnlineOnly>
     </div>
   );
 }

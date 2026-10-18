@@ -125,16 +125,37 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 
 Access to anything is checked in three layers, on the server (sync, history and attachments) and in the app:
 
-1. **Licence:** is the team licensed for this area or feature? Platform admins set this under **All teams & licences** by choosing a plan (Pro, Trackside or Engine shop) and ticking or unticking individual areas and features per team. Owners are bound by the licence too.
+1. **Licence:** is the team licensed for this area or feature? Platform admins set this under **Platform admin → Teams & licences** by choosing a plan and ticking or unticking individual areas and features per team. Owners are bound by the licence too.
 2. **Area access:** does the role include *Enter "At the Track"* (and so on)?
 3. **Module action:** View / Edit / Delete for each module inside the area.
 
 Changing a role or licence takes effect on each device at its next sync. Data the person can no longer see is removed from their device.
 
+### Platform admin (global settings)
+
+Platform admins get a **Platform admin** area (sidebar, home tile and an **Admin** tab on phones). The first account created is a platform admin, and it can make others admins.
+
+| Page | What it manages |
+|---|---|
+| **Overview** | Teams by licence status, users, seats in use, licence allocation per plan, teams needing attention (expired, suspended, ending within 30 days, or out of seats), and recent admin activity. |
+| **Teams & licences** | Create a team, optionally with an **owner invite link** for someone else (you don't have to join). Per team: name, plan, status (Active / Trial / Suspended), **seats**, **licence end date**, admin notes and feature overrides. You can also **Join & open** a team to support it, or delete a team (you type its name to confirm). |
+| **Plans & allocation** | Edit what each plan includes, its **seats per team**, how many **licences** you have to allocate (shown as used / available), and a price note. You can add plans (e.g. *Club*), remove unused ones, and restore a built-in plan. |
+| **Users** | Every account with its teams and last sign-in. Edit name or email, **reset password** (shows a one-time temporary password), make or remove platform admins, **disable** an account (signs it out everywhere), and remove someone from a team. |
+| **Tracks & directory** | Track counts by country and status, data gaps, shared contacts and suppliers. Import, **export all tracks as JSON**, or re-apply the bundled list. |
+| **Pick-lists** | The standard choices every team sees: track conditions, car behaviour, contact roles, supplier categories and race classes. Add, remove, reorder or paste a list; restore the default at any time. |
+| **Settings** | App name (shown in the menu and browser tab), support email, invite link lifetime, default plan and seats for new teams, and an **announcement banner** for all users (Information / Warning / Critical, with an optional end date). |
+| **System & activity** | Version, uptime, database size, uploads, migrations, record counts, a button to re-check base forms for every team, and the full **admin audit log**. |
+
+How licences are enforced:
+- **Seats:** a team can't create more invites than its seats (members plus pending invites). Accepting an invite also checks this. Blank seats means the plan's default; blank on the plan means unlimited.
+- **Licence end date:** after this date the team can still sign in and read everything, but changes are refused. Everyone sees a red *read-only* banner until you renew.
+- **Suspended:** members can't open the team at all (platform admins still can).
+- Plan, seat and feature changes reach devices at their next sync or app refresh (within 10 minutes while the app is open).
+
 ### Teams, roles and permissions
 
-- **Multi-team:** one person can belong to several teams and switch between them in the sidebar. As platform admin, the first user can create more teams under **All teams**.
-- **Invites:** go to **Team → Invite someone** and pick a role. You get a link to send by text or email; it's valid for 14 days. Existing users who open it add the team to their account.
+- **Multi-team:** one person can belong to several teams and switch between them in the sidebar. Platform admins create more teams under **Platform admin → Teams & licences**.
+- **Invites:** go to **Team → Invite someone** and pick a role. You get a link to send by text or email; it's valid for 14 days (platform admins can change this). Each team's **Licence** card shows its plan, seats and end date. Existing users who open it add the team to their account.
 - **Roles:** Owner, Crew Chief, Mechanic and Driver/Viewer come built in. Under **Roles & permissions** you can create your own and set View / Edit / Delete per area (Cars, Events, Setups, Maintenance, Assets, plus the Phase 2 areas), along with the admin rights: edit forms, manage members, manage roles, and team settings.
 
 ### Editing forms

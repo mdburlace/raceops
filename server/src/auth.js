@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { q } from './db.js';
 import { entitlements } from '../../shared/catalog.js';
+import { licenceState } from '../../shared/platform.js';
+import { settings } from './settings.js';
 
 const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 if (process.env.NODE_ENV === 'production' && (SECRET === 'dev-secret-change-me' || SECRET.length < 24)) {
@@ -28,8 +30,9 @@ export async function requireAuth(req, _res, next) {
     if (!token) throw new HttpError(401, 'Not signed in');
     let payload;
     try { payload = jwt.verify(token, SECRET); } catch { throw new HttpError(401, 'Session expired'); }
-    const { rows } = await q('SELECT id, email, name, is_platform_admin FROM users WHERE id=$1', [payload.sub]);
+    const { rows } = await q('SELECT id, email, name, is_platform_admin, disabled FROM users WHERE id=$1', [payload.sub]);
     if (!rows[0]) throw new HttpError(401, 'User not found');
+    if (rows[0].disabled) throw new HttpError(401, 'This account has been disabled');
     req.user = rows[0];
     next();
   } catch (e) { next(e); }
@@ -39,14 +42,18 @@ export async function requireAuth(req, _res, next) {
 export async function requireMember(req, _res, next) {
   try {
     const { rows } = await q(
-      `SELECT r.id, r.name, r.permissions, r.is_owner, t.plan, t.features
+      `SELECT r.id, r.name, r.permissions, r.is_owner, t.plan, t.features, t.status, t.licence_expires
          FROM memberships m JOIN roles r ON r.id = m.role_id JOIN tenants t ON t.id = m.tenant_id
         WHERE m.user_id=$1 AND m.tenant_id=$2`,
       [req.user.id, req.params.tid]
     );
     if (!rows[0]) throw new HttpError(403, 'Not a member of this team');
+    const state = licenceState(rows[0]);
+    if (state === 'suspended' && !req.user.is_platform_admin) throw new HttpError(403, 'This team has been suspended. Contact the platform administrator.');
     req.role = rows[0];
-    req.ent = entitlements(rows[0]);
+    req.ent = entitlements(rows[0], settings().plans);
+    // an expired licence keeps the data readable but stops changes
+    req.readOnly = state === 'expired' && !req.user.is_platform_admin;
     req.tid = req.params.tid;
     next();
   } catch (e) { next(e); }

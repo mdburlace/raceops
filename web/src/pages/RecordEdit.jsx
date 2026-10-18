@@ -78,7 +78,7 @@ export default function RecordEdit() {
   const rec = useRecordById(id === 'new' ? null : id);
   const isNew = id === 'new';
   const canBeGlobal = GLOBAL_TYPES.includes(type) && user?.is_platform_admin;
-  const [makeGlobal, setMakeGlobal] = useState(type === 'track');
+  const [makeGlobal, setMakeGlobal] = useState(type === 'track' || new URLSearchParams(window.location.search).get('scope') === 'global');
   const isGlobal = isNew ? canBeGlobal && makeGlobal : !!(rec?.global || rec?.data?.scope === 'global');
   const readOnly = !canType(type, 'edit') || (!isNew && isGlobal && !user?.is_platform_admin);
 
@@ -100,7 +100,7 @@ export default function RecordEdit() {
     const f = formFor(data, type, params.get('form'));
     const init = {};
     for (const fd of allFields(f)) if (fd.default !== undefined) init[fd.key] = fd.default;
-    for (const [k, val] of params.entries()) if (k !== 'form' && k !== 'from') init[k] = val;
+    for (const [k, val] of params.entries()) if (!['form', 'from', 'scope', 'back'].includes(k)) init[k] = val;
     for (const fd of allFields(f)) if (fd.defaultSelf && !init[fd.key]) init[fd.key] = user.id;
     if (type === 'dyno_run' && init.asset && v(data.byId[init.asset], 'adjust_type')) init.adjust_type = v(data.byId[init.asset], 'adjust_type');
     if (allFields(f).some((fd) => fd.key === 'date' && fd.type === 'date')) init.date ||= today();

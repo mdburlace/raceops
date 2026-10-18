@@ -14,7 +14,8 @@ import { Maintenance } from './pages/Maintenance.jsx';
 import { AssetDetail, AssetList, CarList } from './pages/Assets.jsx';
 import RecordEdit from './pages/RecordEdit.jsx';
 import { FormBuilder, FormList } from './pages/Forms.jsx';
-import { AdminTeams, Profile, Roles, Team } from './pages/Team.jsx';
+import { Profile, Roles, Team } from './pages/Team.jsx';
+import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers } from './pages/Admin.jsx';
 
 function NoTeam() {
   const { logout, user } = useSession();
@@ -86,7 +87,15 @@ function Routed() {
         <Route path="compare" element={<Compare />} />
         <Route path="r/:type/:id" element={<RecordEdit />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="admin/teams" element={<AdminTeams />} />
+        {/* Platform admin */}
+        <Route path="admin" element={<AdminGate><AdminOverview /></AdminGate>} />
+        <Route path="admin/teams" element={<AdminGate><AdminTeams /></AdminGate>} />
+        <Route path="admin/plans" element={<AdminGate><AdminPlans /></AdminGate>} />
+        <Route path="admin/users" element={<AdminGate><AdminUsers /></AdminGate>} />
+        <Route path="admin/directory" element={<AdminGate><AdminDirectory /></AdminGate>} />
+        <Route path="admin/lists" element={<AdminGate><AdminLists /></AdminGate>} />
+        <Route path="admin/settings" element={<AdminGate><AdminSettings /></AdminGate>} />
+        <Route path="admin/system" element={<AdminGate><AdminSystem /></AdminGate>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

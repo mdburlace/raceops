@@ -111,7 +111,11 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
       return (
         <select {...common} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
           <option value="">—</option>
-          {optionsOf(field, form, data).map((o) => <Opt key={typeof o === 'object' ? o.value : o} o={o} />)}
+          {(() => {
+            const opts = optionsOf(field, form, data);
+            const has = (x) => opts.some((o) => (typeof o === 'object' ? o.value : o) === x);
+            return [...opts, ...(value && !has(value) ? [value] : [])].map((o) => <Opt key={typeof o === 'object' ? o.value : o} o={o} />);
+          })()}
         </select>
       );
     case 'member':
@@ -138,7 +142,7 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
       );
     }
     case 'tags':
-      return <TagsInput id={common.id} value={value} onChange={onChange} suggestions={suggestions || []} quick={field.options || []} />;
+      return <TagsInput id={common.id} value={value} onChange={onChange} suggestions={suggestions || []} quick={optionsOf(field, form, data)} />;
     case 'entityref': {
       const t = values?.[field.typeKey];
       if (!t) return <span className="muted small">Choose what it links to first</span>;
@@ -224,7 +228,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
     const out = {};
     for (const s of form?.data.sections || []) for (const f of s.fields) {
       if (f.type === 'tags') {
-        out[f.key] = [...new Set([...(f.options || []), ...data.list(recordType).flatMap((r) => (Array.isArray(v(r, f.key)) ? v(r, f.key) : []))])];
+        out[f.key] = [...new Set([...optionsOf(f, form, data), ...data.list(recordType).flatMap((r) => (Array.isArray(v(r, f.key)) ? v(r, f.key) : []))])];
         continue;
       }
       if (!f.suggest) continue;

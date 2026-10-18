@@ -116,6 +116,18 @@ export function Landing() {
             ? <Link key={a.key} to={AREA_PATH[a.key]} className={`area-tile area-${a.key}`}>{body}</Link>
             : <div key={a.key} className={`area-tile area-${a.key} locked-tile`}>{body}</div>;
         })}
+        {user?.is_platform_admin && (
+          <Link to="/admin" className="area-tile area-admin">
+            <div className="area-top">
+              <span className="area-icon"><Icon d={AREA_ICON.admin} size={26} /></span>
+              <div>
+                <h2>Platform admin</h2>
+                <p className="muted">Global settings for every team: licences and plans, users, the track directory, pick-lists and system settings.</p>
+              </div>
+            </div>
+            <div className="area-links">{['Teams & licences', 'Plans & allocation', 'Users', 'Tracks & directory', 'Pick-lists', 'Settings'].map((x) => <span key={x}>{x}</span>)}</div>
+          </Link>
+        )}
       </div>
 
       {canArea('workshop') && (s.due.length > 0 || s.attention.length > 0) && (

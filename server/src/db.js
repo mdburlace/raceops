@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// DATE columns (licence end dates) stay as 'YYYY-MM-DD' strings instead of local-midnight Date objects.
+pg.types.setTypeParser(1082, (v) => v);
+
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL || 'postgres://raceops:raceops@localhost:5432/raceops',
   max: 10,

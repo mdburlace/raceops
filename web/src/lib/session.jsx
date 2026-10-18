@@ -3,7 +3,7 @@ import { api, loadSession, saveSession } from './api.js';
 import { db, getMeta, setMeta } from './store.js';
 import { fullResync, setSyncTenant, syncNow } from './sync.js';
 import { can as canP, canType as canT, canArea as canA, canModule as canM, entitlements } from '@shared/catalog.js';
-import { setMembersCache } from './data.js';
+import { setMembersCache, setPlatformLists } from './data.js';
 
 const Ctx = createContext(null);
 export const useSession = () => useContext(Ctx);
@@ -35,7 +35,7 @@ export function SessionProvider({ children }) {
     if (!s?.token || !navigator.onLine) return;
     try {
       const me = await api('/me');
-      const next = { ...s, user: me.user, memberships: me.memberships };
+      const next = { ...s, user: me.user, memberships: me.memberships, platform: me.platform || s.platform };
       if (!me.memberships.some((m) => m.tenant_id === s.tenantId)) next.tenantId = me.memberships[0]?.tenant_id || null;
       update(next);
       const m = me.memberships.find((x) => x.tenant_id === next.tenantId);
@@ -53,10 +53,15 @@ export function SessionProvider({ children }) {
     window.addEventListener('raceops:unauthorized', onUnauth);
     window.addEventListener('online', refresh);
     refresh();
-    return () => { window.removeEventListener('raceops:unauthorized', onUnauth); window.removeEventListener('online', refresh); };
+    // pick up licence, plan and platform changes (announcements, pick-lists) while the app stays open
+    const t = setInterval(() => { if (!document.hidden) refresh(); }, 10 * 60 * 1000);
+    return () => { clearInterval(t); window.removeEventListener('raceops:unauthorized', onUnauth); window.removeEventListener('online', refresh); };
   }, [refresh, logout]);
 
   const membership = session?.memberships?.find((m) => m.tenant_id === session.tenantId) || null;
+  const platform = session?.platform || null;
+  setPlatformLists(platform?.lists);
+  useEffect(() => { document.title = platform?.app_name || 'RaceOps'; }, [platform?.app_name]);
   const ent = useMemo(() => entitlements(membership), [membership]);
   const [membersVersion, setMembersVersion] = useState(0);
 
@@ -89,6 +94,8 @@ export function SessionProvider({ children }) {
     role: membership?.role,
     ent,
     membersVersion,
+    platform,
+    licence: membership?.licence || 'active',
     can: (p) => canP(membership?.role, p),
     canType: (t, a) => canT(membership?.role, ent, t, a),
     canArea: (a) => canA(membership?.role, ent, a),
