@@ -66,9 +66,10 @@ export function RefSearch({ id, recs, value, onChange, data, placeholder = 'Type
   );
 }
 
-function TagsInput({ id, value, onChange, suggestions = [] }) {
+function TagsInput({ id, value, onChange, suggestions = [], quick = [] }) {
   const tags = Array.isArray(value) ? value : value ? [String(value)] : [];
   const [text, setText] = useState('');
+  const [more, setMore] = useState(false);
   const add = (x) => { const tg = x.trim(); if (tg && !tags.includes(tg)) onChange([...tags, tg]); setText(''); };
   return (
     <div className="tags-input">
@@ -78,6 +79,14 @@ function TagsInput({ id, value, onChange, suggestions = [] }) {
       <input id={id} value={text} list={`dl-${id}`} placeholder="Add…" onChange={(e) => { if (e.target.value.endsWith(',')) add(e.target.value.slice(0, -1)); else setText(e.target.value); }}
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(text); } }} onBlur={() => text && add(text)} />
       <datalist id={`dl-${id}`}>{suggestions.filter((x) => !tags.includes(x)).slice(0, 500).map((x) => <option key={x} value={x} />)}</datalist>
+      {quick.length > 0 && (
+        <div className="quick-tags">
+          {quick.filter((x) => !tags.includes(x)).slice(0, more ? 200 : 12).map((x) => (
+            <button type="button" key={x} className="chip" onClick={() => onChange([...tags, x])}>+ {x}</button>
+          ))}
+          {quick.filter((x) => !tags.includes(x)).length > 12 && <button type="button" className="link small" onClick={() => setMore(!more)}>{more ? 'fewer' : 'more…'}</button>}
+        </div>
+      )}
     </div>
   );
 }
@@ -94,7 +103,7 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
     case 'checkbox':
       return (
         <label className="toggle">
-          <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />
+          <input id={common.id} type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />
           <span>{value ? 'Yes' : 'No'}</span>
         </label>
       );
@@ -129,7 +138,7 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
       );
     }
     case 'tags':
-      return <TagsInput id={common.id} value={value} onChange={onChange} suggestions={suggestions || []} />;
+      return <TagsInput id={common.id} value={value} onChange={onChange} suggestions={suggestions || []} quick={field.options || []} />;
     case 'entityref': {
       const t = values?.[field.typeKey];
       if (!t) return <span className="muted small">Choose what it links to first</span>;
@@ -215,7 +224,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
     const out = {};
     for (const s of form?.data.sections || []) for (const f of s.fields) {
       if (f.type === 'tags') {
-        out[f.key] = [...new Set(data.list(recordType).flatMap((r) => (Array.isArray(v(r, f.key)) ? v(r, f.key) : [])))].sort();
+        out[f.key] = [...new Set([...(f.options || []), ...data.list(recordType).flatMap((r) => (Array.isArray(v(r, f.key)) ? v(r, f.key) : []))])];
         continue;
       }
       if (!f.suggest) continue;
@@ -268,7 +277,9 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
 function Field({ f, values, onChange, data, form, readOnly, errors, suggestions }) {
   const wide = ['textarea', 'corners', 'table', 'multiref', 'sweep', 'tags'].includes(f.type);
   let body;
-  if (f.type === 'calc') {
+  if (f.type === 'derived') {
+    body = <div className="calc">{values[f.key] || '—'}{values[f.key] && f.unit ? <small> {f.unit}</small> : null}</div>;
+  } else if (f.type === 'calc') {
     const r = evalFormula(f.formula, values);
     body = <div className="calc">{r ?? '—'}{r !== null && f.unit ? <small> {f.unit}</small> : null}</div>;
   } else if (f.type === 'sweep') {

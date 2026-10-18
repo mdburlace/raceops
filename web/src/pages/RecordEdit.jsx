@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { gearTeeth } from '../lib/gears.js';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { GLOBAL_TYPES } from '@shared/catalog.js';
 import { Attachments, History, PageHeader } from '../components/ui.jsx';
-import { allFields, isVisible, formFor, formsFor, fmtDate, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
+import { allFields, isVisible, num, formFor, formsFor, fmtDate, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 
@@ -18,7 +19,7 @@ export const TYPE_LABEL = {
 
 // New records pre-filled from the latest record with the same car / engine.
 const CARRY = {
-  setup: { match: 'car', skip: ['event', 'car', 'session', 'crew_chief'], label: 'session' },
+  setup: { match: 'car', skip: ['event', 'car', 'session', 'crew_chief', 'day', 'baseline', 'baseline_name'], label: 'session' },
   engine_build: { match: 'engine', skip: ['engine', 'date', 'build_type', 'engine_laps', 'builder', 'notes'], label: 'build' },
 };
 
@@ -56,7 +57,7 @@ function carryValues(form, source, skip = CARRY.setup.skip) {
   for (const sec of form.data.sections) {
     if (sec.carry === false) continue;
     for (const f of sec.fields) {
-      if (skip.includes(f.key) || f.type === 'heading' || f.type === 'calc') continue;
+      if (skip.includes(f.key) || f.nocopy || f.type === 'heading' || f.type === 'calc') continue;
       if (sv[f.key] !== undefined) out[f.key] = sv[f.key];
     }
   }
@@ -85,6 +86,8 @@ export default function RecordEdit() {
   const [values, setValues] = useState(null);
   const [errors, setErrors] = useState({});
   const [carried, setCarried] = useState(null);
+  const [choosing, setChoosing] = useState(false);
+  const [pickBaseline, setPickBaseline] = useState('');
   const [dirty, setDirty] = useState(false);
 
   const form = data ? formFor(data, type, formId || rec?.data.form_id || params.get('form')) : null;
@@ -102,14 +105,27 @@ export default function RecordEdit() {
     if (type === 'dyno_run' && init.asset && v(data.byId[init.asset], 'adjust_type')) init.adjust_type = v(data.byId[init.asset], 'adjust_type');
     if (allFields(f).some((fd) => fd.key === 'date' && fd.type === 'date')) init.date ||= today();
     const cfg = CARRY[type];
-    if (cfg && init[cfg.match]) {
-      const src = params.get('from') ? data.byId[params.get('from')]
-        : sortSetupsDesc(data.list(type).filter((s) => v(s, cfg.match) === init[cfg.match]), data)[0];
+    if (cfg && params.get('from') && data.byId[params.get('from')]) {
+      const src = data.byId[params.get('from')];
+      Object.assign(init, carryValues(f, src, cfg.skip)); setCarried(src);
+    } else if (type === 'setup') {
+      setChoosing(true); // ask where to start from
+    } else if (cfg && init[cfg.match]) {
+      const src = sortSetupsDesc(data.list(type).filter((s) => v(s, cfg.match) === init[cfg.match]), data)[0];
       if (src) { Object.assign(init, carryValues(f, src, cfg.skip)); setCarried(src); }
     }
     setFormId(f?.id);
     setValues(init);
   }, [data, rec, isNew]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // setup: final drive = ring & pinion on the car × spur ratio of the chosen gear set and position
+  const carRp = type === 'setup' && data && values ? num(v(data.byId[values.car], 'rp_ratio')) : null;
+  useEffect(() => {
+    if (type !== 'setup' || !values || !data) return;
+    const teeth = gearTeeth(data.byId[values.gear]);
+    const fd = teeth && carRp ? (carRp * (values.gear_orientation === 'High' ? teeth.large / teeth.small : teeth.small / teeth.large)).toFixed(3) : '';
+    if (fd !== (values.final_drive ?? '') && (fd || values.gear)) setValues((s0) => ({ ...s0, final_drive: fd }));
+  }, [type, values?.gear, values?.gear_orientation, values?.car, carRp, data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onChange = (k, val) => {
     setValues((s) => {
@@ -123,6 +139,18 @@ export default function RecordEdit() {
 
   const cfg = CARRY[type];
   const matchVal = cfg ? values?.[cfg.match] : null;
+  const baselines = data && type === 'setup' ? data.list('setup').filter((s) => v(s, 'baseline') && s.id !== id)
+    .sort((a, b) => String(v(a, 'baseline_name') || titleOf(a, data)).localeCompare(String(v(b, 'baseline_name') || titleOf(b, data)))) : [];
+  const baselineLabel = (s) => `${v(s, 'baseline_name') || titleOf(s, data)} — ${titleOf(data.byId[v(s, 'car')])}`;
+  const prevSession = data && type === 'setup' && values?.event && values?.car
+    ? data.list('setup').filter((s) => s.id !== id && v(s, 'event') === values.event && v(s, 'car') === values.car)
+      .sort((a, b) => (num(v(b, 'day')) || 1) - (num(v(a, 'day')) || 1) || b.created_at.localeCompare(a.created_at))[0] : null;
+  const lastEvent = data && type === 'setup' && values?.car
+    ? sortSetupsDesc(data.list('setup').filter((s) => s.id !== id && v(s, 'car') === values.car && v(s, 'event') !== values.event), data)[0] : null;
+  const startFrom = (src) => {
+    if (src) { setValues((s0) => ({ ...s0, ...carryValues(form, src, cfg.skip) })); setCarried(src); setDirty(true); }
+    setChoosing(false);
+  };
   const copyOptions = useMemo(() => (data && cfg && matchVal
     ? sortSetupsDesc(data.list(type).filter((s) => v(s, cfg.match) === matchVal && s.id !== id), data).slice(0, 30)
     : []), [data, type, matchVal, id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -201,20 +229,55 @@ export default function RecordEdit() {
         </div>
       )}
 
-      {cfg && !readOnly && (
+      {type === 'setup' && choosing && !readOnly && (prevSession || lastEvent || baselines.length > 0) && (
+        <div className="card start-from">
+          <h3>Start this sheet from…</h3>
+          <p className="muted small">Copies the setup as starting values. Hot pressures and stagger, shock travel, race results, conditions & feedback, notes and photos are not copied.</p>
+          <div className="start-options">
+            {prevSession && (
+              <button type="button" className="start-opt primary" onClick={() => startFrom(prevSession)}>
+                <b>Previous session</b><span>{titleOf(prevSession, data)}{num(v(prevSession, 'day')) > 1 ? ` · Day ${v(prevSession, 'day')}` : ''}</span>
+              </button>
+            )}
+            {lastEvent && (
+              <button type="button" className="start-opt" onClick={() => startFrom(lastEvent)}>
+                <b>Last time out</b><span>{titleOf(lastEvent, data)} · {fmtDate(recDate(lastEvent, data))}</span>
+              </button>
+            )}
+            {baselines.length > 0 && (
+              <div className="start-opt as-div">
+                <b>A baseline</b>
+                <select aria-label="Baseline" value={pickBaseline} onChange={(e) => setPickBaseline(e.target.value)}>
+                  <option value="">Choose baseline…</option>
+                  {baselines.map((b) => <option key={b.id} value={b.id}>{baselineLabel(b)}</option>)}
+                </select>
+                <button type="button" className="btn small" disabled={!pickBaseline} onClick={() => startFrom(data.byId[pickBaseline])}>Use baseline</button>
+              </div>
+            )}
+            <button type="button" className="start-opt" onClick={() => startFrom(null)}><b>Blank sheet</b><span>Start empty</span></button>
+          </div>
+        </div>
+      )}
+
+      {cfg && !readOnly && !(type === 'setup' && choosing && (prevSession || lastEvent || baselines.length > 0)) && (
         <div className="card carry-bar">
           {carried
-            ? <span>Started from <b>{titleOf(carried, data)}</b>{type === 'setup' ? ' — weather, race and notes left blank.' : ' — measurements copied; check every value.'}</span>
-            : <span className="muted">Copy settings from a previous {cfg.label}:</span>}
-          <select value="" onChange={(e) => {
+            ? <span>Started from <b>{v(carried, 'baseline') ? `baseline “${v(carried, 'baseline_name') || titleOf(carried, data)}”` : titleOf(carried, data)}</b>{type === 'setup' ? ' — hot values, travel, race, feedback and notes left blank.' : ' — measurements copied; check every value.'}</span>
+            : <span className="muted">Copy settings from a previous {cfg.label}{type === 'setup' ? ' or baseline' : ''}:</span>}
+          <select value="" aria-label="Copy from" onChange={(e) => {
             const src = data.byId[e.target.value];
             if (src) { setValues((s) => ({ ...s, ...carryValues(form, src, cfg.skip) })); setCarried(src); setDirty(true); }
           }}>
             <option value="">{matchVal ? 'Copy from…' : `Pick a ${cfg.match} first`}</option>
-            {copyOptions.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}
+            {baselines.length > 0 && <optgroup label="Baselines">{baselines.map((b) => <option key={b.id} value={b.id}>{baselineLabel(b)}</option>)}</optgroup>}
+            <optgroup label={type === 'setup' ? 'Sessions' : 'Previous'}>
+              {copyOptions.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}
+            </optgroup>
           </select>
         </div>
       )}
+      {type === 'setup' && values.baseline && <div className="notice info">This sheet is a <b>baseline</b>{values.baseline_name ? ` — “${values.baseline_name}”` : ''}. It can be recalled as the starting point for any event or session.</div>}
+      {type === 'setup' && values.gear && !carRp && <div className="notice">Set the ring & pinion ratio on the car to calculate the final drive.</div>}
 
       {type === 'maintenance' && values.level && (
         <div className="card inline-row">

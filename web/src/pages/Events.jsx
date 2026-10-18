@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { Empty, PageHeader, Section } from '../components/ui.jsx';
 import { eventTrack, fmtDate, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
@@ -86,6 +86,7 @@ export function EventDetail() {
   const { id } = useParams();
   const data = useTeamData();
   const { canType } = useSession();
+  const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const dayState = num(params.get('day'));
   const setDay = (d) => setParams({ day: String(d) }, { replace: true });
@@ -105,6 +106,7 @@ export function EventDetail() {
   const canEdit = canType('setup', 'edit');
   const back = encodeURIComponent(`/events/${id}${days > 1 ? `?day=${day}` : ''}`);
   const venue = data.byId[v(ev, 'venue')];
+  const baselines = data.list('setup').filter((s) => v(s, 'baseline'));
   const series = data.byId[v(ev, 'series')];
 
   return (
@@ -135,13 +137,24 @@ export function EventDetail() {
         const ids = setups.filter((s) => v(s, 'car') === car.id).map((s) => s.id).join(',');
         return (
           <Section key={car.id} title={titleOf(car)} className="event-car"
-            actions={setups.filter((s) => v(s, 'car') === car.id).length > 1 && <Link className="btn ghost small" to={`/compare?ids=${ids}`}>Compare sessions</Link>}>
+            actions={(
+              <span className="row-actions">
+                {canEdit && baselines.length > 0 && (
+                  <select className="baseline-pick" aria-label={`Start ${titleOf(car)} from a baseline`} value=""
+                    onChange={(e) => e.target.value && nav(`/r/setup/new?event=${id}&car=${car.id}&session=${encodeURIComponent(sessions.find((sn) => !mine.some((x) => v(x, 'session') === sn)) || sessions[0] || '')}${days > 1 ? `&day=${day}` : ''}&from=${e.target.value}&back=${back}`)}>
+                    <option value="">Start from baseline…</option>
+                    {baselines.map((b) => <option key={b.id} value={b.id}>{v(b, 'baseline_name') || titleOf(b, data)}{v(b, 'car') !== car.id ? ` (${titleOf(data.byId[v(b, 'car')])})` : ''}</option>)}
+                  </select>
+                )}
+                {setups.filter((s) => v(s, 'car') === car.id).length > 1 && <Link className="btn ghost small" to={`/compare?ids=${ids}`}>Compare sessions</Link>}
+              </span>
+            )}>
             <div className="session-grid">
               {sessions.map((sn) => {
                 const list = mine.filter((s) => v(s, 'session') === sn);
                 if (list.length) {
                   return list.map((s) => (
-                    <Link key={s.id} to={`/r/setup/${s.id}`} className={`session-cell has${s.dirty ? ' pending' : ''}`}>
+                    <Link key={s.id} to={`/r/setup/${s.id}?back=${back}`} className={`session-cell has${s.dirty ? ' pending' : ''}`}>
                       <span className="sn">{sn}</span>
                       <span className="sd">{[v(s, 'start') && `Start ${v(s, 'start')}`, v(s, 'finish') && `Fin ${v(s, 'finish')}`].filter(Boolean).join(' → ') || 'Recorded'}</span>
                     </Link>
@@ -154,7 +167,7 @@ export function EventDetail() {
                 ) : <div key={sn} className="session-cell none"><span className="sn">{sn}</span><span className="sd">—</span></div>;
               })}
               {extra.map((s) => (
-                <Link key={s.id} to={`/r/setup/${s.id}`} className="session-cell has">
+                <Link key={s.id} to={`/r/setup/${s.id}?back=${back}`} className="session-cell has">
                   <span className="sn">{v(s, 'session') || 'Session'}</span><span className="sd">Recorded</span>
                 </Link>
               ))}

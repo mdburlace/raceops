@@ -119,11 +119,39 @@ const seriesForm = {
 
 export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm];
 
+export const TRACK_CONDITIONS = ['Wet', 'Heavy', 'Tacky', 'Moist', 'Grippy', 'Fast', 'Drying out', 'Slick', 'Dry slick', 'Black slick',
+  'Rubbered up', 'Greasy', 'Dusty', 'Rough', 'Choppy', 'Rutted', 'Holes in turns', 'Cushion building', 'Big cushion', 'No cushion',
+  'Ledge', 'Rim', 'Middle groove', 'Bottom groove', 'Multi-groove', 'One lane', 'Patchy', 'Hard packed', 'Loose top', 'Cold', 'Hot', 'Windy', 'Night (cooling)'];
+export const CAR_BEHAVIOUR = ['Tight entry', 'Tight centre', 'Tight exit', 'Loose entry', 'Loose centre', 'Loose exit', 'Free', 'Pushes',
+  'Snaps loose', 'Won\'t turn', 'Turns well', 'Good drive off', 'No drive off', 'Spins tyres', 'Wheel hop', 'Bound up', 'Bicycling',
+  'Lifts LF', 'Bottoms out', 'Hits stops', 'Rolls too much', 'Flat / no roll', 'Unstable on brakes', 'Nervous', 'Stable', 'Too much wing',
+  'Not enough wing', 'Loses forward bite', 'Good rotation', 'Engine flat', 'Over-revving', 'Lacks top speed'];
+export const SETUP_FEEDBACK_SECTION = {
+  id: 'feedback', title: 'Track conditions & car feedback', carry: false, fields: [
+    { key: 'track_conditions', label: 'Track conditions', type: 'tags', core: true, options: TRACK_CONDITIONS, help: 'Pick common descriptions or type your own.' },
+    { key: 'conditions_notes', label: 'Track notes', type: 'textarea' },
+    { key: 'driver_feel', label: 'Driver — how the car behaved', type: 'tags', core: true, options: CAR_BEHAVIOUR },
+    { key: 'driver_comments', label: 'Driver comments', type: 'textarea', core: true },
+    { key: 'crew_feel', label: 'Crew lead — how the car behaved', type: 'tags', core: true, options: CAR_BEHAVIOUR },
+    { key: 'crew_comments', label: 'Crew lead comments', type: 'textarea', core: true },
+    { key: 'changes_next', label: 'Changes for next session', type: 'textarea' },
+  ],
+};
+
 export const PHASE3_UPGRADES = [
   { target: 'event', section: 'event', after: 'name', field: { key: 'venue', label: 'Track', type: 'ref', ref: 'track', core: true } },
   { target: 'event', key: 'track', patch: { label: 'Track name (if not listed)', required: false } },
   { target: 'event', section: 'event', after: 'event_type', field: { key: 'series', label: 'Series', type: 'ref', ref: 'series', core: true, help: 'Leave empty for a stand-alone event.' } },
   { target: 'event', section: 'event', after: 'series', field: { key: 'round', label: 'Round', type: 'number', core: true } },
   { target: 'setup', section: 'session', after: 'session', field: { key: 'day', label: 'Day', type: 'number', core: true, placeholder: '1', help: 'For multi-day events.' } },
+  // setup sheet: baseline flag, derived final drive, what is not copied, conditions & feedback
+  { target: 'setup', section: 'session', after: 'day', field: { key: 'baseline', label: 'Save as a baseline setup', type: 'checkbox', core: true, nocopy: true } },
+  { target: 'setup', section: 'session', after: 'baseline', field: { key: 'baseline_name', label: 'Baseline name', type: 'text', core: true, nocopy: true, showIf: 'baseline=true', placeholder: 'e.g. Archerfield tacky – heavy' } },
+  { target: 'setup', key: 'final_drive', patch: { type: 'derived', help: 'Gear set × position × ring & pinion on the car' } },
+  { target: 'setup', key: 'pressure_hot', patch: { nocopy: true } },
+  { target: 'setup', key: 'stagger_hot', patch: { nocopy: true } },
+  { target: 'setup', key: 'travel', patch: { nocopy: true } },
+  { target: 'setup', section: 'weather', sectionPatch: { carry: true } },
+  { target: 'setup', insertSection: SETUP_FEEDBACK_SECTION, before: 'notes' },
   { target: 'track_check', section: 'when', after: 'after_session', field: { key: 'day', label: 'Day', type: 'number', placeholder: '1' } },
 ];

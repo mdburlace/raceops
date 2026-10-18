@@ -57,7 +57,11 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 | Area | What it does |
 |---|---|
 | **Events** | Race meetings. Each event shows a grid of *car × session* (Hot Laps, Qualifying, Heat 1/2, Dash, B-Main, Feature, Practice). Tap a cell to fill that session's setup sheet. |
-| **Setup sheet** | Built from your *Sprint Set Up Sheet Collection*: weather, engine (motor, headers, pump, nozzles, gear, main/LS/HS), bars, blocked, ride height, wing, shocks and travel, tire pressures cold/hot, spec/size, stagger, wheels, race result, fuel (fuel used is calculated) and tach. A new sheet **carries forward** the car's previous session. Weather, race and notes start blank. |
+| **Setup sheet** | Built from your *Sprint Set Up Sheet Collection*: weather, engine (motor, headers, pump, nozzles, gear, main/LS/HS), bars, blocked, ride height, wing, shocks and travel, tire pressures cold/hot, spec/size, stagger, wheels, race result, fuel (fuel used is calculated) and tach. **Final drive is calculated** from the gear set, gear position (low/high) and the car's ring & pinion. |
+| **Starting a new sheet** | A new sheet asks where to start: the **previous session** at this event, the car's **last time out**, a **baseline**, or blank. Setup and weather are copied as starting values. Hot pressures, hot stagger, shock travel, race result, conditions & feedback, notes and photos are not copied. |
+| **Baselines** | Tick **Save as a baseline setup** on any sheet and give it a name (e.g. "Archerfield slick"). Recall it from the start prompt, from **Start from baseline…** on each car at an event, or from **Setups → Baselines**. |
+| **Track conditions & car feedback** | Each sheet has quick-pick track descriptions (Tacky, Slick, Rubbered up, Big cushion…), the driver's and crew lead's description of how the car behaved (Loose exit, Tight entry, No drive off…), and their comments plus changes for next session. You can also type your own descriptions. |
+| **Search conditions & feedback** | **Setups → Search** filters every sheet by condition and behaviour tags (driver, crew lead or either), track, car and free text in comments. Results show the matching words highlighted and can be compared side by side, to see what you ran last time the track was like this. |
 | **Compare** | Put 2–4 sheets side by side with differences highlighted ("Only differences" toggle). Available from an event (*Compare sessions*) or the Setups list. |
 | **Asset links** | The Bars, Shocks, Motor and Gear fields pick from your asset list (or you can type free text). That links the shock or bar to the setup and the event it ran in, and it counts **laps and race meetings** toward the asset's life. |
 | **Maintenance → Checklists** | Your *Race Car Maintenance Check List*: Weekly, Every 2nd race, Monthly / 4th race. Longer intervals include the shorter ones. Items can record a measurement (e.g. toe-out, pad thickness) and a note. |
@@ -75,9 +79,10 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 
 ### Tracks, contacts, suppliers and series
 
-- **Track directory (shared by all teams):** on first start the server loads 379 tracks:
-  - The baseline is your two directory JSON files (AU/NZ and Canada/USA).
-  - Address, size, surface and classes are filled in from `Tracks.xlsx` where names match (159 tracks).
+- **Track directory (shared by all teams):** on first start the server loads 673 tracks:
+  - 379 come from your two directory JSON files (AU/NZ and Canada/USA). Address, size, surface and classes are filled in from `Tracks.xlsx` where names match.
+  - 294 more were in `Tracks.xlsx` but not the JSON (64 Australian, 230 US). Rows that matched an existing track by fuzzy name and state were merged, not duplicated. They are listed in `shared/seed/tracks_duplicates_skipped.csv`.
+  - When the bundled list changes, an upgrade adds new tracks and fills empty fields. It never overwrites edits.
   - Fields follow the spreadsheet: name, address, location, state, size, surface, radius, banking, cushion, lat/long, website, contact number, status, notes and classes.
   - Platform admins refresh the directory from a newer JSON under **All teams & licences → Track directory import**. Tracks are matched on the JSON `id`, and you choose: add new only, fill empty fields, or overwrite.
 - **Linking tracks to a team:**

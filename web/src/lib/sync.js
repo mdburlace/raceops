@@ -51,11 +51,10 @@ async function pull(tid) {
   for (;;) {
     const res = await api(`/t/${tid}/sync?since=${since}`);
     await db.transaction('rw', db.records, async () => {
-      for (const r of res.records) {
-        const local = await db.records.get(r.id);
-        if (local?.dirty && local.client_updated_at > new Date(r.client_updated_at).toISOString()) continue;
-        await db.records.put(fromServer(tid, r));
-      }
+      const locals = await db.records.bulkGet(res.records.map((r) => r.id));
+      const puts = res.records.filter((r, i) => !(locals[i]?.dirty && locals[i].client_updated_at > new Date(r.client_updated_at).toISOString()))
+        .map((r) => fromServer(tid, r));
+      if (puts.length) await db.records.bulkPut(puts);
     });
     since = res.since;
     await setMeta(`since:${tid}`, since);

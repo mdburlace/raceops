@@ -331,6 +331,20 @@ export function applyUpgrades(form) {
   const has = (k) => form.sections.some((s) => s.fields.some((f) => f.key === k));
   for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES]) {
     if (u.target !== form.target) continue;
+    if (u.insertSection) {
+      if (!form.sections.some((x) => x.id === u.insertSection.id)) {
+        const i = form.sections.findIndex((x) => x.id === u.before);
+        form.sections.splice(i >= 0 ? i : form.sections.length, 0, structuredClone(u.insertSection));
+        changed = true;
+      }
+      continue;
+    }
+    if (u.sectionPatch) {
+      const sec = form.sections.find((x) => x.id === u.section);
+      const mark = `_patched_${Object.keys(u.sectionPatch).join('_')}`;
+      if (sec && !sec[mark]) { Object.assign(sec, u.sectionPatch, { [mark]: true }); changed = true; }
+      continue;
+    }
     if (u.patch) {
       const f = form.sections.flatMap((s) => s.fields).find((x) => x.key === u.key);
       if (f && Object.entries(u.patch).some(([k, val]) => f[k] !== val) && !f[`_patched_${Object.keys(u.patch).join('_')}`]) {

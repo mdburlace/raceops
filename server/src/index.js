@@ -135,7 +135,8 @@ async function importTracks(tracks, mode, userId = null) {
       const old = cur.data.values || {};
       const merged = { ...old };
       for (const [k, val] of Object.entries(v)) {
-        const empty = (x) => x === undefined || x === null || x === '' || (Array.isArray(x) && !x.length);
+        // a lone "Sprintcars" is the directory's default class, so richer class lists may replace it
+        const empty = (x) => x === undefined || x === null || x === '' || (Array.isArray(x) && (!x.length || (k === 'classes' && x.length === 1 && x[0] === 'Sprintcars' && val.length > 1)));
         if (mode === 'overwrite' ? !empty(val) : empty(old[k]) && !empty(val)) merged[k] = val;
       }
       if (JSON.stringify(merged) === JSON.stringify(old)) { skipped++; continue; }
@@ -152,9 +153,15 @@ async function importTracks(tracks, mode, userId = null) {
 async function ensureGlobalTracks() {
   const file = path.join(__dirname, '..', '..', 'shared', 'seed', 'tracks.json');
   if (!fs.existsSync(file)) return;
-  const seed = JSON.parse(fs.readFileSync(file, 'utf8')).tracks || [];
-  const r = await importTracks(seed.map(mapImportedTrack).filter(Boolean), 'add');
-  if (r.added) console.log(`Track directory: added ${r.added} tracks`);
+  const raw = fs.readFileSync(file, 'utf8');
+  const seed = JSON.parse(raw).tracks || [];
+  // Each new version of the seed file adds new tracks and fills blank fields once; later admin edits are kept.
+  const marker = `seed:tracks:${crypto.createHash('sha1').update(raw).digest('hex').slice(0, 12)}`;
+  const { rows } = await q('SELECT 1 FROM schema_migrations WHERE name=$1', [marker]);
+  if (rows.length) return;
+  const r = await importTracks(seed.map(mapImportedTrack).filter(Boolean), 'fill');
+  await q('INSERT INTO schema_migrations(name) VALUES ($1) ON CONFLICT DO NOTHING', [marker]);
+  console.log(`Track directory: ${r.added} added, ${r.updated} filled in`);
 }
 
 async function ensureBaseForms() {
@@ -313,7 +320,7 @@ T.get('/sync', h(async (req, res) => {
   const { rows } = await q(
     `SELECT id, type, data, deleted, client_updated_at, updated_at, created_at, created_by, updated_by, seq::text AS seq,
             (tenant_id IS NULL) AS global
-       FROM records WHERE (tenant_id=$1 OR tenant_id IS NULL) AND seq > $2 AND type = ANY($3) ORDER BY seq LIMIT ${limit}`,
+       FROM records WHERE (tenant_id=$1 OR tenant_id IS NULL) AND seq > $2 AND type = ANY($3) ORDER BY records.seq LIMIT ${limit}`,
     [req.tid, since, types]);
   const last = rows.length ? Number(rows[rows.length - 1].seq) : since;
   res.json({ records: rows.map((r) => ({ ...r, seq: Number(r.seq) })), since: last, more: rows.length === limit });

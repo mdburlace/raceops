@@ -563,3 +563,28 @@ code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); 
   .list-row:has(.role-pill) { flex-wrap: wrap; row-gap: 4px; }
   .list-row:has(.role-pill) .grow { order: 3; flex-basis: 100%; }
 }
+
+/* =================== setup start, baselines, feedback search =================== */
+.start-from { border: 2px solid var(--accent); }
+.start-from h3 { margin-bottom: 4px; }
+.start-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 10px; }
+.start-opt { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font: inherit; color: inherit; }
+.start-opt span { color: var(--muted); font-size: 13px; }
+.start-opt:hover { border-color: var(--accent); }
+.start-opt.primary { border-color: var(--accent); background: var(--accent-soft); }
+.start-opt.as-div { cursor: default; gap: 6px; }
+.quick-tags { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 5px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.quick-tags .chip { font-size: 12px; padding: 3px 9px; font-weight: 600; }
+.chip.unused { opacity: .55; }
+.chip small { opacity: .7; margin-left: 3px; }
+.tag-line { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 2px; }
+.tag { font-size: 11.5px; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
+.tag.cond { border-color: color-mix(in srgb, var(--a-track) 40%, transparent); }
+.tag.drv { border-color: color-mix(in srgb, var(--info) 40%, transparent); }
+.tag.crw { border-color: color-mix(in srgb, var(--a-team) 40%, transparent); }
+.tag.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.row-sub.wrap { white-space: normal; }
+mark { background: var(--warn-soft); color: inherit; padding: 0 2px; border-radius: 3px; }
+.baseline-pick { width: auto !important; min-height: 32px !important; font-size: 13px; padding: 4px 8px !important; }
+.pad-x { padding: 6px 14px 0; margin: 0; }
+.search-hit .grow { gap: 1px; }
