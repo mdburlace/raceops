@@ -114,7 +114,8 @@ gfx = [rec('fixture', {k: x for k, x in v.items() if x}, form_id=FX, scope='glob
     {'name': 'Lakeside Club Night', 'date': up(16), 'venue': gtrack2['id'], 'classes': ['410 Sprint', '360 Sprint'], 'status': 'Scheduled'},
     {'name': 'Summer Series Rd 2', 'date': up(23), 'end_date': up(24), 'venue': gtrack2['id'], 'series': gser['id'], 'round': 2, 'classes': ['410 Sprint'], 'status': 'Scheduled'},
     {'name': 'Summer Series Rd 3', 'date': up(37), 'venue': gtrack['id'], 'series': gser['id'], 'round': 3, 'classes': ['410 Sprint'], 'status': 'Scheduled'},
-    {'name': 'Valley Speedway Classic', 'date': up(44), 'venue': gtrack['id'], 'classes': ['410 Sprint'], 'status': 'Scheduled'}]]
+    {'name': 'Valley Speedway Classic', 'date': up(44), 'venue': gtrack['id'], 'classes': ['410 Sprint'], 'status': 'Scheduled', 'major': True},
+    {'name': 'Australian Sprintcar Title', 'date': up(58), 'end_date': up(59), 'venue': gtrack2['id'], 'classes': ['410 Sprint'], 'status': 'Scheduled', 'major': True}]]
 push(gtrack, gtrack2, gser, *gfx)
 EF = form('event')
 cal = [rec('event', {'name': f['data']['values']['name'], 'date': f['data']['values']['date'], 'end_date': f['data']['values'].get('end_date'), 'venue': f['data']['values']['venue'],
@@ -197,8 +198,11 @@ with sync_playwright() as pw:
     if shot('calendar-shared'):
         page.goto(B + '/calendar?tab=shared&show=all'); settle(page)
         save('calendar-shared', page.screenshot())
+    if shot('calendar-admin'):
+        page.goto(B + '/admin/calendar?show=major'); settle(page)
+        save('calendar-admin', page.screenshot())
     if shot('calendar-suggestions'):
-        page.goto(B + '/admin/calendar'); settle(page)
+        page.goto(B + '/admin/calendar?tab=suggestions'); settle(page)
         save('calendar-suggestions', page.locator('.cal-sugg').first.screenshot())
     if shot('calendar-public'):
         pub = call(f'/t/{TID}/calendar/publish', T, 'PUT', {'on': True, 'show_cars': True, 'show_tentative': True, 'show_results': True})[1]['calendar_publish']

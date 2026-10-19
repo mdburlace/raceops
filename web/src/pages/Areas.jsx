@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { AREAS } from '@shared/catalog.js';
+import { AREAS, MODULE } from '@shared/catalog.js';
 import { AREA_ICON, AREA_PATH, Icon, I, useNav } from '../components/Layout.jsx';
 import { LifeBar, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { assetLife, scheduleStatus, setupsByAsset } from '../lib/compute.js';
@@ -19,6 +19,13 @@ export function AreaGate({ area, module, children }) {
   if (!licensed(area)) return <Locked reason="plan" area={area} />;
   if (!canArea(area) && !teamAdmin) return <Locked reason="role" area={area} />;
   if (module && !canModule(module)) return <Locked reason={licensed(module) ? 'role' : 'plan'} area={area} />;
+  return children;
+}
+
+/** Pages for modules that need no area (e.g. the Calendar): only the licence and the role's right. */
+export function ModuleGate({ module, children }) {
+  const { canModule, licensed } = useSession();
+  if (!canModule(module)) return <Locked reason={MODULE[module]?.feature && !licensed(MODULE[module].feature) ? 'plan' : 'role'} area="team" />;
   return children;
 }
 

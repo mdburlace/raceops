@@ -310,5 +310,8 @@ export const PHASE3_UPGRADES = [
     { key: 'outcome_notes', label: 'Result notes', type: 'textarea' },
     { key: 'public_note', label: 'Note on the public calendar', type: 'text', help: 'Shown on your published calendar, if you publish one.' },
   ] } },
+  // major events (titles, classics) get their own calendar view
+  { target: 'fixture', section: 'fixture', after: 'classes', field: { key: 'major', label: 'Major event', type: 'checkbox', core: true,
+    help: 'A title or big one-off meeting, e.g. the Australian Sprintcar Title — listed under Major events.' } },
   ...SHOP_UPGRADES,
 ];

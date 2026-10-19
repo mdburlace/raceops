@@ -39,7 +39,7 @@ For example, "Rebuild LF shock every 8 races" or "Freshen engine every 600 laps"
 
 ## 7. Plan your racing year
 
-Open **At the Track → Calendar → Series & track calendars** and add the dates you'll race. Each one becomes an event on your calendar, for the right car. Entering a series adds all its rounds at once. See [Calendar](/help/calendar).
+Open **Team Management → Calendar → Shared calendars** and add the dates you'll race, from your series, tracks and major events. Each one becomes an event on your calendar, for the right car. Entering a series adds all its rounds at once. See [Calendar](/help/calendar).
 
 ## 8. Fill in a setup sheet at your next event
 

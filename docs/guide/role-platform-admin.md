@@ -24,7 +24,7 @@ You look after RaceOps for every team on your server.
 - **Support a team.** **Join & open** from Teams & licences.
 - **Announcements.** Planned downtime or new features. Use the banner under **Settings**.
 - **Shared data.** Track directory, pick-lists and shared tuning guides.
-- **Calendar suggestions.** Approve or reject the series and track dates teams send in. See [Calendar suggestions](/help/calendar-suggestions).
+- **Shared calendars.** Keep the series, track and major-event dates current, and approve or reject the dates teams send in. See [Shared calendars](/help/calendar-suggestions).
 - **AI.** Watch spend per team, and change allowances.
 
 See [Platform admin](/help/platform-admin) for every page.

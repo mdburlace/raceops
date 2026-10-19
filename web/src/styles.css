@@ -1378,3 +1378,11 @@ a.sc-label { color: inherit; font-weight: 600; }
 .plain-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
 .cards { display: grid; gap: 12px; }
 .cs-extra { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 2px; }
+/* shared calendar views */
+.cal-views .seg { margin: 0; }
+.cal-index-row { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; font: inherit; color: inherit; }
+.cal-index-row:hover { background: var(--surface-2); }
+.cal-index-row .pill { margin-left: 8px; }
+.cal-crumb { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 4px 0 12px; }
+.cal-crumb h2 { margin: 0; font-size: 20px; }
+.cal-row .pill { margin-right: 6px; }

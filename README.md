@@ -396,14 +396,14 @@ Each plan has an optional **Shared engines** limit (Platform admin → Plans): h
 
 ### Calendars
 
-**At the Track → Calendar** plans each racing year (the month it starts is a team setting, so a season can run 2026-27).
+**Team Management → Calendar** plans each racing year. The month the year starts is a team setting, so a season can run 2026-27.
 
-- **Shared series and track calendars:** dates (`fixture` records) that every team can read. Series can now be shared too. Platform admins publish dates directly. Teams *suggest* dates and corrections, which are saved as their own `fixture` records marked for review. **Platform admin → Calendar suggestions** approves them (they're copied to the shared calendar, and a team-only series is shared at the same time) or rejects them with a reason.
+- **Shared series and track calendars:** dates (`fixture` records) that every team can read. Series can now be shared too. Platform admins publish dates directly. Teams *suggest* dates and corrections, which are saved as their own `fixture` records marked for review. **Platform admin → Shared calendars** has views for series, tracks and major events (fixtures with **Major event** ticked, such as the Australian Sprintcar Title). Admins add, edit and delete dates and shared series there (`/api/admin/calendar/*`), and the **Suggestions** tab approves teams' suggestions (they're copied to the shared calendar, and a team-only series is shared at the same time) or rejects them with a reason.
 - **Team calendar:** each entry is an `event` with the shared date it came from, **Going?** (Planned / Tentative / Not going) and **What happened** (raced the feature, missed the feature, withdrew with a reason, didn't attend, cancelled). Adding a date picks the car whose class is running, and asks when more than one fits.
 - **Series entries** (`season_plan`): series, racing year, car, class, full or partial. A full series adds every round.
 - **Import:** a web page, an iCal/webcal link, a PDF, photo or screenshot, or pasted text. iCal is read directly. Everything else goes to the AI assistant, so it needs the AI add-on. Dates are always shown for review first. Facebook and Instagram links are refused with a request for a screenshot, because they need a login. The server fetches links itself and won't open private network addresses.
 - **Print and publish:** `/print/calendar` prints the year. **Publish** gives a no-login page at `/c/<token>` and an iCal feed at `/api/public/calendar/<token>.ics`. These show only events the team is going to, with optional tentative events, car and results, and never notes or withdraw reasons. If you publish through a reverse proxy, these paths must reach the app like any other.
-- **Access:** the **Calendars** module (`calendar.view/edit/delete`) in the track area. Migration 011 gives it to roles with the same rights on Events.
+- **Access:** the **Calendars** module (`calendar.view/edit/delete`). It needs no area, so any role with `calendar.view` sees it under Team Management, including drivers. Migration 011 gives it to roles with the same rights on Events.
 - **Code:** `shared/calendar.js` (racing years, car matching, iCal in and out), `server/src/calendar.js` (import, publish, admin review), `web/src/pages/Calendar.jsx`.
 
 | Variable | Default | What it does |

@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-
 import Layout from './components/Layout.jsx';
 import { SessionProvider, useSession } from './lib/session.jsx';
 import { AcceptInvite, Login } from './pages/Auth.jsx';
-import { AreaGate, Landing, TeamHub, TrackHub, WorkshopHub } from './pages/Areas.jsx';
+import { AreaGate, Landing, ModuleGate, TeamHub, TrackHub, WorkshopHub } from './pages/Areas.jsx';
 import { CrewStats, Dyno, Engines, Reports, Reviews, TrackChecks } from './pages/Phase2.jsx';
 import { GearsTires } from './pages/Gears.jsx';
 import { TrackDetail, TrackDirectory } from './pages/Tracks.jsx';
@@ -72,7 +72,7 @@ function Routed() {
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/print/job/:id" element={<AreaGate area="engines" module="jobs"><JobPrint /></AreaGate>} />
       <Route path="/print/guide" element={<HelpPrint />} />
-      <Route path="/print/calendar" element={<AreaGate area="track" module="calendar"><CalendarPrint /></AreaGate>} />
+      <Route path="/print/calendar" element={<ModuleGate module="calendar"><CalendarPrint /></ModuleGate>} />
       <Route element={<Layout />}>
         <Route index element={<Landing />} />
         {/* At the track */}
@@ -81,7 +81,6 @@ function Routed() {
         <Route path="events/:id" element={<AreaGate area="track" module="events"><EventDetail /></AreaGate>} />
         <Route path="tracks" element={<AreaGate area="track" module="tracks"><TrackDirectory /></AreaGate>} />
         <Route path="tracks/:id" element={<AreaGate area="track" module="tracks"><TrackDetail /></AreaGate>} />
-        <Route path="calendar" element={<AreaGate area="track" module="calendar"><CalendarPage /></AreaGate>} />
         <Route path="series" element={<AreaGate area="track" module="events"><SeriesList /></AreaGate>} />
         <Route path="series/:id" element={<AreaGate area="track" module="events"><SeriesDetail /></AreaGate>} />
         <Route path="setups" element={<AreaGate area="track" module="setups"><SetupList /></AreaGate>} />
@@ -105,6 +104,7 @@ function Routed() {
         <Route path="customers/:id" element={<AreaGate area="engines" module="customers"><CustomerDetail /></AreaGate>} />
         {/* Team management */}
         <Route path="team" element={<AreaGate area="team"><TeamHub /></AreaGate>} />
+        <Route path="calendar" element={<ModuleGate module="calendar"><CalendarPage /></ModuleGate>} />
         <Route path="team/members" element={<Team />} />
         <Route path="team/reports" element={<AreaGate area="team" module="reports"><Reports /></AreaGate>} />
         <Route path="team/stats" element={<AreaGate area="team" module="reports"><CrewStats /></AreaGate>} />

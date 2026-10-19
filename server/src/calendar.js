@@ -10,6 +10,8 @@ import { can, canType } from '../../shared/catalog.js';
 import { looksLikeICS, parseICS, toICS, seasonStart, seasonOf, seasonLabel } from '../../shared/calendar.js';
 import { readCalendar } from './ai.js';
 import { audit } from './settings.js';
+import { BASE_FORMS } from '../../shared/baseForms.js';
+import { applyUpgrades } from '../../shared/baseForms2.js';
 import { backgroundable } from './jobs.js';
 
 const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg); };
@@ -193,9 +195,73 @@ async function updateRecord(c, id, type, tenantId, data, userId, deleted = false
 }
 
 const lc = (s) => String(s ?? '').trim().toLowerCase();
-const FIXTURE_KEYS = ['name', 'date', 'end_date', 'series', 'round', 'venue', 'track', 'classes', 'status', 'start_time', 'website', 'notes'];
+const FIXTURE_KEYS = ['name', 'date', 'end_date', 'series', 'round', 'venue', 'track', 'classes', 'major', 'status', 'start_time', 'website', 'notes'];
+
+/** The standard form for a record type, upgraded — for admin pages that edit shared records outside a team. */
+function baseForm(target) {
+  const f = structuredClone(BASE_FORMS.find((x) => x.target === target));
+  applyUpgrades(f);
+  return { id: `base-${target}`, type: 'form', global: true, data: { ...f, base: true } };
+}
+const SERIES_KEYS = ['name', 'season', 'class', 'sanctioning', 'start_date', 'end_date', 'website', 'points', 'notes'];
+const pick = (v, keys) => Object.fromEntries(keys.map((k) => [k, v?.[k]]).filter(([, x]) => x !== undefined && x !== null && x !== '' && !(Array.isArray(x) && !x.length)));
 
 export function mountCalendarAdmin(A) {
+  // Everything the shared-calendar admin page needs: shared dates, series, the track directory and the forms.
+  A.get('/calendar/data', h(async (_req, res) => {
+    const { rows } = await q(`SELECT id, type, data, updated_at FROM records WHERE tenant_id IS NULL AND NOT deleted AND type IN ('fixture','series','track')`);
+    const recs = rows.map((r) => ({ id: r.id, type: r.type, global: true, updated_at: r.updated_at,
+      data: { values: r.type === 'track' ? pick(r.data?.values, ['name', 'city', 'region', 'country', 'status', 'classes']) : r.data?.values || {} } }));
+    const { rows: [p] } = await q(`SELECT count(*)::int AS n FROM records WHERE type='fixture' AND tenant_id IS NOT NULL AND NOT deleted AND data->'values'->>'review'='pending'`);
+    res.json({ records: [...recs, baseForm('fixture'), baseForm('series')], pending: p.n });
+  }));
+
+  // Add or change a shared date (id "new" adds one).
+  A.put('/calendar/fixtures/:id', h(async (req, res) => {
+    const v = pick(req.body?.values, FIXTURE_KEYS);
+    need(v.name && /^\d{4}-\d{2}-\d{2}$/.test(v.date || ''), 400, 'A shared date needs a name and a date.');
+    need(v.venue || v.track, 400, 'Pick a track or type its name.');
+    if (req.body?.values?.source) v.source = String(req.body.values.source).slice(0, 300);
+    const id = await tx(async (c) => {
+      if (req.params.id === 'new') return insertGlobal(c, 'fixture', { form_id: 'base-fixture', values: v }, req.user.id);
+      const { rows: [g] } = await c.query(`SELECT * FROM records WHERE id=$1 AND type='fixture' AND tenant_id IS NULL AND NOT deleted FOR UPDATE`, [req.params.id]);
+      need(g, 404, 'That shared date no longer exists.');
+      await updateRecord(c, g.id, 'fixture', null, { ...g.data, values: { ...v, ...(g.data.values?.source && !v.source ? { source: g.data.values.source } : {}) } }, req.user.id);
+      return g.id;
+    });
+    await audit(req.user.id, req.params.id === 'new' ? 'calendar.add' : 'calendar.edit', id, { name: v.name, date: v.date }).catch(() => {});
+    res.json({ id });
+  }));
+
+  A.delete('/calendar/fixtures/:id', h(async (req, res) => {
+    await tx(async (c) => {
+      const { rows: [g] } = await c.query(`SELECT * FROM records WHERE id=$1 AND type='fixture' AND tenant_id IS NULL AND NOT deleted FOR UPDATE`, [req.params.id]);
+      need(g, 404, 'That shared date no longer exists.');
+      await updateRecord(c, g.id, 'fixture', null, g.data, req.user.id, true);
+    });
+    await audit(req.user.id, 'calendar.delete', req.params.id).catch(() => {});
+    res.json({ ok: true });
+  }));
+
+  // Add or change a shared series.
+  A.put('/calendar/series/:id', h(async (req, res) => {
+    const v = pick(req.body?.values, SERIES_KEYS);
+    need(v.name && v.season, 400, 'A series needs a name and a season.');
+    const id = await tx(async (c) => {
+      if (req.params.id === 'new') {
+        const { rows } = await c.query(`SELECT id, data FROM records WHERE type='series' AND tenant_id IS NULL AND NOT deleted`);
+        need(!rows.some((r) => lc(r.data?.values?.name) === lc(v.name) && lc(r.data?.values?.season) === lc(v.season)), 400, 'That series and season is already shared.');
+        return insertGlobal(c, 'series', { form_id: 'base-series', values: v }, req.user.id);
+      }
+      const { rows: [g] } = await c.query(`SELECT * FROM records WHERE id=$1 AND type='series' AND tenant_id IS NULL AND NOT deleted FOR UPDATE`, [req.params.id]);
+      need(g, 404, 'That series no longer exists.');
+      await updateRecord(c, g.id, 'series', null, { ...g.data, values: { ...g.data.values, ...v } }, req.user.id);
+      return g.id;
+    });
+    res.json({ id });
+  }));
+
+
   A.get('/calendar/suggestions', h(async (_req, res) => {
     const { rows } = await q(`SELECT r.id, r.tenant_id, r.data, r.updated_at, t.name AS team, u.name AS by_name
         FROM records r JOIN tenants t ON t.id=r.tenant_id LEFT JOIN users u ON u.id=r.updated_by

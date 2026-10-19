@@ -361,6 +361,7 @@ export const FIELD_INFO = {
     venue: ['The track, picked from the directory.'],
     track: ['Only if the track isn’t in the directory: type its name.'],
     classes: ['Classes racing at this meeting. Teams with a car in one of these classes see the date as a match, and the right car is picked when they add it.'],
+    major: ['Tick for a title or big one-off meeting (e.g. the Australian Sprintcar Title or a classic). It’s listed under Major events as well as on its track’s and series’ calendars.'],
     status: ['Scheduled, Postponed or Cancelled. Teams with the date on their calendar see the change.'],
     start_time: ['Gate and racing times, if published.'],
     website: ['Where the date was published — the series or track web page.'],

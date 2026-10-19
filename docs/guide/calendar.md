@@ -3,14 +3,14 @@ id: calendar
 title: Calendar — plan your racing year
 section: track
 order: 5
-summary: Pull series and track dates into your calendar, pick the car, enter a full or part series, record what happened, and print or publish it.
+summary: Pull series, track and major-event dates into your calendar, pick the car, enter a full or part series, record what happened, and print or publish it.
 for: module:calendar
 team: race
 pages: /calendar, /print/calendar, /c/:token
 covers: type:fixture, type:season_plan, module:calendar, setting:calendar_publish, setting:calendar_season_start, setting:calendar_view
 related: events-sessions, tracks, calendar-suggestions
 ---
-The **Calendar** is your team's racing year in one place: every meeting you plan to race, which car is going, and what happened. It's under **At the Track → Calendar**.
+The **Calendar** is your team's racing year in one place: every meeting you plan to race, which car is going, and what happened. It's under **Team Management → Calendar**. Anyone whose role can see the calendar finds it there, including drivers and crew who don't otherwise use Team Management.
 
 Each entry on your calendar is an **event**, the same event you add setup sheets to on the night. You can add dates from the shared calendars or create your own events.
 
@@ -22,17 +22,23 @@ The calendar shows one racing year at a time. Use **‹** and **›** beside the
 
 Your team's year starts in January unless you change it. For a summer season (for example October to April), set **Racing year starts in** to July under **Publish**. The year then shows as *2026-27*. Only people who can edit team settings can change this.
 
-## Series and track calendars
+## Shared calendars: series, tracks and major events
 
-Every series and track has one shared calendar, used by all teams on RaceOps. Open **Series & track calendars** to see the dates for the year.
+Every series and every track has one shared calendar, used by all teams on RaceOps. **Major events** collects the big one-off meetings, such as the Australian Sprintcar Title or a classic. Open **Shared calendars** to see the dates for the year.
 
-![Shared series and track dates, with the ones already on your calendar](img/calendar-shared.webp)
+![Shared calendar dates, with the ones already on your calendar](img/calendar-shared.webp)
 
-The **Show** list chooses which dates you see:
+Choose a view at the top:
 
-- **Matching our cars & series**: dates where one of your cars' classes is running, plus the series you've entered. This is the default.
-- **All dates**: everything for the year.
-- **A series** or **a track**: that series' rounds, or that track's dates.
+| View | What it shows |
+|---|---|
+| **Matching us** | Dates where one of your cars' classes is running, plus the series you've entered. This is the default. |
+| **Series** | Each series with dates this year, how many, and the next one. Tap a series for its rounds. **Entered** marks the series you're in. |
+| **Tracks** | Each track with dates this year. Tap a track for its race nights. |
+| **Major events** | Titles, championships and classics, wherever they're held. |
+| **All dates** | Everything for the year. |
+
+Major events are marked **★ Major event** wherever they appear, including on your own calendar. The track and series pages link to their calendars too.
 
 ### Add a date to your calendar
 
@@ -51,7 +57,7 @@ If a series moves a round or changes the track, your entry shows **The shared ca
 
 Entering a series records which car you're running in it and whether you're doing the whole series.
 
-1. In **Series & track calendars**, pick the series under **Show** and press **Enter this series**. Or open **Series entries** and press **New series entry**.
+1. In **Shared calendars → Series**, tap the series and press **Enter this series**. Or open **Series entries** and press **New series entry**.
 2. Pick the **Car**. The **Class** fills in from the car.
 3. Choose **Full series** or **Partial series**.
    - **Full series** adds every round to your calendar for that car.
@@ -88,10 +94,10 @@ The boxes at the top add up the year: meetings planned, meetings you ran, featur
 
 Shared dates are kept by the RaceOps platform admin, and teams help keep them right.
 
-- **Suggest a date** adds a missing date. Fill in the event name, date, track, series, round and the classes running.
+- **Suggest a date** adds a missing date. Fill in the event name, date, track, series, round and the classes running. Tick **Major event** for a title or classic.
 - **Suggest a change** on a date corrects it, for example a new date or a cancellation.
 
-Your suggestion shows **Waiting for approval** until a platform admin checks it. Once approved it's live for every team. If it isn't approved, it shows the reason. Press **Dismiss** to clear it. See [Calendar suggestions](/help/calendar-suggestions).
+Your suggestion shows **Waiting for approval** until a platform admin checks it. Once approved it's live for every team. If it isn't approved, it shows the reason. Press **Dismiss** to clear it. See [Shared calendars (platform admin)](/help/calendar-suggestions).
 
 ### Import a published calendar
 
@@ -105,7 +111,7 @@ Facebook pages need a login, so use a screenshot or paste the text.
 
 1. Choose where the dates come from. Pick the **series** they belong to (add the series under **Series** first if it isn't listed). If every date is at one track, pick it.
 2. Press **Read dates**. iCal is read directly. Web pages, PDFs, pictures and pasted text are read by the [AI assistant](/help/ai-assistant), so your plan needs it.
-3. Check every row. Fix the dates, names and rounds. Tracks are matched to the directory where possible. Dates already on the shared calendar are marked **already listed** and left unticked.
+3. Check every row. Fix the dates, names and rounds, and tick **Major** for titles and classics. Tracks are matched to the directory where possible. Dates already on the shared calendar are marked **already listed** and left unticked.
 4. Press **Send for approval**.
 
 ## Print and publish
@@ -125,7 +131,7 @@ Only events you're going to are shown, and never setups or notes. Choose whether
 
 | Job | Who |
 |---|---|
-| See the calendar | Anyone with **Calendars → view** |
+| See the calendar | Anyone with **Calendars → view** (no Team Management access needed) |
 | Add dates to your calendar, record results | **Events → edit** |
 | Enter a series | **Calendars → edit** |
 | Suggest or import shared dates | **Calendars → edit** |

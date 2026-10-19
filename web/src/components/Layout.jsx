@@ -58,7 +58,7 @@ export const ADMIN_LINKS = [
   { to: '/admin/plans', label: 'Plans & allocation', icon: I.ticket },
   { to: '/admin/users', label: 'Users', icon: I.user },
   { to: '/admin/directory', label: 'Tracks & directory', icon: I.globe },
-  { to: '/admin/calendar', label: 'Calendar suggestions', icon: I.calendar },
+  { to: '/admin/calendar', label: 'Shared calendars', icon: I.calendar },
   { to: '/admin/lists', label: 'Pick-lists', icon: I.list },
   { to: '/admin/ai', label: 'AI assistant', icon: I.spark },
   { to: '/admin/settings', label: 'Settings', icon: I.sliders },
@@ -73,9 +73,9 @@ export function useNav() {
   const type = teamType(membership);
   const shop = type !== 'race';
   const racing = type !== 'engine_shop';
+  const teamFull = canArea('team') || admin;
   const groups = [
     { area: 'track', label: 'At the Track', icon: I.track, show: canArea('track') && racing, links: [
-      canModule('calendar') && { to: '/calendar', label: 'Calendar', icon: I.calendar },
       canModule('events') && { to: '/events', label: 'Events', icon: I.flag },
       canModule('events') && { to: '/series', label: 'Series', icon: I.trophy },
       canModule('tracks') && { to: '/tracks', label: 'Tracks', icon: I.pin },
@@ -98,13 +98,15 @@ export function useNav() {
       canModule('engines') && { to: '/engines', label: shop ? 'Build sheets' : 'Engines & builds', icon: I.engine, end: true, keep: shop },
       { to: '/calculators?area=engines', label: 'Calculators', icon: I.calc },
     ] },
-    { area: 'team', label: 'Team Management', icon: I.team, show: canArea('team') || admin, links: [
-      racing && canModule('cars') && { to: '/cars', label: 'Cars', icon: I.car },
-      canModule('contacts') && { to: '/contacts', label: 'Contacts', icon: I.book },
-      canModule('contacts') && { to: '/suppliers', label: 'Suppliers', icon: I.truck },
-      { to: '/team/members', label: 'Members & invites', icon: I.users },
+    // the Calendar is open to anyone with Calendars → view, so the group shows for them too (with just that link)
+    { area: 'team', label: 'Team Management', icon: I.team, show: teamFull || (racing && canModule('calendar')), path: teamFull ? null : '/calendar', links: [
+      racing && canModule('calendar') && { to: '/calendar', label: 'Calendar', icon: I.calendar },
+      teamFull && racing && canModule('cars') && { to: '/cars', label: 'Cars', icon: I.car },
+      teamFull && canModule('contacts') && { to: '/contacts', label: 'Contacts', icon: I.book },
+      teamFull && canModule('contacts') && { to: '/suppliers', label: 'Suppliers', icon: I.truck },
+      teamFull && { to: '/team/members', label: 'Members & invites', icon: I.users },
       (can('roles.manage') || membership?.role.is_owner) && { to: '/roles', label: 'Roles & permissions', icon: I.key },
-      { to: '/forms', label: 'Forms', icon: I.form },
+      teamFull && { to: '/forms', label: 'Forms', icon: I.form },
       canModule('reports') && { to: '/team/reports', label: 'Reports', icon: I.chart },
       canModule('reports') && { to: '/team/stats', label: 'Crew Chief stats', icon: I.star },
       canModule('reviews') && { to: '/team/reviews', label: 'Performance reviews', icon: I.user },
@@ -215,7 +217,7 @@ export default function Layout() {
             return (
               <div key={g.area} className={`nav-group${collapsed ? ' collapsed' : ''}`}>
                 <div className="nav-head">
-                  <NavLink to={AREA_PATH[g.area]} end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-area area-${g.area}${isActive ? ' active' : ''}`}>
+                  <NavLink to={g.path || AREA_PATH[g.area]} end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-area area-${g.area}${isActive ? ' active' : ''}`}>
                     <Icon d={g.icon} size={16} /><span>{g.label}</span>
                     {collapsed && here && <span className="nav-dot" title="You're in this section" />}
                   </NavLink>
@@ -248,7 +250,7 @@ export default function Layout() {
           {groups.map((g) => {
             const active = inGroup(g, loc.pathname);
             return (
-              <NavLink key={g.area} to={AREA_PATH[g.area]} className={`tab area-${g.area}${active ? ' active' : ''}`}>
+              <NavLink key={g.area} to={g.path || AREA_PATH[g.area]} className={`tab area-${g.area}${active ? ' active' : ''}`}>
                 <Icon d={g.icon} size={22} /><span>{tabLabel(g)}</span>
               </NavLink>
             );

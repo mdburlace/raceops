@@ -36,8 +36,10 @@ export const MODULES = [
   { key: 'contacts', label: 'Contacts & suppliers', types: ['contact', 'contact_link', 'supplier'], area: null },
   { key: 'tracks', label: 'Tracks', types: ['track', 'team_track'], area: 'track' },
   { key: 'events', label: 'Events & series', types: ['event', 'series'], area: 'track' },
-  // shared series & track calendars (dates every team can pull in) and the team's series entries
-  { key: 'calendar', label: 'Calendars', types: ['fixture', 'season_plan'], area: 'track' },
+  // the team's racing calendar, the shared series / track / major-event calendars it pulls from, and
+  // series entries. Shown under Team Management, but open to any role with the right (no area needed),
+  // so drivers and crew can see where the team is racing.
+  { key: 'calendar', label: 'Calendars', types: ['fixture', 'season_plan'], area: null },
   { key: 'setups', label: 'Setup sheets & advisor', types: ['setup', 'tuning_guide'], area: 'track' },
   { key: 'trackside', label: 'At-track checks', types: ['track_check'], area: 'track', feature: 'trackside' },
   { key: 'gears', label: 'Gears & tires', types: ['gear', 'gear_list', 'tire'], area: 'track', feature: 'gears' },
