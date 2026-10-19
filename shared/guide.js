@@ -25,6 +25,7 @@ export const SECTIONS = [
   { key: 'workshop', label: 'In the workshop', blurb: 'Assets, maintenance, schedules and the shock & bar dyno.' },
   { key: 'engines', label: 'Engine builds', blurb: 'Build sheets and engines from your engine builder.' },
   { key: 'shop', label: 'Engine shop', blurb: 'Customers, jobs, handover packs and sharing engines.' },
+  { key: 'analytics', label: 'Analytics', blurb: 'Trends from your own sheets: results, what worked, jetting, and when parts are due.' },
   { key: 'team', label: 'Team management', blurb: 'Members, roles, forms, reports and reviews.' },
   { key: 'tools', label: 'Everyday tools', blurb: 'Offline use, calculators, AI, importing files and your own look.' },
   { key: 'admin', label: 'Platform admin', blurb: 'Running the server: teams, licences, plans and global settings.' },

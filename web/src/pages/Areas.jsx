@@ -10,6 +10,7 @@ import { scheduleText } from './Maintenance.jsx';
 import { teamType } from '@shared/shop.js';
 import { ShopHome } from './Shop.jsx';
 import { SetupChecklist } from '../components/SetupChecklist.jsx';
+import { AnalyticsKpis } from './Analytics.jsx';
 
 // ---------- access gate used by routes ----------
 export function AreaGate({ area, module, children }) {
@@ -80,6 +81,7 @@ export function Landing() {
     <div>
       <PageHeader title={`G'day, ${user?.name?.split(' ')[0] || ''}`} sub={membership?.tenant_name} />
       <SetupChecklist />
+      {type !== 'engine_shop' && <AnalyticsKpis />}
       {type !== 'race' && <ShopHome />}
       <div className="area-grid">
         {AREAS.filter((a) => type !== 'engine_shop' || a.key !== 'track').map((a) => {

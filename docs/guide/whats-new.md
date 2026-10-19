@@ -12,6 +12,7 @@ Every RaceOps update adds a line here, and the articles it links to are updated 
 
 ## October 2026
 
+- **Analytics.** New page with Performance (results over time, by track, conditions and the air, handling comments), Setups (what worked, setup drift, your own jet chart) and Engines & parts (service forecast, engine health, shock fade), plus a **Form & what's due** card on Home. [Analytics](/help/analytics)
 - **Our tracks starts empty.** Tracks are added when you race at them or link them from the Directory. Classes we race now marks matching tracks in the Directory, with a **Runs our classes** filter, instead of adding them all. [Tracks and classes](/help/tracks)
 - **One class list.** A car's **Class** now picks from your team's Classes we race and the shared Race classes list, so cars, tracks and Classes we race use the same names. You can still type a class that isn't listed. [Add your cars](/help/cars)
 - **Setup sheet quick editing.** A section bar to jump around, your own section order, folding sections, changes highlighted with what they were, **Changes only**, a **Before / After** switch, − and + buttons, and four-corner values on one row. Shocks are a card per corner, and Wing has its own section. [Quick editing on the setup sheet](/help/setup-sheet-layout)

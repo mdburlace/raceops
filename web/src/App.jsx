@@ -18,6 +18,7 @@ import { Profile, Roles, Team } from './pages/Team.jsx';
 import { AskPage } from './components/Ai.jsx';
 import { Calculators } from './pages/Calculators.jsx';
 import { HelpArticle, HelpHome, HelpPrint } from './pages/Help.jsx';
+import { AnalyticsPage } from './pages/Analytics.jsx';
 import { CustomerDetail, CustomerList, JobList, JobPrint } from './pages/Shop.jsx';
 import { LinkEngine, LinkedEngineDetail, SharePage } from './pages/Sharing.jsx';
 import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
@@ -123,6 +124,7 @@ function Routed() {
         <Route path="admin/system" element={<AdminGate><AdminSystem /></AdminGate>} />
         <Route path="admin/ai" element={<AdminGate><AdminAi /></AdminGate>} />
         <Route path="ask" element={<AskPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="help" element={<HelpHome />} />
         <Route path="help/:id" element={<HelpArticle />} />
         <Route path="calculators" element={<Calculators />} />

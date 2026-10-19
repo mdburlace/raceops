@@ -366,6 +366,18 @@ On a customer engine's page, **Customer access** offers two kinds of sharing. Bo
 
 Each plan has an optional **Shared engines** limit (Platform admin → Plans): how many engines a shop can share at once. It's blank (unlimited) by default.
 
+### Analytics
+
+**Analytics** (sidebar) builds charts from the team's own records. It's worked out on the device, so it works offline and adds no server load.
+
+- **Performance:** results over time, by track, by track condition, by ADR and temperature, and handling-comment patterns ("went away after").
+- **Setups:** "What worked" (any setting against places gained or finish, with a trend line, link strength and banded averages), setup drift, and jetting vs air (the team's own jet chart).
+- **Engines & parts:** a service forecast for parts and lap/race schedules (meetings left and an approximate date), engine health (fuel per lap, rpm, dyno HP), and shock fade from dyno runs.
+- **Filters:** car, season, track, session type and track conditions. Every chart shows its data coverage, has a table view, and opens the records behind it.
+- **On Home:** a **Form & what's due** card.
+- **Access:** a licence feature (`analytics`) and a role right (`analytics.view`). Migration 010 gives it to existing roles that can view setups or assets.
+- **Code:** calculations are in `shared/analytics.js`, and charts in `web/src/components/Charts.jsx`.
+
 ### Help & guide
 
 **Help & guide** (sidebar, under Profile & device) is the user guide, built into the app and available offline. It covers:

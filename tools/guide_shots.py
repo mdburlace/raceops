@@ -81,7 +81,22 @@ feat = rec('setup', S(event=ev['id'], session='Feature', order=20, planned_laps=
                       shock_adjust={'LF': 'Comp 5 · Reb 6', 'RF': 'Comp 6 · Reb 9', 'RR': 'LS comp 3 · HS comp 2 · Reb 9'},
                       bump_type={'LF': 'Penske', 'RF': 'Penske'}, bump_spec={'LF': '70A', 'RF': '80A'}, bump_height={'LF': '1.25', 'RF': '1.25'},
                       bump_packers={'LF': '1', 'RF': '2'}, bump_gap={'LF': '0.75', 'RF': '0.6'}), form_id=SF)
-push(car, eng, *shocks.values(), spare, ev_old, ev, old, heat, feat)
+# a season of earlier nights so Analytics has something to show
+season = []
+for n in range(8):
+    tr = ['Lakeside Raceway', 'Valley Speedway', 'Hilltop Oval'][n % 3]
+    e = rec('event', {'name': f'{tr} — round {n + 1}', 'date': d(112 - n * 14), 'track': tr, 'car': car['id']})
+    season.append(e)
+    for k, (sess, order) in enumerate([('Heat 1', 10), ('Feature', 20)]):
+        stg = 5 + (n % 4) * 0.5
+        st = 4 + (n * 3 + k) % 7
+        fin = max(1, st - round((5.75 - stg) * 3) + (n + k) % 3 - 1)
+        season.append(rec('setup', S(event=e['id'], session=sess, order=order, start=str(st), finish=str(fin), stagger_cold=str(stg),
+                                     wing_angle=str(12 + n % 3), adr=str(90 + n * 1.5), main_jet=str(46 + n // 3), laps='10' if k == 0 else '30',
+                                     fuel_start='5' if k == 0 else '9', fuel_finish='3' if k == 0 else str(round(3 - n * 0.05, 2)),
+                                     tach_high=str(8600 - n * 12), track_conditions=[['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
+                                     driver_feel=['Loose exit'] if k == 0 and n % 2 == 0 else []), form_id=SF))
+push(car, eng, *shocks.values(), spare, ev_old, ev, old, heat, feat, *season)
 
 SHOTS = []
 shot = lambda name: (ONLY is None or name in ONLY) and SHOTS.append(name) is None
@@ -131,11 +146,18 @@ with sync_playwright() as pw:
             sec = page.locator('section.form-section:has([data-testid="fuel-planner"])')
             sec.scroll_into_view_if_needed(); settle(page)
             save('fuel-planner', sec.screenshot())
+        page.set_viewport_size({'width': 1280, 'height': 820})
+        page.goto(B + '/'); settle(page)  # back to normal for the full-page shots below
     if shot('setup-quick-edit'):
         q = page_for(1280, 820)
         q.goto(f"{B}/r/setup/{feat['id']}"); settle(q)
         q.locator('.sheet-nav .sn-chip:has-text("Tires")').click(); q.wait_for_timeout(1200)
         save('setup-quick-edit', q.screenshot())
+    for name, tab in [('analytics-performance', ''), ('analytics-setups', '?tab=setups')]:
+        if shot(name):
+            a = page_for(1280, 820)
+            a.goto(f'{B}/analytics{tab}'); a.wait_for_timeout(1200)
+            save(name, a.screenshot())
     if shot('event-sessions'):
         page.goto(f"{B}/events/{ev['id']}"); settle(page)
         save('event-sessions', page.screenshot())

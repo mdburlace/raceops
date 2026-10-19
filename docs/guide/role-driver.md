@@ -25,3 +25,9 @@ Your feedback drives the setup advisor, so it matters that it's recorded.
 
 - Tell the crew chief how the car was. They record it in the sheet (or use **Voice debrief** with you).
 - If your team wants you to enter it yourself, ask the owner to give your role **Edit** on setup sheets. [Roles and permissions](/help/roles-permissions)
+
+## Common jobs
+
+| I want to… | Go to |
+|---|---|
+| See my results and best tracks | [Analytics](/help/analytics) |

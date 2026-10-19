@@ -204,6 +204,7 @@ export default function Layout() {
         <nav>
           <NavLink to="/" end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}><Icon d={I.home} size={18} /><span>Home</span></NavLink>
           {canModule('ai') && <NavLink to="/ask" onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link ask-link${isActive ? ' active' : ''}`}><Icon d={I.spark} size={18} /><span>Ask RaceOps</span></NavLink>}
+          {canModule('analytics') && <NavLink to="/analytics" onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}><Icon d={I.chart} size={18} /><span>Analytics</span></NavLink>}
           {groups.map((g) => {
             const collapsed = (prefs.nav_collapsed || []).includes(g.area);
             const here = inGroup(g, loc.pathname);

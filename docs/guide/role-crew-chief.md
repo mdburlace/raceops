@@ -45,6 +45,8 @@ No signal? Keep going. Everything saves on the phone and syncs later. [Work offl
 
 | I want to… | Go to |
 |---|---|
+| See what stagger has worked on slick nights | [Analytics](/help/analytics) — **Setups → What worked**, filter *Slick* |
+| Build our own jet chart from past nights | [Analytics](/help/analytics) — **Jetting vs air** |
 | See what I changed from the last session | [Quick editing on the setup sheet](/help/setup-sheet-layout) — **Changes only** |
 | Put Tyres and Shocks at the top of every sheet | [Quick editing on the setup sheet](/help/setup-sheet-layout) — **⇅ Arrange** |
 | Find what we ran last time it was slick | [Compare and search setups](/help/compare-search) |
