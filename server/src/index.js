@@ -24,6 +24,7 @@ import { mountAi } from './ai.js';
 import { mountWeather } from './weather.js';
 import { mountPublicShare, mountSharing, onRecordSaved } from './sharing.js';
 import { mountCalendar, mountPublicCalendar } from './calendar.js';
+import { mountJobs } from './jobs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -419,6 +420,7 @@ mountAi(T);
 mountWeather(T);
 mountSharing(T);
 mountCalendar(T);
+mountJobs(T);
 
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {
@@ -689,8 +691,9 @@ T.delete('/attachments/:id', h(async (req, res) => {
 app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
 app.use((err, _req, res, _next) => {
   const status = err.status || (err.code === 'LIMIT_FILE_SIZE' ? 413 : 500);
-  if (status >= 500) console.error(err);
-  res.status(status).json({ error: status >= 500 ? 'Server error' : err.message });
+  if (!(err instanceof HttpError)) console.error(err);
+  // our own errors (e.g. "The AI service took too long") say what went wrong; anything else stays generic
+  res.status(status).json({ error: err instanceof HttpError || status < 500 ? err.message : 'Server error' });
 });
 
 if (fs.existsSync(WEB_DIR)) {

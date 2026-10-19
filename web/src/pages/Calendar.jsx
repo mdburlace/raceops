@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
-import { api } from '../lib/api.js';
+import { api, apiJob } from '../lib/api.js';
 import { fileToPart } from '../lib/ai.js';
 import { fmtDate, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
@@ -466,7 +466,7 @@ function ImportPanel({ data, year, sm, seriesId, trackId, onDone }) {
           else body.files.push({ ...(await fileToPart(f)), name: f.name });
         }
       }
-      const out = await api(`/t/${tid}/calendar/import`, { method: 'POST', body });
+      const out = await apiJob(`/t/${tid}/calendar/import`, body);
       const sv = vals(data.byId[series]);
       setInfo([out.source === 'ical' ? 'Read from an iCal calendar.' : 'Read by the AI assistant — check every date before saving.', out.unclear].filter(Boolean).join(' '));
       setRows((out.items || []).map((it) => {

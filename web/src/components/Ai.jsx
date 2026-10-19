@@ -1,7 +1,7 @@
 // AI assistant UI: fill a form from photos, voice debrief on setup sheets, and Ask RaceOps.
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../lib/api.js';
+import { api, apiJob } from '../lib/api.js';
 import { SpeechRecognition, fileToPart, useAiStatus, aiChanged } from '../lib/ai.js';
 import { SHEET_ACCEPT } from '../lib/sheets.js';
 import { allFields } from '../lib/data.js';
@@ -70,7 +70,7 @@ function PhotoFill({ form, values, onReview, onError }) {
     try {
       const parts = [];
       for (const f of [...files].slice(0, 6)) parts.push(await fileToPart(f));
-      const res = await api(`/t/${tid}/ai/extract`, { method: 'POST', body: { form_id: form.id, files: parts, values } });
+      const res = await apiJob(`/t/${tid}/ai/extract`, { form_id: form.id, files: parts, values });
       const items = [];
       for (const [k, raw] of Object.entries(res.values || {})) {
         const f = fields.get(k);

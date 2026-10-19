@@ -18,6 +18,10 @@ On any form you can edit, the **AI** bar has **Fill from photo, PDF or Excel**.
 
 Only clearly readable values are filled in; nothing is guessed. Dyno tables go through the same importer as *Paste whole printout*, so each adjuster setting becomes its own curve.
 
+On a shock dyno run, set **Adjustable** before you read the file. An adjustable shock fills **Adjuster settings tested**, one curve per setting. A non-adjustable shock fills the single **Readings** table.
+
+A long scan, such as a 10-page dyno printout, can take a minute or two to read. Keep the page open while it says **Reading…**. If the file has more readings than can be read in one go, you'll be asked to split it. A PDF of two or three settings at a time works well.
+
 ## Import a table without AI
 
 Tables (dyno readings, gear charts…) have **Paste / import**:

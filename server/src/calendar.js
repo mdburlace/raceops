@@ -10,6 +10,7 @@ import { can, canType } from '../../shared/catalog.js';
 import { looksLikeICS, parseICS, toICS, seasonStart, seasonOf, seasonLabel } from '../../shared/calendar.js';
 import { readCalendar } from './ai.js';
 import { audit } from './settings.js';
+import { backgroundable } from './jobs.js';
 
 const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg); };
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -131,7 +132,7 @@ export function mountPublicCalendar(app) {
 // ---------------------------------------------------------------- team routes
 export function mountCalendar(T) {
   // Read dates from a published calendar: a web or iCal link, uploaded files (PDF, photo, screenshot, .ics) or pasted text.
-  T.post('/calendar/import', h(async (req, res) => {
+  T.post('/calendar/import', backgroundable(h(async (req, res) => {
     need(canType(req.role, req.ent, 'fixture', 'edit') || req.user.is_platform_admin, 403, 'You can’t add calendar dates.');
     const { url, text, files = [], year } = req.body || {};
     need(Array.isArray(files), 400, 'Bad files');
@@ -155,7 +156,7 @@ export function mountCalendar(T) {
     }
     const out = await readCalendar(req, { files, text, year });
     res.json({ items: out.items || [], calendar_of: out.calendar_of || '', unclear: out._unclear || '', source: 'ai' });
-  }));
+  })));
 
   // Turn the public calendar on (new link), change what it shows, or turn it off.
   T.put('/calendar/publish', h(async (req, res) => {

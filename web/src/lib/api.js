@@ -31,5 +31,26 @@ export async function api(path, { method = 'GET', body, form } = {}) {
   return data;
 }
 
+/**
+ * A long request (AI reading files): the server runs it in the background and we poll for the
+ * answer, so a proxy timeout in front of the server can't cut it off. Same result as api().
+ */
+export async function apiJob(path, body) {
+  const start = await api(path, { method: 'POST', body: { ...body, async: true } });
+  if (!start?.running) return start;
+  const tid = path.match(/^\/t\/([^/]+)/)[1];
+  let misses = 0;
+  for (;;) {
+    await new Promise((ok) => setTimeout(ok, 1500));
+    let r;
+    try { r = await api(`/t/${tid}/jobs/${start.job}`); misses = 0; } catch (e) {
+      // a dropped connection or a proxy hiccup while waiting: keep waiting a little
+      if ([0, 502, 503, 504].includes(e.status) && ++misses < 20) continue;
+      throw e;
+    }
+    if (!r?.running) return r;
+  }
+}
+
 export const fileUrl = (tid, id, download) =>
   `/api/t/${tid}/attachments/${id}/file?token=${encodeURIComponent(token() || '')}${download ? '&download' : ''}`;

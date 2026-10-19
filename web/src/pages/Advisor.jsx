@@ -6,7 +6,7 @@ import { CORNER_GROUPS, EFFECT, PROBLEMS, TUNING_FIELD, TUNING_FIELDS, advise, p
 import { TRACK_CONDITIONS } from '@shared/baseForms3.js';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { I, Icon } from '../components/Layout.jsx';
-import { api } from '../lib/api.js';
+import { api, apiJob } from '../lib/api.js';
 import { SHEET_ACCEPT } from '../lib/sheets.js';
 import { aiChanged, fileToPart, useAiStatus } from '../lib/ai.js';
 import { eventTrack, fmtDate, formFor, platformList, titleOf, useTeamData, v } from '../lib/data.js';
@@ -245,7 +245,7 @@ export function GuideList() {
     try {
       const parts = [];
       for (const f of [...files].slice(0, 6)) parts.push(await fileToPart(f));
-      const out = await api(`/t/${tid}/ai/guide-import`, { method: 'POST', body: { files: parts } });
+      const out = await apiJob(`/t/${tid}/ai/guide-import`, { files: parts });
       nav('/track/advisor/guides/new', { state: { imported: out } });
     } catch (e) { setErr(e.message); } finally { setBusy(false); aiChanged(); }
   };

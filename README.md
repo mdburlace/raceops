@@ -57,6 +57,7 @@ Any reverse proxy works: **pfSense** (below), **Nginx Proxy Manager**, **Traefik
 - **Backend** `raceops`:
   - Server: the Docker host's LAN IP, port `8080` (`APP_PORT`).
   - Health check: HTTP `GET /api/health`.
+  - Long AI reads (a multi-page dyno PDF, for example) run in the background, and the app checks back every couple of seconds, so HAProxy's default 30-second *Server timeout* is fine. Raising it isn't needed.
 - **Frontend** `https`:
   - Listen on **WAN address : 443** and **LAN address : 443**, both with *SSL offloading* ticked.
   - Type *http / https (offloading)*. Certificate: the ACME certificate.
