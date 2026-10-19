@@ -12,23 +12,43 @@ import { dateRange } from './Events.jsx';
 const place = (t) => [v(t, 'city'), v(t, 'region'), v(t, 'country')].filter(Boolean).join(', ');
 const isGlobal = (r) => !!(r?.global || r?.data?.scope === 'global');
 
-/** Team view of tracks: manual links + class matches − hidden. */
+const nameKey = (x) => String(x || '').trim().toLowerCase();
+
+/** Events held at each track: by the event's directory track, or by the typed track name. */
+export function eventsByTrack(data) {
+  const tracks = data.list('track');
+  const byName = new Map(tracks.map((t) => [nameKey(v(t, 'name')), t.id]));
+  const out = new Map();
+  for (const e of data.list('event')) {
+    const id = v(e, 'venue') || byName.get(nameKey(v(e, 'track')));
+    if (id) out.set(id, (out.get(id) || 0) + 1);
+  }
+  return out;
+}
+
+/**
+ * Our tracks: tracks we've raced at (have an event there), tracks we linked by hand, and our own
+ * team-only tracks — minus any we've hidden. Starts empty for a new team. Classes we race only
+ * marks matching tracks in the Directory; it doesn't add them.
+ */
 export function useTeamTracks(data) {
   const { membership } = useSession();
   const classes = membership?.settings?.classes || [];
   return useMemo(() => {
-    if (!data) return { classes, mine: [], links: new Map() };
+    if (!data) return { classes, mine: [], links: new Map(), raced: new Map() };
     const links = new Map(data.list('team_track').map((tt) => [v(tt, 'track'), tt]));
+    const raced = eventsByTrack(data);
     const mine = [];
     for (const t of data.list('track')) {
       const link = links.get(t.id);
       const matched = classes.length ? classMatches(classes, v(t, 'classes')) : [];
       const hidden = v(link, 'link') === 'Hidden';
       const manual = v(link, 'link') === 'Linked';
-      if (!hidden && (manual || matched.length || !isGlobal(t))) mine.push({ t, link, matched, manual });
+      const events = raced.get(t.id) || 0;
+      if (!hidden && (manual || events || !isGlobal(t))) mine.push({ t, link, matched, manual, events });
     }
     mine.sort((a, b) => (v(b.link, 'home') ? 1 : 0) - (v(a.link, 'home') ? 1 : 0) || titleOf(a.t).localeCompare(titleOf(b.t)));
-    return { classes, mine, links };
+    return { classes, mine, links, raced };
   }, [data, classes.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
@@ -56,7 +76,7 @@ function TeamClasses({ data, classes }) {
       </div>
       {!edit ? (
         classes.length ? <div className="chips">{classes.map((c) => <span key={c} className="chip static">{c}</span>)}</div>
-          : <p className="muted">Set your classes (e.g. 410 Sprintcars) and tracks that run them are linked to the team automatically.</p>
+          : <p className="muted">Set your classes (e.g. 410 Sprintcars). Tracks that run them are marked in the Directory, and you can filter to them.</p>
       ) : (
         <>
           <div className="tags-input">
@@ -87,6 +107,7 @@ export function TrackDirectory() {
   const [region, setRegion] = useState('');
   const [status, setStatus] = useState('Active');
   const [cls, setCls] = useState('');
+  const [ourClasses, setOurClasses] = useState(false);
   const [limit, setLimit] = useState(100);
   const team = useTeamTracks(data);
   const all = data ? data.list('track') : [];
@@ -95,10 +116,11 @@ export function TrackDirectory() {
   const filtered = all.filter((t) => (!country || v(t, 'country') === country) && (!region || v(t, 'region') === region)
     && (!status || v(t, 'status') === status)
     && (!cls || classMatches([cls], v(t, 'classes')).length)
+    && (!ourClasses || classMatches(team.classes, v(t, 'classes')).length)
     && (!q || `${v(t, 'name')} ${place(t)}`.toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => String(v(a, 'country')).localeCompare(String(v(b, 'country'))) || String(v(a, 'region')).localeCompare(String(v(b, 'region'))) || titleOf(a).localeCompare(titleOf(b)));
   if (!data) return null;
-  const eventsAt = (id) => data.list('event').filter((e) => v(e, 'venue') === id).length;
+  const eventsAt = (id) => team.raced.get(id) || 0;
 
   const Row = ({ t, link, matched, manual }) => (
     <Link to={`/tracks/${t.id}`} className="list-row">
@@ -107,10 +129,11 @@ export function TrackDirectory() {
         <span className="row-sub">{[place(t), v(t, 'length'), v(t, 'surface')].filter(Boolean).join(' · ')}</span>
       </span>
       {manual && <Pill level="info">linked</Pill>}
-      {!manual && matched?.length > 0 && <Pill level="muted">class: {matched[0]}</Pill>}
+      {!manual && eventsAt(t.id) > 0 && v(link, 'link') !== 'Hidden' && <Pill level="info">raced here</Pill>}
+      {matched?.length > 0 && <Pill level="muted">our class: {matched[0]}</Pill>}
       {!isGlobal(t) && <Pill level="warn">team track</Pill>}
       {v(t, 'status') !== 'Active' && <Pill level="muted">{v(t, 'status')}</Pill>}
-      <span className="row-meta">{eventsAt(t.id) ? `${eventsAt(t.id)} events` : ''}</span>
+      <span className="row-meta">{eventsAt(t.id) ? `${eventsAt(t.id)} event${eventsAt(t.id) === 1 ? '' : 's'}` : ''}</span>
     </Link>
   );
 
@@ -125,7 +148,7 @@ export function TrackDirectory() {
         <button type="button" className={tab === 'all' ? 'active' : ''} onClick={() => setParams({ tab: 'all' })}>Directory</button>
       </div>
       {tab === 'mine' ? (
-        team.mine.length === 0 ? <Empty>No tracks linked yet. Set your classes above, or open a track in the Directory and choose “Link to team”.</Empty> : (
+        team.mine.length === 0 ? <Empty>No tracks yet. A track is added here when you create an event at it, or open a track in the Directory and choose “Link to team”.</Empty> : (
           <div className="card list">{team.mine.map((x) => <Row key={x.t.id} {...x} />)}</div>
         )
       ) : (
@@ -142,6 +165,7 @@ export function TrackDirectory() {
               <option value="">Any status</option><option>Active</option><option>Inactive</option><option>Closed</option>
             </select>
             <input list="dl-cls-filter" placeholder="Class" value={cls} onChange={(e) => setCls(e.target.value)} aria-label="Class" />
+            {team.classes.length > 0 && <label className="toggle small"><input type="checkbox" checked={ourClasses} onChange={(e) => setOurClasses(e.target.checked)} /><span>Runs our classes</span></label>}
             <datalist id="dl-cls-filter">{[...new Set(all.flatMap((t) => v(t, 'classes') || []))].sort().map((c) => <option key={c} value={c} />)}</datalist>
           </div>
           <p className="muted small">{filtered.length} tracks</p>
@@ -168,7 +192,9 @@ export function TrackDetail() {
   if (!t) return <PageHeader title="Track not found" back="/tracks" />;
   const link = team.links.get(id);
   const matched = team.classes.length ? classMatches(team.classes, v(t, 'classes')) : [];
-  const linked = v(link, 'link') === 'Linked' || (matched.length && v(link, 'link') !== 'Hidden') || (!isGlobal(t) && v(link, 'link') !== 'Hidden');
+  const racedHere = team.raced.get(id) || 0;
+  const hidden = v(link, 'link') === 'Hidden';
+  const linked = !hidden && (v(link, 'link') === 'Linked' || racedHere > 0 || !isGlobal(t));
   const canEditLink = canType('team_track', 'edit');
   const canEditTrack = canType('track', 'edit') && (!isGlobal(t) || user?.is_platform_admin);
   const ttForm = data.list('form').find((f) => f.data.target === 'team_track' && f.data.is_default);
@@ -177,10 +203,10 @@ export function TrackDetail() {
     else await saveRecord(tid, 'team_track', null, { form_id: ttForm?.id, values: { track: id, link: 'Linked', ...patch } }, user.id);
   };
   const unlink = async () => {
-    if (matched.length || !isGlobal(t)) await setLink({ link: 'Hidden', home: false });
+    if (racedHere || !isGlobal(t)) await setLink({ link: 'Hidden', home: false });
     else if (link) await deleteRecord(link.id);
   };
-  const events = data.list('event').filter((e) => v(e, 'venue') === id).sort((a, b) => (v(b, 'date') || '').localeCompare(v(a, 'date') || ''));
+  const events = data.list('event').filter((e) => v(e, 'venue') === id || (!v(e, 'venue') && nameKey(v(e, 'track')) === nameKey(v(t, 'name')))).sort((a, b) => (v(b, 'date') || '').localeCompare(v(a, 'date') || ''));
   const setups = data.list('setup').filter((s) => events.some((e) => e.id === v(s, 'event')));
   const mapUrl = v(t, 'lat') && v(t, 'lon')
     ? `https://www.google.com/maps/search/?api=1&query=${v(t, 'lat')},${v(t, 'lon')}`
@@ -196,14 +222,18 @@ export function TrackDetail() {
         {canEditLink && (linked
           ? <>
               <button type="button" className="btn ghost" onClick={() => setLink({ home: !v(link, 'home'), link: 'Linked' })}>{v(link, 'home') ? 'Unset home track' : 'Make home track'}</button>
-              <button type="button" className="btn ghost danger" onClick={unlink}>{matched.length ? 'Hide from our tracks' : 'Unlink'}</button>
+              <button type="button" className="btn ghost danger" onClick={unlink}>{racedHere || !isGlobal(t) ? 'Hide from our tracks' : 'Unlink'}</button>
             </>
-          : <button type="button" className="btn primary" onClick={() => setLink({ link: 'Linked' })}>Link to team</button>)}
+          : <>
+              <button type="button" className="btn ghost" onClick={() => setLink({ link: 'Linked', home: true })}>Make home track</button>
+              <button type="button" className="btn primary" onClick={() => setLink({ link: 'Linked' })}>{hidden ? 'Show in our tracks' : 'Link to team'}</button>
+            </>)}
         {canEditTrack && <Link className="btn" to={`/r/track/${id}`}>Edit track</Link>}
       </PageHeader>
       <div className="event-meta">
         {isGlobal(t) ? <span className="chip static">Shared directory</span> : <span className="chip static">Team-only track</span>}
-        {linked && <span className="chip static">{v(link, 'link') === 'Linked' ? 'Linked to team' : `Linked by class: ${matched.join(', ')}`}</span>}
+        {linked && <span className="chip static">{v(link, 'link') === 'Linked' ? 'Linked to team' : racedHere ? `Raced here (${racedHere} event${racedHere === 1 ? '' : 's'})` : 'Our team track'}</span>}
+        {matched.length > 0 && <span className="chip static">Runs our class: {matched.join(', ')}</span>}
         {v(link, 'link') === 'Hidden' && <span className="chip static">Hidden from our tracks</span>}
       </div>
       <div className="grid-2">

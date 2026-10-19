@@ -12,10 +12,29 @@ related: events-sessions, weather
 ---
 RaceOps comes with a shared directory of 700+ tracks: address, size, surface, banking, classes and location. Every team reads it; only platform admins change it.
 
-## Make the list yours
+## Our tracks
 
-- **Classes we race.** On the Tracks page, press **Edit** beside *Classes we race*, pick your classes and press **Save classes**. Tracks that run those classes show under **Our tracks**. This needs the **Edit team settings** right. Your cars' classes are offered as quick picks, and the classes you save here are listed first when you pick a car's **Class**.
-- **Link to team.** Open any track and press **Link to team** to add it to Our tracks. You can also mark a home track, or hide a class-matched track.
+**Our tracks** starts empty. A track is added when:
+
+- **you race there.** Creating an event at a track adds it, whether you picked the track from the directory or typed its name;
+- **you link it.** Open any track in the **Directory** and press **Link to team**, or **Make home track**. Your home track shows first;
+- **you add a team-only track** for somewhere that isn't in the directory.
+
+To take a track off the list, open it and press **Unlink**, or **Hide from our tracks** for one you've raced at. **Show in our tracks** brings a hidden track back.
+
+## Classes we race
+
+On the Tracks page, press **Edit** beside *Classes we race*, pick your classes and press **Save classes**. This needs the **Edit team settings** right.
+
+Classes don't add tracks to Our tracks. Instead:
+
+- in the **Directory**, tracks that run your classes are marked **our class**, and **Runs our classes** filters to them;
+- when you pick a car's **Class**, your classes are listed first.
+
+Your cars' classes are offered as quick picks.
+
+## Team notes and missing tracks
+
 - **Team notes.** Each track can hold your team's own notes, such as pit gate, power or fuel. Only your team sees them.
 - **Missing track?** Add a team-only track. Or, when creating an event, type the track name; a free-text field appears for tracks not in the directory.
 

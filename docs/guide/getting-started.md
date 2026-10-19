@@ -25,9 +25,9 @@ Invite people from **Team → Members & invites**. Each invite has a role. The b
 
 For each car, set its **gear list**, **ring & pinion ratio** and **minimum fuel (pickup)**. Final drive, the gear calculator and the fuel planner use them. See [Add your cars](/help/cars).
 
-## 4. Link your tracks
+## 4. Add your tracks
 
-Set **Classes we race** on the Tracks page, and tracks that run those classes appear under *Our tracks*. You can also link any track by hand. See [Tracks and classes](/help/tracks).
+**Our tracks** starts empty and fills as you race: every track you create an event at is added. To add tracks now, such as your home track, open them in the **Directory** and press **Link to team** or **Make home track**. Setting **Classes we race** marks tracks that run your classes in the Directory. See [Tracks and classes](/help/tracks).
 
 ## 5. Add your assets
 
