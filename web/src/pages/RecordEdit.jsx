@@ -140,6 +140,8 @@ export default function RecordEdit() {
     for (const [k, val] of params.entries()) if (!['form', 'from', 'scope', 'back'].includes(k)) init[k] = val;
     for (const fd of allFields(f)) if (fd.defaultSelf && !init[fd.key]) init[fd.key] = user.id;
     if (type === 'dyno_run' && init.asset && v(data.byId[init.asset], 'adjust_type')) init.adjust_type = v(data.byId[init.asset], 'adjust_type');
+    // the first test of a shock or bar is its initial measurement
+    if (type === 'dyno_run' && init.asset && !data.list('dyno_run').some((r) => v(r, 'asset') === init.asset)) init.initial = true;
     if (allFields(f).some((fd) => fd.key === 'date' && fd.type === 'date')) init.date ||= today();
     if (type === 'setup' && init.order !== undefined) init.order = num(init.order);
     if (type === 'setup' && !init.fuel_unit) init.fuel_unit = teamFuel; // fuel recorded in the team's default unit
@@ -197,6 +199,8 @@ export default function RecordEdit() {
       const next = { ...s, [k]: val };
       // dyno run: picking a shock brings its adjuster type across
       if (type === 'dyno_run' && k === 'asset' && data?.byId[val] && v(data.byId[val], 'adjust_type')) next.adjust_type = v(data.byId[val], 'adjust_type');
+      // new run: the first test of a shock or bar starts as its initial measurement
+      if (type === 'dyno_run' && k === 'asset' && isNew) next.initial = !!val && !data.list('dyno_run').some((r) => v(r, 'asset') === val);
       // bar test: picking the bar brings its serial, maker, model and corner across (where empty)
       if (type === 'dyno_run' && k === 'asset' && data?.byId[val] && form?.data?.dyno_kind === 'bar') {
         const a = data.byId[val];
@@ -428,8 +432,8 @@ export default function RecordEdit() {
       {arranging && layout && <ArrangeSections form={form} layout={layout} onClose={() => setArranging(false)} />}
       <FormRenderer form={setupForm} values={shownValues} onChange={onChange} data={data} readOnly={readOnly} layout={layout} roKeys={fuelConverting ? ['fuel_start', 'fuel_finish'] : []}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
-        sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { run: <InitialClash data={data} id={id} values={values} />, rate: <BarResults data={data} id={id} values={values} /> }
-          : type === 'dyno_run' ? { run: <InitialClash data={data} id={id} values={values} />, data: <ShockVsInitial data={data} id={isNew ? null : id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
+        sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, rate: <BarResults data={data} id={id} values={values} /> }
+          : type === 'dyno_run' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, data: <ShockVsInitial data={data} id={isNew ? null : id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           race: <FuelPlanner id={id} data={data} values={shownValues} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }}
             unit={fuelShown} recorded={fuelRecorded} setView={(u) => setFuelView(u === fuelRecorded ? null : u)} setRecorded={setFuelRecorded} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />

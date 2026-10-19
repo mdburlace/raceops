@@ -70,7 +70,10 @@ The curve shows compression (solid) and rebound (dashed). The **Torsion bar rate
 
 ## Initial measurement (at purchase or first build)
 
-Tick **Initial measurement (at purchase or first build)** on the first test of a shock or bar: when it was bought, or first built or revalved. Every later test of that shock or bar is compared with it.
+**Initial measurement (at purchase or first build)** marks the first test of a shock or bar: when it was bought, or first built or revalved. Every later test of that shock or bar is compared with it.
+
+- **A new shock or bar:** its first test is ticked for you, showing **Yes**. Later tests start at **No**.
+- **Tests saved before this option existed:** the earliest test of each shock or bar offers **Mark it as the initial measurement**. Press it, then **Save**.
 
 - **Torsion bars:** **Since initial test** shows the change in rate, as a percentage, and in split.
 - **Non-adjustable shocks:** the readings show the change in compression and rebound force at about 5 in/s.

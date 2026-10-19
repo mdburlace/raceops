@@ -3,6 +3,7 @@
 import { shockFade } from '@shared/analytics.js';
 import { initialRun } from '@shared/dyno.js';
 import { fmtDate, v } from '../lib/data.js';
+import { useSession } from '../lib/session.jsx';
 
 const pct = (x) => (x === null || x === undefined || !Number.isFinite(x) ? '—' : `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}%`);
 const runsOf = (data) => data.list('dyno_run').map((r) => ({ id: r.id, values: r.data.values || {} }));
@@ -43,9 +44,23 @@ export function ShockVsInitial({ data, id, values }) {
   );
 }
 
-/** Ticking "Initial measurement" when another run of the same shock/bar already has it. */
-export function InitialClash({ data, id, values }) {
-  if (!values.initial || !values.asset) return null;
+/** Ticking "Initial measurement" when another run of the same shock/bar already has it — or, on an
+ * older run that was the first for its shock/bar, an offer to mark it (runs saved before the option existed). */
+export function InitialClash({ data, id, values, readOnly, setValues }) {
+  const { canType } = useSession();
+  if (!values.asset) return null;
+  if (!values.initial) {
+    const runs = runsOf(data).filter((r) => r.values.asset === values.asset);
+    const earliest = runs.slice().sort((a, b) => String(a.values.date || '').localeCompare(String(b.values.date || '')))[0];
+    if (!id || readOnly || !canType('dyno_run', 'edit') || runs.some((r) => r.values.initial) || earliest?.id !== id) return null;
+    const kind = v(data.byId[values.asset], 'category') === 'Torsion Bar' ? 'bar' : 'shock';
+    return (
+      <div className="notice info small" data-testid="initial-offer">
+        This is the earliest test of this {kind}, and none is marked as its initial measurement.{' '}
+        <button type="button" className="link" onClick={() => setValues((x) => ({ ...x, initial: true }))}>Mark it as the initial measurement</button> (then Save).
+      </div>
+    );
+  }
   const other = initialRun(runsOf(data), values.asset, id);
   if (!other) return null;
   return <div className="notice small" data-testid="initial-clash">{other.values.label || 'Another run'} ({fmtDate(other.values.date)}) is marked as the initial measurement for this {v(data.byId[values.asset], 'category') === 'Torsion Bar' ? 'bar' : 'shock'}. Saving makes this run the initial one instead.</div>;
