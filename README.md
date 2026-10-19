@@ -357,6 +357,19 @@ On a customer engine's page, **Customer access** offers two kinds of sharing. Bo
 
 Each plan has an optional **Shared engines** limit (Platform admin → Plans): how many engines a shop can share at once. It's blank (unlimited) by default.
 
+### Help & guide
+
+**Help & guide** (sidebar, under Profile & device) is the user guide, built into the app and available offline. It covers:
+
+- **Getting started:** setting up a new team, in order.
+- **Guides by role:** owner, crew chief, mechanic, driver, engine builder, customer and platform admin.
+- **Settings & options:** every switch, where it is and who can change it.
+- **Area guides** and **reference tables.**
+
+Each person sees the articles that fit their role and team type; **Show everything** lists the rest. A **?** beside page titles opens the article for that page. **Print / PDF** prints the whole guide with a contents page. Owners and team admins see a **Set up your team** checklist on Home that ticks itself off from the team's data.
+
+Articles are Markdown files in `docs/guide/`. `tools/check-guide.mjs` runs before every web build and fails it when a page, setting, record type, module, role or form field isn't documented. `tools/guide_shots.py` retakes the guide's screenshots from a test server. See `CLAUDE.md` for the checklist every change follows.
+
 ### Teams, roles and permissions
 
 - **Multi-team:** one person can belong to several teams and switch between them in the sidebar. Platform admins create more teams under **Platform admin → Teams & licences**.
@@ -390,6 +403,9 @@ cd web && npm install && npm run dev                                            
 shared/       catalog.js (modules, permissions, default roles) · baseForms.js (seed forms from your sheets)
 server/       Express API · migrations/*.sql (auto-applied) · src/index.js (auth, teams, roles, invites, sync, attachments)
 web/          React PWA · lib/store.js (IndexedDB) · lib/sync.js (push/pull) · components/FormRenderer.jsx · pages/*
+docs/guide/   User guide articles (Markdown) and img/ screenshots, bundled into the app
+tools/        check-guide.mjs (build-time guide check) · guide_shots.py (retake guide screenshots)
+CLAUDE.md     What every change must update, including the user guide
 ```
 
 ### Data model and sync

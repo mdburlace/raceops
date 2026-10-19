@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node ../tools/check-guide.mjs && vite build",
+    "check:guide": "node ../tools/check-guide.mjs",
     "preview": "vite preview"
   },
   "keywords": [],
@@ -14,6 +15,7 @@
   "dependencies": {
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",
+    "marked": "^14.1.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",

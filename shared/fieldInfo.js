@@ -338,9 +338,30 @@ export const FIELD_INFO = {
   },
 };
 
+/** Descriptions for everyday fields that mean the same on every form (used when a form has none of its own). */
+export const COMMON_INFO = {
+  name: ['The name you’ll find this by in lists and search.'],
+  notes: ['Anything worth knowing that doesn’t fit a field above. Internal to your team.'],
+  date: ['The date this happened or was done.'],
+  car: ['Which of your cars this is for.'],
+  event: ['The race meeting this belongs to.'],
+  email: ['Email address.'], email2: ['A second email address.'],
+  phone: ['Phone number.'], mobile: ['Mobile number.'],
+  website: ['Web address, e.g. https://example.com.'],
+  address1: ['Street address.'], address2: ['Second address line (unit, building).'],
+  city: ['Town or suburb.'], state: ['State or region.'], region: ['State or region.'], postcode: ['Postcode / ZIP.'], country: ['Country.'],
+  address: ['Full street address.'],
+  first_name: ['Given name.'], last_name: ['Family name.'], salutation: ['Mr, Ms, Dr…'],
+  organisation: ['Company or organisation they work for.'], position: ['Their job title.'],
+  manufacturer: ['Who makes it.'], status: ['Where it’s at right now.'],
+  purchase_date: ['When it was bought.'], cost: ['What it cost, for spend reports.'],
+  operator: ['Who ran it.'], completed_by: ['Who did the work.'],
+};
+export const hasInfo = (target, key) => !!(FIELD_INFO[target]?.[key] || COMMON_INFO[key]);
+
 /** Description for a field on a form: the team's own text first, then the standard one. */
 export function infoFor(target, field) {
-  const std = FIELD_INFO[target]?.[field.key] || [];
+  const std = FIELD_INFO[target]?.[field.key] || COMMON_INFO[field.key] || [];
   const text = field.info || std[0] || '';
   const source = field.source ?? std[1] ?? '';
   return text || source ? { text, source } : null;

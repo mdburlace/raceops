@@ -5,6 +5,10 @@ COPY shared ./shared
 COPY web/package.json web/package-lock.json ./web/
 RUN cd web && npm ci
 COPY web ./web
+# the user guide is bundled into the app, and the build checks it covers every page and setting
+COPY docs ./docs
+COPY tools ./tools
+COPY server/src ./server/src
 RUN cd web && npm run build
 
 # ---- runtime: API + static web app ----

@@ -1,0 +1,24 @@
+---
+id: whats-new
+title: What's new
+section: start
+order: 2
+summary: Recent changes to RaceOps, newest first, with links to the articles that explain them.
+for: everyone
+covers: option:whats-new
+related: help-guide, getting-started
+---
+Every RaceOps update adds a line here, and the articles it links to are updated in the same release.
+
+## October 2026
+
+- **Help & guide.** This guide is now built into the app and works offline. It has guides for each role, a **?** on each page that opens the article for that page, a **Set up your team** checklist on Home, and **Print / PDF** for the whole guide. [Using this guide](/help/help-guide)
+- **Shocks on setup sheets.** Each corner lists that corner's shocks first. Adjuster boxes match each shock's type, and you can record bump rubbers. [Shocks, adjusters and bump rubbers](/help/shocks-on-setup)
+- **Fuel planner.** Predicts the fuel to start with from planned laps and past fuel use, plus the car's new **Minimum fuel (pickup)**. [Plan fuel for a session](/help/fuel-planner)
+- **Excel and CSV.** **Fill from photo, PDF or Excel** and table **Paste / import** read spreadsheets. [Fill forms from photos, PDFs and spreadsheets](/help/import-files)
+- **Engine shops.** New team type with customers, jobs with parts and labour, and handover packs. You can share an engine page with its owner, or link it to the owner's RaceOps team. [Choose your team type](/help/team-type), [Jobs — parts and labour](/help/shop-jobs)
+- **Linked engines.** Choose, per engine, whether your laps count on your engine builder's service tracker. [Engines from your engine builder](/help/linked-engines)
+- **Calculators.** 47 calculators for tuning, chassis, gearing, the engine and the workshop. Many open from the field they fill. [Calculators](/help/calculators)
+- **Track weather.** Pull the weather for the session, or calculate ADR, density altitude and grains from your own readings. [Track weather](/help/weather)
+- **Themes and sidebar.** Pick a theme or make your own. Sidebar sections fold away. [Themes and sidebar](/help/appearance)
+- **Setup advisor.** Suggests changes from what's worked for your team before and from tuning guides. [Setup advisor](/help/setup-advisor)

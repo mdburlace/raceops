@@ -1,0 +1,31 @@
+---
+id: members-invites
+title: Invite your crew
+section: team
+order: 10
+summary: Invite people with a role, change their role or remove them.
+for: admin, perm:members.manage
+pages: /team/members, /invite/:token
+covers: perm:members.manage, setting:invites
+related: roles-permissions, team-settings
+---
+## Invite someone
+
+1. Go to **Team → Members & invites**.
+2. Under **Invite someone**, enter their email and pick a **Role**.
+3. Press **Create invite link**. The link is copied for you.
+4. Send it by text, email or WhatsApp. RaceOps doesn't send emails.
+
+The person opens the link, creates an account (or signs in if they have one) and joins the team. Invites expire after a set number of days, shown beside each pending invite. Your platform admin sets how many. **Copy link** copies it again; **Revoke** cancels it.
+
+Someone already on another team can use an invite too. They then switch between teams in the sidebar.
+
+## Seats
+
+Your plan may limit seats: members plus pending invites. The **Licence** card on the Team page shows your plan, seats and end date. If you're out of seats, revoke an unused invite or ask your platform admin for more.
+
+## Change a role or remove someone
+
+Under **Members**, change the role beside a person, or press **Remove**. **Leave** takes you off the team yourself. Only owners can make someone an owner or change an owner, and a team always keeps at least one owner.
+
+**Who can do this:** the owner, or a role with **Invite & manage members**.

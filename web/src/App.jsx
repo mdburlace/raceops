@@ -17,6 +17,7 @@ import { FormBuilder, FormList } from './pages/Forms.jsx';
 import { Profile, Roles, Team } from './pages/Team.jsx';
 import { AskPage } from './components/Ai.jsx';
 import { Calculators } from './pages/Calculators.jsx';
+import { HelpArticle, HelpHome, HelpPrint } from './pages/Help.jsx';
 import { CustomerDetail, CustomerList, JobList, JobPrint } from './pages/Shop.jsx';
 import { LinkEngine, LinkedEngineDetail, SharePage } from './pages/Sharing.jsx';
 import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
@@ -65,6 +66,7 @@ function Routed() {
       <Route path="/s/:token" element={<SharePage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/print/job/:id" element={<AreaGate area="engines" module="jobs"><JobPrint /></AreaGate>} />
+      <Route path="/print/guide" element={<HelpPrint />} />
       <Route element={<Layout />}>
         <Route index element={<Landing />} />
         {/* At the track */}
@@ -121,6 +123,8 @@ function Routed() {
         <Route path="admin/system" element={<AdminGate><AdminSystem /></AdminGate>} />
         <Route path="admin/ai" element={<AdminGate><AdminAi /></AdminGate>} />
         <Route path="ask" element={<AskPage />} />
+        <Route path="help" element={<HelpHome />} />
+        <Route path="help/:id" element={<HelpArticle />} />
         <Route path="calculators" element={<Calculators />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

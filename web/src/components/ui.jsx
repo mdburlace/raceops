@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { helpForPath, useGuideCtx } from '../lib/guide.js';
 import { api, fileUrl } from '../lib/api.js';
 import { getSyncStatus, subscribeSync, syncNow } from '../lib/sync.js';
 import { useSession } from '../lib/session.jsx';
@@ -25,6 +26,16 @@ export function useHeightVar(name) {
  * Page title row — sticks under the top bar while the page scrolls. `below` (e.g. the AI bar on a
  * record) sticks with it.
  */
+/** "?" beside a page title: opens the guide article for this page, if there is one. */
+function PageHelp() {
+  const { pathname } = useLocation();
+  const ctx = useGuideCtx();
+  if (pathname.startsWith('/help')) return null;
+  const a = helpForPath(pathname, ctx);
+  if (!a) return null;
+  return <Link to={`/help/${a.id}`} className="ph-help" aria-label={`Help: ${a.title}`} title={`Help: ${a.title}`}>?</Link>;
+}
+
 export function PageHeader({ title, sub, back, children, below }) {
   const nav = useNavigate();
   const ref = useHeightVar('--head-h');
@@ -35,7 +46,7 @@ export function PageHeader({ title, sub, back, children, below }) {
         {back === -1 && <button type="button" className="back" aria-label="Back" onClick={() => nav(-1)}>‹</button>}
         {back && back !== -1 && <Link to={back} className="back" aria-label="Back">‹</Link>}
         <div>
-          <h1>{title}</h1>
+          <div className="ph-title"><h1>{title}</h1><PageHelp /></div>
           {sub && <p className="sub">{sub}</p>}
         </div>
       </div>

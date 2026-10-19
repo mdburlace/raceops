@@ -144,5 +144,8 @@ export function cleanPrefs(p = {}) {
   if ('nav_collapsed' in p) {
     out.nav_collapsed = [...new Set((Array.isArray(p.nav_collapsed) ? p.nav_collapsed : []).filter((k) => /^[a-z0-9_-]{1,20}$/.test(k)))].slice(0, 20);
   }
+  if ('hidden_checklists' in p) { // teams whose setup checklist this person has hidden
+    out.hidden_checklists = [...new Set((Array.isArray(p.hidden_checklists) ? p.hidden_checklists : []).filter((k) => /^[0-9a-f-]{36}$/.test(k)))].slice(0, 50);
+  }
   return out;
 }

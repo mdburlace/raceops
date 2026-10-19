@@ -9,6 +9,7 @@ import { useSession } from '../lib/session.jsx';
 import { scheduleText } from './Maintenance.jsx';
 import { teamType } from '@shared/shop.js';
 import { ShopHome } from './Shop.jsx';
+import { SetupChecklist } from '../components/SetupChecklist.jsx';
 
 // ---------- access gate used by routes ----------
 export function AreaGate({ area, module, children }) {
@@ -74,22 +75,11 @@ export function Landing() {
   if (!s) return <p className="muted pad">Loading…</p>;
   const teamAdmin = can('members.manage') || can('roles.manage') || can('forms.manage') || can('team.manage');
   const type = teamType(membership);
-  const empty = type !== 'engine_shop' && !s.data.list('car').length;
 
   return (
     <div>
       <PageHeader title={`G'day, ${user?.name?.split(' ')[0] || ''}`} sub={membership?.tenant_name} />
-      {empty && (canArea('team') || teamAdmin) && (
-        <div className="card onboarding">
-          <h3>Get started</h3>
-          <ol>
-            <li><Link to="/r/car/new">Add your car(s)</Link></li>
-            <li><Link to="/r/asset/new">Add assets</Link> — shocks, torsion bars, engines</li>
-            <li><Link to="/r/event/new">Create your next event</Link>, then fill a setup sheet per session</li>
-            <li><Link to="/team/members">Invite your crew</Link> and set their <Link to="/roles">roles</Link></li>
-          </ol>
-        </div>
-      )}
+      <SetupChecklist />
       {type !== 'race' && <ShopHome />}
       <div className="area-grid">
         {AREAS.filter((a) => type !== 'engine_shop' || a.key !== 'track').map((a) => {

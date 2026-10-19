@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 
 export default defineConfig({
-  resolve: { alias: { '@shared': path.resolve(__dirname, '../shared') } },
+  resolve: { alias: { '@shared': path.resolve(__dirname, '../shared'), '@docs': path.resolve(__dirname, '../docs') } },
   server: {
     proxy: { '/api': 'http://localhost:8080' },
     fs: { allow: ['..'] },
@@ -29,7 +29,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'], // includes the user guide's pictures, so Help works offline
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
