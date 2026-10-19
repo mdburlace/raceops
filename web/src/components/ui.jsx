@@ -1,13 +1,35 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, fileUrl } from '../lib/api.js';
 import { getSyncStatus, subscribeSync, syncNow } from '../lib/sync.js';
 import { useSession } from '../lib/session.jsx';
 import { fmtDateTime } from '../lib/data.js';
 
-export function PageHeader({ title, sub, back, children }) {
+/** Keep a CSS variable on <html> in step with an element's height (sticky offsets below it). */
+export function useHeightVar(name) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const root = document.documentElement;
+    if (!el) return undefined;
+    const set = () => root.style.setProperty(name, `${Math.ceil(el.getBoundingClientRect().height)}px`);
+    set();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(set) : null;
+    ro?.observe(el);
+    return () => { ro?.disconnect(); root.style.setProperty(name, '0px'); };
+  }, [name]);
+  return ref;
+}
+
+/**
+ * Page title row — sticks under the top bar while the page scrolls. `below` (e.g. the AI bar on a
+ * record) sticks with it.
+ */
+export function PageHeader({ title, sub, back, children, below }) {
   const nav = useNavigate();
+  const ref = useHeightVar('--head-h');
   return (
+    <div className="page-head" ref={ref}>
     <header className="page-header">
       <div className="ph-title">
         {back === -1 && <button type="button" className="back" aria-label="Back" onClick={() => nav(-1)}>‹</button>}
@@ -19,6 +41,8 @@ export function PageHeader({ title, sub, back, children }) {
       </div>
       {children && <div className="ph-actions">{children}</div>}
     </header>
+    {below ? <div className="ph-below">{below}</div> : null}
+    </div>
   );
 }
 

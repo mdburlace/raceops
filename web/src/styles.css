@@ -920,3 +920,39 @@ input[aria-invalid=true] { border-color: var(--over); }
 .check-row-calc { padding: 8px 0; border-top: 1px solid var(--line); }
 .check-cells { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .check-cell small { margin-right: 2px; }
+
+/* ---------- sticky page title (and AI bar) under the top bar ---------- */
+:root { --topbar-h: 50px; --head-h: 0px; }
+.page-head { position: sticky; top: var(--topbar-h); z-index: 15; background: var(--bg); margin: 0 -24px 14px; padding: 0 24px; }
+.page-head .page-header { margin: 0; padding: 10px 0 12px; }
+.page-head .ph-below { padding-bottom: 10px; }
+.page-head .ph-below .card { margin-bottom: 0; }
+.page-head .ph-below .ai-bar { max-height: min(55vh, 520px); overflow: auto; overscroll-behavior: contain; }
+html.scrolled .page-head { box-shadow: 0 1px 0 var(--line), 0 8px 16px -14px rgba(0,0,0,.35); }
+html.scrolled .page-head .page-header { padding: 6px 0 8px; align-items: center; }
+html.scrolled .page-head h1 { font-size: 19px; }
+html.scrolled .page-head .sub { display: none; }
+html.scrolled .page-head .ph-below { padding-bottom: 8px; }
+html.scrolled .page-head .ph-below .ai-bar { padding: 8px 12px; }
+/* things that stick inside the page sit below the title row */
+html { scroll-padding-top: calc(var(--topbar-h) + var(--head-h) + 8px); }
+.calc-detail { top: calc(var(--topbar-h) + var(--head-h) + 12px); max-height: calc(100vh - var(--topbar-h) - var(--head-h) - 24px); max-height: calc(100dvh - var(--topbar-h) - var(--head-h) - 24px); overflow: auto; overscroll-behavior: contain; }
+@media (max-width: 900px) {
+  .page-head { margin: 0 -14px 12px; padding: 0 14px; }
+  html.scrolled .page-head .page-header { flex-wrap: nowrap; }
+  html.scrolled .page-head .ph-actions { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 55%; }
+  html.scrolled .page-head h1 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  html.scrolled .page-head .ph-title > div { min-width: 0; }
+  .calc-detail { max-height: none; overflow: visible; }
+}
+@media print { .page-head { position: static; box-shadow: none; } }
+html.scrolled .topbar { background: var(--bg); }
+html.scrolled .page-head .ai-bar .inline-row { flex-wrap: nowrap; }
+html.scrolled .page-head .ai-bar .inline-row > * { flex: 0 0 auto; }
+html.scrolled .page-head .ai-bar .inline-row > .muted { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 900px) {
+  html.scrolled .topbar { background: var(--surface); }
+  html.scrolled .page-head .ph-actions { display: none; }
+  html.scrolled .page-head .ai-bar .inline-row > .muted { display: none; }
+  html.scrolled .page-head .ai-bar .ai-tag { font-size: 0; gap: 0; }
+}

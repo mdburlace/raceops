@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useSession } from '../lib/session.jsx';
-import { SyncBadge } from './ui.jsx';
+import { SyncBadge, useHeightVar } from './ui.jsx';
 
 export const I = {
   home: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
@@ -154,6 +154,21 @@ export default function Layout() {
   const [drawer, setDrawer] = useState(false);
   const loc = useLocation();
   const groups = useNav();
+  const topbar = useHeightVar('--topbar-h');
+  // compact the sticky title row once the page has scrolled
+  useEffect(() => {
+    const root = document.documentElement;
+    // hysteresis: compacting shortens the page, which can pull scrollY back — without a gap
+    // between the two thresholds the header would flicker between sizes
+    const on = () => {
+      const y = window.scrollY;
+      if (y > 56) root.classList.add('scrolled');
+      else if (y < 4) root.classList.remove('scrolled');
+    };
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => { window.removeEventListener('scroll', on); root.classList.remove('scrolled'); };
+  }, []);
   if (licence === 'suspended' && !user?.is_platform_admin) return <Suspended />;
   const appName = platform?.app_name || 'RaceOps';
   const words = appName.trim().split(/\s+/);
@@ -206,7 +221,7 @@ export default function Layout() {
       </aside>
       {drawer && <div className="scrim" onClick={() => setDrawer(false)} />}
       <div className="main-col">
-        <div className="topbar">
+        <div className="topbar" ref={topbar}>
           <button type="button" className="icon-btn menu-btn" onClick={() => setDrawer(true)} aria-label="Menu"><Icon d={I.menu} /></button>
           <span className="topbar-team">{membership?.tenant_name}</span>
           <SyncBadge />

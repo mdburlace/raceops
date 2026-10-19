@@ -251,7 +251,8 @@ export default function RecordEdit() {
 
   return (
     <div className={`record-edit type-${type}`}>
-      <PageHeader title={title} sub={sub} back={params.get('back') || (isNew ? -1 : afterSave(type, rec || { data: { values } }))}>
+      <PageHeader title={title} sub={sub} back={params.get('back') || (isNew ? -1 : afterSave(type, rec || { data: { values } }))}
+        below={!readOnly && canType(type, 'edit') ? <AiTools type={type} form={form} values={values} setValues={(fn) => { setValues(fn); setDirty(true); }} /> : null}>
         {type === 'setup' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost advisor-link" to={`/track/advisor?setup=${id}`} title="What’s worked before for this handling problem, and what the tuning guides suggest">Setup advisor</Link>}
         {type === 'setup' && !isNew && canModule('dyno') && <Link className="btn ghost" to={`/workshop/dyno?setup=${id}`}>Shock dyno</Link>}
@@ -348,9 +349,6 @@ export default function RecordEdit() {
         </div>
       )}
 
-      {!readOnly && canType(type, 'edit') && (
-        <AiTools type={type} form={form} values={values} setValues={(fn) => { setValues(fn); setDirty(true); }} />
-      )}
 
       <FormRenderer form={type === 'setup' ? withWeatherUnits(form, wxUnits) : form} values={values} onChange={onChange} data={data} readOnly={readOnly}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
