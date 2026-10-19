@@ -956,3 +956,8 @@ html.scrolled .page-head .ai-bar .inline-row > .muted { flex: 1 1 auto; min-widt
   html.scrolled .page-head .ai-bar .inline-row > .muted { display: none; }
   html.scrolled .page-head .ai-bar .ai-tag { font-size: 0; gap: 0; }
 }
+
+/* calculators: area buttons + search stay pinned under the title while the list scrolls */
+.calc-filters { position: sticky; top: calc(var(--topbar-h) + var(--head-h)); z-index: 5; background: var(--bg); display: flex; flex-direction: column; gap: 10px; padding: 6px 0 10px; margin-top: -6px; }
+html.scrolled .calc-filters { box-shadow: 0 8px 10px -10px rgba(0,0,0,.3); }
+.calc-cat h3 { scroll-margin-top: calc(var(--topbar-h) + var(--head-h) + 110px); }

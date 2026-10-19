@@ -32,12 +32,14 @@ export function Calculators() {
       <PageHeader title="Calculators" sub="Tuning, chassis, gearing, engine and workshop maths — works offline. Calculators are also beside the fields they fill on your sheets." />
       <div className="calc-layout">
         <nav className="calc-list" aria-label="Calculators">
+          <div className="calc-filters">
           <div className="seg calc-areas" role="group" aria-label="Show calculators for">
             {[['', 'All'], ['track', 'At the track'], ['engines', 'Engines'], ['workshop', 'Workshop']].map(([k, l]) => (
               <button key={k} type="button" className={area === k ? 'active' : ''} aria-pressed={area === k} onClick={() => { const p = new URLSearchParams(params); if (k) p.set('area', k); else p.delete('area'); setParams(p); }}>{l}</button>
             ))}
           </div>
           <input type="search" placeholder="Search calculators" aria-label="Search calculators" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
           {cats.map((c) => {
             const list = CALCS.filter((x) => x.cat === c.key && match(x));
             if (!list.length) return null;
