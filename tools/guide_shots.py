@@ -46,6 +46,7 @@ st, team = call('/admin/tenants', T, 'POST', {'name': 'Guide demo', 'plan': 'pro
 if st not in (200, 201):
     sys.exit(f'Could not create the demo team ({st}): {team} — the account must be a platform admin.')
 TID = team['id']
+call('/me', T, 'PATCH', {'prefs': {'setup_layout': {}}})  # pictures show the standard section order
 login = call('/auth/login', method='POST', body={'email': args.email, 'password': args.password})[1]
 
 now = datetime.now(timezone.utc).isoformat()
@@ -73,9 +74,11 @@ ev_old = rec('event', {'name': 'Valley Speedway — June', 'date': d(120), 'trac
 ev = rec('event', {'name': 'Valley Speedway — Club night', 'date': d(0), 'track': 'Valley Speedway', 'car': car['id']})
 S = lambda **v: {'car': car['id'], 'engine': {'asset': eng['id']}, 'shocks': {c: {'asset': s['id']} for c, s in shocks.items()}, **v}
 old = rec('setup', S(event=ev_old['id'], session='Feature', laps='30', fuel_start='9', fuel_finish='2.7', finish='3'), form_id=SF)
-heat = rec('setup', S(event=ev['id'], session='Heat 1', order=10, laps='10', fuel_start='5', fuel_finish='3', finish='2', temp='68', baro='29.82'), form_id=SF)
-feat = rec('setup', S(event=ev['id'], session='Feature', order=20, planned_laps='30', temp='64', baro='29.85',
-                      shock_adjust={'LF': 'Comp 4 · Reb 6', 'RF': 'Comp 6 · Reb 8', 'RR': 'LS comp 3 · HS comp 2 · Reb 9'},
+heat = rec('setup', S(event=ev['id'], session='Heat 1', order=10, laps='10', fuel_start='5', fuel_finish='3', finish='2', temp='68', baro='29.82',
+                      pressure_cold={'LF': '12', 'RF': '14', 'LR': '10', 'RR': '16'}, wing_angle='13', shock_adjust={'LF': 'Comp 4 · Reb 6', 'RF': 'Comp 6 · Reb 8', 'RR': 'LS comp 3 · HS comp 2 · Reb 9'}), form_id=SF)
+feat = rec('setup', S(event=ev['id'], session='Feature', order=20, planned_laps='30', temp='64', baro='29.85', copied_from=heat['id'],
+                      pressure_cold={'LF': '12', 'RF': '14.5', 'LR': '10', 'RR': '16.5'}, wing_angle='14', tire_spec={'LF': 'H-12', 'RF': 'H-12', 'LR': 'Medium', 'RR': 'Hard'},
+                      shock_adjust={'LF': 'Comp 5 · Reb 6', 'RF': 'Comp 6 · Reb 9', 'RR': 'LS comp 3 · HS comp 2 · Reb 9'},
                       bump_type={'LF': 'Penske', 'RF': 'Penske'}, bump_spec={'LF': '70A', 'RF': '80A'}, bump_height={'LF': '1.25', 'RF': '1.25'},
                       bump_packers={'LF': '1', 'RF': '2'}, bump_gap={'LF': '0.75', 'RF': '0.6'}), form_id=SF)
 push(car, eng, *shocks.values(), spare, ev_old, ev, old, heat, feat)
@@ -119,14 +122,20 @@ with sync_playwright() as pw:
         page.goto(f"{B}/r/setup/{feat['id']}"); settle(page)
         # close-ups of one section: let the sticky title and save bar scroll away so they don't cover it
         page.add_style_tag(content='.page-head, .save-bar, .topbar { position: static !important; }')
+        page.set_viewport_size({'width': 1280, 'height': 1600})
         if 'setup-shocks' in SHOTS:
-            sec = page.locator('section.form-section:has(h3:text-is("Shocks"))')
+            sec = page.locator('#sec-shocks')
             sec.scroll_into_view_if_needed(); settle(page)
             save('setup-shocks', sec.screenshot())
         if 'fuel-planner' in SHOTS:
             sec = page.locator('section.form-section:has([data-testid="fuel-planner"])')
             sec.scroll_into_view_if_needed(); settle(page)
             save('fuel-planner', sec.screenshot())
+    if shot('setup-quick-edit'):
+        q = page_for(1280, 820)
+        q.goto(f"{B}/r/setup/{feat['id']}"); settle(q)
+        q.locator('.sheet-nav .sn-chip:has-text("Tires")').click(); q.wait_for_timeout(1200)
+        save('setup-quick-edit', q.screenshot())
     if shot('event-sessions'):
         page.goto(f"{B}/events/{ev['id']}"); settle(page)
         save('event-sessions', page.screenshot())
@@ -136,6 +145,7 @@ with sync_playwright() as pw:
     if shot('mobile-setup'):
         m = page_for(390, 844, mobile=True)
         m.goto(f"{B}/r/setup/{feat['id']}"); settle(m)
+        m.locator('.sheet-nav .sn-chip:has-text("Shocks")').click(); m.wait_for_timeout(1200)
         save('mobile-setup', m.screenshot())
     br.close()
 

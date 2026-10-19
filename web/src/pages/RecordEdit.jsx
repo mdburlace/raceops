@@ -6,6 +6,8 @@ import { WeatherTools, useWeatherUnits, withWeatherUnits } from '../components/W
 import { calcContext } from '../components/Calculator.jsx';
 import { EngineChecks } from '../components/EngineChecks.jsx';
 import { FuelPlanner } from '../components/FuelPlanner.jsx';
+import { ArrangeSections, SheetNav, SheetTools, useSheetLayout } from '../components/SheetNav.jsx';
+import { changedFields } from '@shared/setupLayout.js';
 import { JobExtras } from './Shop.jsx';
 import { nextJobNo, shopSettings } from '@shared/shop.js';
 import { FIELD_CALCS, cornerPercents } from '@shared/calcs.js';
@@ -114,9 +116,13 @@ export default function RecordEdit() {
   const [pickBaseline, setPickBaseline] = useState('');
   const [pickSession, setPickSession] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [stage, setStage] = useState('all'); // setup: All / Before / After the session
+  const [changesOnly, setChangesOnly] = useState(false);
+  const [arranging, setArranging] = useState(false);
 
   const form = data ? formFor(data, type, formId || rec?.data.form_id || params.get('form')) : null;
   const wxUnits = useWeatherUnits();
+  const sheet = useSheetLayout(type === 'setup' ? form : null, { isNew, values });
 
   // initialise once data + record are available
   useEffect(() => {
@@ -148,11 +154,12 @@ export default function RecordEdit() {
     if (cfg && params.get('from') && data.byId[params.get('from')]) {
       const src = data.byId[params.get('from')];
       Object.assign(init, carryValues(f, src, cfg.skip)); setCarried(src);
+      if (type === 'setup') init.copied_from = src.id; // changes are shown against this session
     } else if (type === 'setup') {
       setChoosing(true); // ask where to start from
     } else if (cfg && init[cfg.match]) {
       const src = sortSetupsDesc(data.list(type).filter((s) => v(s, cfg.match) === init[cfg.match]), data)[0];
-      if (src) { Object.assign(init, carryValues(f, src, cfg.skip)); setCarried(src); }
+      if (src) { Object.assign(init, carryValues(f, src, cfg.skip)); setCarried(src); if (type === 'setup') init.copied_from = src.id; }
     }
     setFormId(f?.id);
     setValues(init);
@@ -212,7 +219,7 @@ export default function RecordEdit() {
   const lastEvent = data && type === 'setup' && values?.car
     ? sortSetupsDesc(data.list('setup').filter((s) => s.id !== id && v(s, 'car') === values.car && v(s, 'event') !== values.event), data)[0] : null;
   const startFrom = (src) => {
-    if (src) { setValues((s0) => ({ ...s0, ...carryValues(form, src, cfg.skip) })); setCarried(src); setDirty(true); }
+    if (src) { setValues((s0) => ({ ...s0, ...carryValues(form, src, cfg.skip), ...(type === 'setup' ? { copied_from: src.id } : {}) })); setCarried(src); setDirty(true); }
     setChoosing(false);
   };
   const copyOptions = useMemo(() => (data && cfg && matchVal
@@ -263,10 +270,48 @@ export default function RecordEdit() {
     return f ? `${f.label}${sub2 ? ` ${sub2}` : ''}` : k;
   };
 
+  // setup sheets: changes against the session this sheet was copied from (or the previous session)
+  const setupForm = type === 'setup' ? withWeatherUnits(form, wxUnits) : form;
+  const base = type === 'setup' ? (values.copied_from && data.byId[values.copied_from]) || prevSession : null;
+  const baseLabel = base ? (v(base, 'event') === values.event ? v(base, 'session') || 'the copied session' : titleOf(base, data)) : '';
+  const changed = type === 'setup' && base ? changedFields(form, values, base.data?.values || {}) : {};
+  const layout = type === 'setup' ? { ...sheet, stage, changesOnly, changed } : null;
+  const sectionShown = (sec) => sec.fields.some((f) => isVisible(f, values) && f.type !== 'heading'
+    && (stage === 'all' || (stage === 'after') === (f.stage === 'after')) && (!changesOnly || changed[f.key]));
+  const shownSections = type === 'setup' ? form.data.sections.filter(sectionShown).map((x) => x.id) : [];
+  const copySelect = cfg && !readOnly ? (
+    <select value="" aria-label="Copy from" onChange={(e) => {
+      const src = data.byId[e.target.value];
+      if (src) { setValues((s) => ({ ...s, ...carryValues(form, src, cfg.skip), ...(type === 'setup' ? { copied_from: src.id } : {}) })); setCarried(src); setDirty(true); }
+    }}>
+      <option value="">{matchVal ? 'Copy from…' : `Pick a ${cfg.match} first`}</option>
+      {baselines.length > 0 && <optgroup label="Baselines">{baselines.map((b) => <option key={b.id} value={b.id}>{baselineLabel(b)}</option>)}</optgroup>}
+      {type === 'setup' ? (
+        <>
+          {thisEvent.length > 0 && <optgroup label="This event">{thisEvent.map((s) => <option key={s.id} value={s.id}>{inEventLabel(s)}</option>)}</optgroup>}
+          {earlier.length > 0 && <optgroup label="Earlier events">{earlier.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}</optgroup>}
+        </>
+      ) : (
+        <optgroup label="Previous">
+          {copyOptions.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}
+        </optgroup>
+      )}
+    </select>
+  ) : null;
+  const startedText = carried
+    ? <span>Started from <b>{v(carried, 'baseline') ? `baseline “${v(carried, 'baseline_name') || titleOf(carried, data)}”` : titleOf(carried, data)}</b>{type === 'setup' ? ' — hot values, travel, race, feedback and notes left blank.' : ' — measurements copied; check every value.'}</span>
+    : <span className="muted">Copy settings from a previous {cfg?.label}{type === 'setup' ? ' or baseline' : ''}:</span>;
+  const choosingStart = type === 'setup' && choosing && !readOnly && (thisEvent.length || earlier.length || baselines.length > 0);
+
   return (
     <div className={`record-edit type-${type}`}>
       <PageHeader title={title} sub={sub} back={params.get('back') || (isNew ? -1 : afterSave(type, rec || { data: { values } }))}
-        below={!readOnly && canType(type, 'edit') ? <AiTools type={type} form={form} values={values} setValues={(fn) => { setValues(fn); setDirty(true); }} /> : null}>
+        below={(
+          <>
+            {!readOnly && canType(type, 'edit') ? <AiTools type={type} form={form} values={values} setValues={(fn) => { setValues(fn); setDirty(true); }} /> : null}
+            {layout && !choosingStart && <SheetNav form={form} layout={layout} shown={shownSections} changed={changed} onArrange={() => setArranging(true)} />}
+          </>
+        )}>
         {type === 'job' && !isNew && <Link className="btn ghost" to={`/print/job/${id}`}>Job sheet / handover pack</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost advisor-link" to={`/track/advisor?setup=${id}`} title="What’s worked before for this handling problem, and what the tuning guides suggest">Setup advisor</Link>}
@@ -331,28 +376,14 @@ export default function RecordEdit() {
         </div>
       )}
 
-      {cfg && !readOnly && !(type === 'setup' && choosing && (thisEvent.length || earlier.length || baselines.length > 0)) && (
+      {type === 'setup' && !choosingStart && (
+        <SheetTools copy={copySelect} started={readOnly ? null : startedText} base={base} baseLabel={baseLabel} changed={changed}
+          stage={stage} setStage={setStage} changesOnly={changesOnly} setChangesOnly={setChangesOnly} />
+      )}
+      {cfg && type !== 'setup' && !readOnly && (
         <div className="card carry-bar">
-          {carried
-            ? <span>Started from <b>{v(carried, 'baseline') ? `baseline “${v(carried, 'baseline_name') || titleOf(carried, data)}”` : titleOf(carried, data)}</b>{type === 'setup' ? ' — hot values, travel, race, feedback and notes left blank.' : ' — measurements copied; check every value.'}</span>
-            : <span className="muted">Copy settings from a previous {cfg.label}{type === 'setup' ? ' or baseline' : ''}:</span>}
-          <select value="" aria-label="Copy from" onChange={(e) => {
-            const src = data.byId[e.target.value];
-            if (src) { setValues((s) => ({ ...s, ...carryValues(form, src, cfg.skip) })); setCarried(src); setDirty(true); }
-          }}>
-            <option value="">{matchVal ? 'Copy from…' : `Pick a ${cfg.match} first`}</option>
-            {baselines.length > 0 && <optgroup label="Baselines">{baselines.map((b) => <option key={b.id} value={b.id}>{baselineLabel(b)}</option>)}</optgroup>}
-            {type === 'setup' ? (
-              <>
-                {thisEvent.length > 0 && <optgroup label="This event">{thisEvent.map((s) => <option key={s.id} value={s.id}>{inEventLabel(s)}</option>)}</optgroup>}
-                {earlier.length > 0 && <optgroup label="Earlier events">{earlier.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}</optgroup>}
-              </>
-            ) : (
-              <optgroup label="Previous">
-                {copyOptions.map((s) => <option key={s.id} value={s.id}>{titleOf(s, data)} ({fmtDate(recDate(s, data))})</option>)}
-              </optgroup>
-            )}
-          </select>
+          {startedText}
+          {copySelect}
         </div>
       )}
       {type === 'setup' && values.baseline && <div className="notice info">This sheet is a <b>baseline</b>{values.baseline_name ? ` — “${values.baseline_name}”` : ''}. It can be recalled as the starting point for any event or session.</div>}
@@ -365,7 +396,8 @@ export default function RecordEdit() {
       )}
 
 
-      <FormRenderer form={type === 'setup' ? withWeatherUnits(form, wxUnits) : form} values={values} onChange={onChange} data={data} readOnly={readOnly}
+      {arranging && layout && <ArrangeSections form={form} layout={layout} onClose={() => setArranging(false)} />}
+      <FormRenderer form={setupForm} values={values} onChange={onChange} data={data} readOnly={readOnly} layout={layout}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
         sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           race: <FuelPlanner id={id} data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}

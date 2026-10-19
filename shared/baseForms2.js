@@ -342,7 +342,21 @@ export function applyUpgrades(form) {
     if (u.sectionPatch) {
       const sec = form.sections.find((x) => x.id === u.section);
       const mark = `_patched_${Object.keys(u.sectionPatch).join('_')}`;
-      if (sec && !sec[mark]) { Object.assign(sec, u.sectionPatch, { [mark]: true }); changed = true; }
+      // ifTitle: only when the team hasn't renamed the section themselves
+      if (sec && !sec[mark] && (!u.ifTitle || sec.title === u.ifTitle)) { Object.assign(sec, u.sectionPatch, { [mark]: true }); changed = true; }
+      continue;
+    }
+    if (u.move) { // move a field to another section, once (a team that moves it back keeps their choice)
+      const from = form.sections.find((x) => x.fields.some((f) => f.key === u.move));
+      const to = form.sections.find((x) => x.id === u.to);
+      const f = from?.fields.find((x) => x.key === u.move);
+      if (f && to && from !== to && !f[`_moved_${u.to}`]) {
+        from.fields.splice(from.fields.indexOf(f), 1);
+        const i = u.after ? to.fields.findIndex((x) => x.key === u.after) : -1;
+        to.fields.splice(i >= 0 ? i + 1 : to.fields.length, 0, f);
+        f[`_moved_${u.to}`] = true;
+        changed = true;
+      } else if (f && from === to && !f[`_moved_${u.to}`]) { f[`_moved_${u.to}`] = true; changed = true; }
       continue;
     }
     if (u.patch) {

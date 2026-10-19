@@ -23,7 +23,7 @@ You run the car. RaceOps keeps every session's setup, the conditions and the res
 
 1. **+ Add session** on the event. The new sheet copies the previous session's setup. [Fill in a setup sheet](/help/setup-sheets)
 2. **Weather.** Pull it, or type your station's readings and calculate. [Track weather](/help/weather)
-3. **Make your changes:** gear, jets, bars, shocks and adjusters, pressures, stagger, wing. Pick parts from the asset lists so their laps count. [Shocks, adjusters and bump rubbers](/help/shocks-on-setup)
+3. **Make your changes:** gear, jets, bars, shocks and adjusters, pressures, stagger, wing. Jump with the section bar and use **−/+** for quick tweaks; changes show in blue with what they were. [Quick editing](/help/setup-sheet-layout) Pick parts from the asset lists so their laps count. [Shocks, adjusters and bump rubbers](/help/shocks-on-setup)
 4. **Fuel.** Enter planned laps, check the prediction, then **Use as fuel started**. [Plan fuel for a session](/help/fuel-planner)
 5. **After the session,** record:
    - laps, start and finish;
@@ -45,6 +45,8 @@ No signal? Keep going. Everything saves on the phone and syncs later. [Work offl
 
 | I want to… | Go to |
 |---|---|
+| See what I changed from the last session | [Quick editing on the setup sheet](/help/setup-sheet-layout) — **Changes only** |
+| Put Tyres and Shocks at the top of every sheet | [Quick editing on the setup sheet](/help/setup-sheet-layout) — **⇅ Arrange** |
 | Find what we ran last time it was slick | [Compare and search setups](/help/compare-search) |
 | Work out a gear for +200 rpm | [Gears and tyres](/help/gears) |
 | Fill a sheet from a paper copy | [Fill forms from photos, PDFs and spreadsheets](/help/import-files) |

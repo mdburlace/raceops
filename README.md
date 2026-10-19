@@ -184,6 +184,15 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 - **Bump rubbers** per corner: type, spec, height, number of packers and gap.
 - Setup sheets also record gear **position** and **final drive**.
 
+### Setup sheet layout
+
+- **Section bar:** stays under the title. Tap a section to jump to it. A number on a section shows how many values changed from the copied session.
+- **⇅ Arrange:** each person sets their own section order and hides sections they don't use. This is saved in their preferences (`setup_layout`), so it follows them to every device. Tapping a section title folds it. Session folds on saved sheets.
+- **Changes:** values that differ from the session the sheet was copied from (`copied_from`, or else the previous session) are highlighted with **was …**. **Changes only** shows just those values.
+- **All / Before / After:** fields recorded after the session are tagged `stage: 'after'`, and the switch shows one group or the other.
+- **Quick entry:** four-corner values sit on one row. Pressures, wing, nose wing, main jet and shock adjusters have − and + buttons. Enter moves to the next box.
+- **Section changes:** shocks are a card per corner, and Wing has its own section. Radius rod and rear steer moved to Chassis. These are applied as form upgrades, and only once, so a team that rearranges its form keeps its own layout.
+
 ### Fuel planner
 
 The **Race** section of a setup sheet opens with a fuel plan:

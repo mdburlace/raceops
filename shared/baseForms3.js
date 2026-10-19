@@ -1,5 +1,6 @@
 // Tracks, contacts, suppliers, contact roles and race series.
 import { SHOP_FORMS, SHOP_UPGRADES } from './baseForms4.js';
+import { AFTER_KEYS, STEPS } from './setupLayout.js';
 
 const t = (key, label, extra = {}) => ({ key, label, type: 'text', ...extra });
 
@@ -209,5 +210,18 @@ export const PHASE3_UPGRADES = [
   { target: 'setup', section: 'shocks', after: 'bump_packers', field: { key: 'bump_gap', label: 'Bump rubber gap', type: 'corners', input: 'number', corners: ['LF', 'RF', 'LR', 'RR'], unit: 'in' } },
   { target: 'setup', section: 'race', first: true, field: { key: 'planned_laps', label: 'Planned laps', type: 'number', placeholder: 'race laps' } },
   { target: 'car', section: 'car', after: 'rp_ratio', field: { key: 'fuel_min', label: 'Minimum fuel (pickup)', type: 'number', unit: 'gal', placeholder: 'e.g. 1.5' } },
+  // setup sheet layout: wing gets its own section; chassis items together; post-session readings marked "after";
+  // −/+ steps on the values changed most often
+  { target: 'setup', before: 'shocks', insertSection: { id: 'wing', title: 'Wing', fields: [] } },
+  { target: 'setup', move: 'wing_angle', to: 'wing' },
+  { target: 'setup', move: 'wicker', to: 'wing', after: 'wing_angle' },
+  { target: 'setup', move: 'wing_position', to: 'wing', after: 'wicker' },
+  { target: 'setup', move: 'nose_wing', to: 'wing', after: 'wing_position' },
+  { target: 'setup', move: 'lr_radius_rod', to: 'chassis' },
+  { target: 'setup', move: 'rear_steer', to: 'chassis', after: 'lr_radius_rod' },
+  { target: 'setup', section: 'chassis', ifTitle: 'Setup', sectionPatch: { title: 'Chassis' } },
+  { target: 'setup', section: 'weights', ifTitle: 'Weights & chassis', sectionPatch: { title: 'Weights' } },
+  ...AFTER_KEYS.map((key) => ({ target: 'setup', key, patch: { stage: 'after' } })),
+  ...Object.entries(STEPS).map(([key, step]) => ({ target: 'setup', key, patch: { step } })),
   ...SHOP_UPGRADES,
 ];

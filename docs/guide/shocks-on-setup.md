@@ -7,8 +7,10 @@ summary: How each corner's shock list is filtered, which adjuster boxes show, an
 for: module:setups
 team: race
 covers: option:shock_filter
-related: assets, setup-sheets, dyno
+related: assets, setup-sheets, setup-sheet-layout, dyno
 ---
+The Shocks section has a card for each corner, laid out like the car: LF and RF on top, LR and RR below (stacked on a phone). Each card holds that corner's shock, its adjusters, its bump rubber and its travel.
+
 ## Picking a shock for each corner
 
 ![Shocks section: adjusters follow each shock’s type, then travel and bump rubbers](img/setup-shocks.webp)
@@ -29,7 +31,8 @@ The adjuster boxes follow the **Shock adjustable** type set on the shock in Asse
 {{adjusters}}
 
 - Enter clicks (or whatever unit you use) in each box. The sheet saves them as e.g. *Comp 3 · Reb 5*, which the setup advisor and Compare understand.
-- If **all four** shocks are non-adjustable, the Adjuster settings field is hidden.
+- A **non-adjustable** shock has no adjuster row on its card.
+- **−** and **+** change an adjuster by one click. Changed adjusters are highlighted against the copied session.
 - A shock typed in by hand, or with no type set, gets a single free-text box.
 - **Single adjustable** shows one box, labelled *Adjuster*.
 

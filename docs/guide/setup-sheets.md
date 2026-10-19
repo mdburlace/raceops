@@ -8,7 +8,7 @@ for: module:setups
 team: race
 pages: /setups, /r/setup/*
 covers: type:setup, module:setups, setting:baseline
-related: shocks-on-setup, fuel-planner, weather, feedback-debrief, setup-advisor, import-files
+related: setup-sheet-layout, shocks-on-setup, fuel-planner, weather, feedback-debrief, setup-advisor, import-files
 ---
 Each session at an event has one setup sheet. Fields have an **ⓘ** beside the label: tap it to see what to enter and where to get the number.
 
@@ -35,12 +35,14 @@ On a saved sheet, **Copy from…** offers the same choices.
 
 ## Fill it in
 
-Work down the sections. Some work things out for you:
+Jump between sections with the row of buttons under the title, and fold or reorder sections to suit you. Changed values are highlighted, and **Before / After** shows just the fields for that stage. See [Quick editing on the setup sheet](/help/setup-sheet-layout).
+
+Some sections work things out for you:
 
 - **Final drive** from the gear set, gear position (low/high) and the car's ring & pinion.
 - **Corner weights.** Enter all four, and total, left %, rear % and cross % fill in.
 - **Weather.** Pull it for the track, or calculate from your readings. See [Track weather](/help/weather).
-- **Shocks.** Each corner lists that corner's shocks first; adjuster boxes match the shock. See [Shocks, adjusters and bump rubbers](/help/shocks-on-setup).
+- **Shocks.** A card per corner with the shock, its adjusters, bump rubbers and travel. Each corner lists that corner's shocks first, and adjusters show only for an adjustable shock. See [Shocks, adjusters and bump rubbers](/help/shocks-on-setup).
 - **Race.** The fuel plan predicts the fuel to start with. See [Plan fuel for a session](/help/fuel-planner).
 - **Calculator buttons** beside some fields (main jet, stagger, ADR…) open the matching calculator, filled in from the sheet. **Use** puts the answer in the field.
 

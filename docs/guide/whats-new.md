@@ -12,6 +12,7 @@ Every RaceOps update adds a line here, and the articles it links to are updated 
 
 ## October 2026
 
+- **Setup sheet quick editing.** A section bar to jump around, your own section order, folding sections, changes highlighted with what they were, **Changes only**, a **Before / After** switch, − and + buttons, and four-corner values on one row. Shocks are a card per corner, and Wing has its own section. [Quick editing on the setup sheet](/help/setup-sheet-layout)
 - **Help & guide.** This guide is now built into the app and works offline. It has guides for each role, a **?** on each page that opens the article for that page, a **Set up your team** checklist on Home, and **Print / PDF** for the whole guide. [Using this guide](/help/help-guide)
 - **Shocks on setup sheets.** Each corner lists that corner's shocks first. Adjuster boxes match each shock's type, and you can record bump rubbers. [Shocks, adjusters and bump rubbers](/help/shocks-on-setup)
 - **Fuel planner.** Predicts the fuel to start with from planned laps and past fuel use, plus the car's new **Minimum fuel (pickup)**. [Plan fuel for a session](/help/fuel-planner)

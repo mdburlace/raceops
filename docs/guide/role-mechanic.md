@@ -34,6 +34,7 @@ Add new shocks with their **position** and **adjustable type**, so they show at 
 
 | I want to… | Go to |
 |---|---|
+| Record hot pressures and travel when the car comes in | [Quick editing on the setup sheet](/help/setup-sheet-layout) — **After** |
 | See what's due this week | Home → Needs attention |
 | Reset a schedule after a rebuild | [Checklists and schedules](/help/maintenance) |
 | Load a dyno file | [Shock and bar dyno](/help/dyno) |
