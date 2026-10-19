@@ -12,6 +12,7 @@ Every RaceOps update adds a line here, and the articles it links to are updated 
 
 ## October 2026
 
+- **Calendars.** Plan each racing year under **At the Track → Calendar**. Pull dates from the shared series and track calendars, with the right car picked when more than one of your classes is running. Enter a full or partial series, mark each meeting planned or tentative, and record whether you raced the feature or withdrew, and why. Print the year, or publish it as a public page with a subscribe link. Teams can suggest or import dates from a link, PDF, screenshot or iCal, and platform admins approve them. [Calendar](/help/calendar)
 - **Torsion bar tests.** Each test now records the bar's serial, maker, model, size, type and corner, its rate at a standard arm travel (3 in on a 15 in arm), compression and rebound, and the split. **Rate baselines** average the bars you choose for each size and type, and every test shows how it compares. [Shock and bar dyno](/help/dyno)
 - **Shock dyno test speeds.** A run can be tested at one or more speeds (3.00, 6.00 and 10.00 in/s to start with, or your own), with readings and a curve for each. [Shock and bar dyno](/help/dyno)
 - **Fuel in US gallons or litres.** Each sheet records fuel in either unit, **Show in** converts what's on screen, and the team sets the default. [Plan fuel for a session](/help/fuel-planner)

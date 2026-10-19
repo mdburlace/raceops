@@ -85,7 +85,8 @@ feat = rec('setup', S(event=ev['id'], session='Feature', order=20, planned_laps=
 season = []
 for n in range(8):
     tr = ['Lakeside Raceway', 'Valley Speedway', 'Hilltop Oval'][n % 3]
-    e = rec('event', {'name': f'{tr} — round {n + 1}', 'date': d(112 - n * 14), 'track': tr, 'car': car['id']})
+    e = rec('event', {'name': f'{tr} — round {n + 1}', 'date': d(112 - n * 14), 'track': tr, 'car': car['id'], 'intent': 'Planned',
+                      **({'outcome': 'Withdrew during the event', 'withdraw_reason': 'Engine'} if n == 3 else {'outcome': 'Raced the feature'})})
     season.append(e)
     for k, (sess, order) in enumerate([('Heat 1', 10), ('Feature', 20)]):
         stg = 5 + (n % 4) * 0.5
@@ -97,6 +98,32 @@ for n in range(8):
                                      tach_high=str(8600 - n * 12), track_conditions=[['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
                                      driver_feel=['Loose exit'] if k == 0 and n % 2 == 0 else []), form_id=SF))
 push(car, eng, *shocks.values(), spare, ev_old, ev, old, heat, feat, *season)
+
+# calendars: the racing year starts with the first demo round; a shared series and track dates
+# (shared with every team on this server — another reason to use a test server)
+start = date.today() - timedelta(days=125)
+settings = next(m for m in login['memberships'] if m['tenant_id'] == TID).get('settings') or {}
+call(f'/t/{TID}', T, 'PATCH', {'settings': {**settings, 'calendar_season_start': start.month}})
+up = lambda n: (date.today() + timedelta(days=n)).isoformat()
+FX, TRF, SEF = form('fixture'), form('track'), form('series')
+gtrack = rec('track', {'name': 'Valley Speedway', 'city': 'Valley', 'region': 'QLD', 'country': 'Australia', 'status': 'Active'}, form_id=TRF, scope='global')
+gtrack2 = rec('track', {'name': 'Lakeside Raceway', 'city': 'Lakeside', 'region': 'QLD', 'country': 'Australia', 'status': 'Active'}, form_id=TRF, scope='global')
+gser = rec('series', {'name': 'Summer Sprintcar Series', 'season': str(start.year), 'class': '410 Sprint'}, form_id=SEF, scope='global')
+gfx = [rec('fixture', {k: x for k, x in v.items() if x}, form_id=FX, scope='global') for v in [
+    {'name': 'Summer Series Rd 1', 'date': up(9), 'venue': gtrack['id'], 'series': gser['id'], 'round': 1, 'classes': ['410 Sprint'], 'status': 'Scheduled'},
+    {'name': 'Lakeside Club Night', 'date': up(16), 'venue': gtrack2['id'], 'classes': ['410 Sprint', '360 Sprint'], 'status': 'Scheduled'},
+    {'name': 'Summer Series Rd 2', 'date': up(23), 'end_date': up(24), 'venue': gtrack2['id'], 'series': gser['id'], 'round': 2, 'classes': ['410 Sprint'], 'status': 'Scheduled'},
+    {'name': 'Summer Series Rd 3', 'date': up(37), 'venue': gtrack['id'], 'series': gser['id'], 'round': 3, 'classes': ['410 Sprint'], 'status': 'Scheduled'},
+    {'name': 'Valley Speedway Classic', 'date': up(44), 'venue': gtrack['id'], 'classes': ['410 Sprint'], 'status': 'Scheduled'}]]
+push(gtrack, gtrack2, gser, *gfx)
+EF = form('event')
+cal = [rec('event', {'name': f['data']['values']['name'], 'date': f['data']['values']['date'], 'end_date': f['data']['values'].get('end_date'), 'venue': f['data']['values']['venue'],
+                     'series': f['data']['values'].get('series'), 'round': f['data']['values'].get('round'), 'fixture': f['id'], 'car': car['id'],
+                     'intent': 'Tentative' if i == 1 else 'Planned'}, form_id=EF) for i, f in enumerate(gfx[:3])]
+for c in cal: c['data']['values'] = {k: x for k, x in c['data']['values'].items() if x}
+entry = rec('season_plan', {'series': gser['id'], 'season': str(start.year), 'car': car['id'], 'class': '410 Sprint', 'participation': 'Partial series'}, form_id=form('season_plan'))
+change = rec('fixture', {**gfx[3]['data']['values'], 'date': up(38), 'review': 'pending', 'replaces': gfx[3]['id'], 'suggest_note': 'Moved to Sunday — series Facebook page'}, form_id=FX)
+push(*cal, entry, change)
 
 SHOTS = []
 shot = lambda name: (ONLY is None or name in ONLY) and SHOTS.append(name) is None
@@ -164,6 +191,20 @@ with sync_playwright() as pw:
     if shot('calculators'):
         page.goto(B + '/calculators'); settle(page)
         save('calculators', page.screenshot())
+    if shot('calendar-ours'):
+        page.goto(B + '/calendar'); settle(page)
+        save('calendar-ours', page.screenshot())
+    if shot('calendar-shared'):
+        page.goto(B + '/calendar?tab=shared&show=all'); settle(page)
+        save('calendar-shared', page.screenshot())
+    if shot('calendar-suggestions'):
+        page.goto(B + '/admin/calendar'); settle(page)
+        save('calendar-suggestions', page.locator('.cal-sugg').first.screenshot())
+    if shot('calendar-public'):
+        pub = call(f'/t/{TID}/calendar/publish', T, 'PUT', {'on': True, 'show_cars': True, 'show_tentative': True, 'show_results': True})[1]['calendar_publish']
+        m = page_for(390, 844, mobile=True)
+        m.goto(f"{B}/c/{pub['token']}"); settle(m)
+        save('calendar-public', m.screenshot())
     if shot('mobile-setup'):
         m = page_for(390, 844, mobile=True)
         m.goto(f"{B}/r/setup/{feat['id']}"); settle(m)

@@ -37,7 +37,11 @@ Add engines, shocks, torsion bars and anything else with a service life. For sho
 
 For example, "Rebuild LF shock every 8 races" or "Freshen engine every 600 laps". Laps and races are counted from setup sheets. See [Checklists and service schedules](/help/maintenance).
 
-## 7. Create your next event and fill in a setup sheet
+## 7. Plan your racing year
+
+Open **At the Track → Calendar → Series & track calendars** and add the dates you'll race. Each one becomes an event on your calendar, for the right car. Entering a series adds all its rounds at once. See [Calendar](/help/calendar).
+
+## 8. Fill in a setup sheet at your next event
 
 See [Events and sessions](/help/events-sessions) and [Fill in a setup sheet](/help/setup-sheets).
 

@@ -107,6 +107,8 @@ export function titleOf(rec, data) {
     case 'customer': return vals.name || 'Customer';
     case 'job': return `${vals.job_no || 'Job'}${data?.byId[vals.customer] ? ` · ${titleOf(data.byId[vals.customer])}` : ''}`;
     case 'tuning_guide': return vals.name || 'Tuning guide';
+    case 'fixture': return `${vals.name || 'Calendar date'}${vals.date ? ` · ${fmtDate(vals.date)}` : ''}`;
+    case 'season_plan': return `${titleOf(data?.byId[vals.series], data)}${data?.byId[vals.car] ? ` · ${titleOf(data.byId[vals.car])}` : ''}`;
     default: return rec.type;
   }
 }

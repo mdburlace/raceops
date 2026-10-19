@@ -7,7 +7,7 @@ summary: Teams and licences, plans, users, the track directory, pick-lists, AI a
 for: platform
 pages: /admin, /admin/teams, /admin/plans, /admin/users, /admin/directory, /admin/lists, /admin/settings, /admin/system, /admin/ai
 covers: setting:app_name, setting:defaults, setting:announcement, setting:licences, setting:plans, setting:pick_lists, setting:directory, feature:track, feature:workshop, feature:engines, feature:team
-related: role-platform-admin, ai-assistant, team-type
+related: role-platform-admin, ai-assistant, team-type, calendar-suggestions
 ---
 Platform admins run the RaceOps server for every team. The first account created is a platform admin, and it can make others admins. The **Platform admin** area is in the sidebar, on Home, and under **Admin** on phones.
 
@@ -18,6 +18,7 @@ Platform admins run the RaceOps server for every team. The first account created
 | **Plans & allocation** | What each plan includes, seats per team, licences to allocate, a price note, and the **Shared engines** limit for engine shops. Add plans, remove unused ones, or restore a built-in plan. |
 | **Users** | Every account, its teams and last sign-in. Edit name or email, **reset password** (shows a one-time temporary password), make admins, **disable** an account, and remove someone from a team. |
 | **Tracks & directory** | Track counts and gaps, shared contacts and suppliers. Import tracks, export all as JSON, or re-apply the bundled list. |
+| **Calendar suggestions** | Series and track dates teams have suggested or corrected. Approve them for every team, or reject them with a reason. See [Calendar suggestions](/help/calendar-suggestions). |
 | **Pick-lists** | Track conditions, car behaviour, contact roles, supplier categories and race classes (also the list a car’s Class picks from). Add, remove, reorder, paste, or restore the default. |
 | **AI assistant** | Turn AI on, choose the models, set the monthly allowance per team and the token prices, test the connection, and see spend per team. |
 | **Settings** | App name, support email, invite link lifetime, default plan and seats for new teams, and an **announcement banner** with an optional end date. |

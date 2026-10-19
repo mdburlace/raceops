@@ -1,0 +1,133 @@
+---
+id: calendar
+title: Calendar — plan your racing year
+section: track
+order: 5
+summary: Pull series and track dates into your calendar, pick the car, enter a full or part series, record what happened, and print or publish it.
+for: module:calendar
+team: race
+pages: /calendar, /print/calendar, /c/:token
+covers: type:fixture, type:season_plan, module:calendar, setting:calendar_publish, setting:calendar_season_start, setting:calendar_view
+related: events-sessions, tracks, calendar-suggestions
+---
+The **Calendar** is your team's racing year in one place: every meeting you plan to race, which car is going, and what happened. It's under **At the Track → Calendar**.
+
+Each entry on your calendar is an **event**, the same event you add setup sheets to on the night. You can add dates from the shared calendars or create your own events.
+
+![The team calendar with plan and result for each meeting](img/calendar-ours.webp)
+
+## The racing year
+
+The calendar shows one racing year at a time. Use **‹** and **›** beside the year to move between years.
+
+Your team's year starts in January unless you change it. For a summer season (for example October to April), set **Racing year starts in** to July under **Publish**. The year then shows as *2026-27*. Only people who can edit team settings can change this.
+
+## Series and track calendars
+
+Every series and track has one shared calendar, used by all teams on RaceOps. Open **Series & track calendars** to see the dates for the year.
+
+![Shared series and track dates, with the ones already on your calendar](img/calendar-shared.webp)
+
+The **Show** list chooses which dates you see:
+
+- **Matching our cars & series**: dates where one of your cars' classes is running, plus the series you've entered. This is the default.
+- **All dates**: everything for the year.
+- **A series** or **a track**: that series' rounds, or that track's dates.
+
+### Add a date to your calendar
+
+1. Press **Add to our calendar** on the date.
+2. If only one of your cars races a class that's running, it's picked for you.
+3. If more than one of your cars could race (for example a 410 and a 360 night), tick the cars that are going. Each car gets its own entry.
+4. Choose **Planned** or **Tentative**, then press **Add**.
+
+Dates on your calendar show **On our calendar — #12**. Use **Add another car** to add a second car later.
+
+### When a shared date changes
+
+If a series moves a round or changes the track, your entry shows **The shared calendar changed** with the old and new details. Press **Update ours** to bring your event into line. A cancelled date shows **Cancelled**.
+
+## Enter a series
+
+Entering a series records which car you're running in it and whether you're doing the whole series.
+
+1. In **Series & track calendars**, pick the series under **Show** and press **Enter this series**. Or open **Series entries** and press **New series entry**.
+2. Pick the **Car**. The **Class** fills in from the car.
+3. Choose **Full series** or **Partial series**.
+   - **Full series** adds every round to your calendar for that car.
+   - **Partial series** lists the rounds. Tick the ones you'll run.
+4. Press **Save entry**.
+
+**Series entries** shows each entry with how many rounds are on your calendar. If the series adds a round later, press **Add missing rounds**. Deleting an entry leaves its events on your calendar.
+
+## Going, and what happened
+
+Each entry on **Our calendar** has a **Going?** choice before the meeting:
+
+- **Planned**: you're going.
+- **Tentative**: maybe. Counted, and marked as tentative.
+- **Not going**: kept on the calendar but not counted or published. Tick **Show “Not going”** to see these.
+
+After the meeting, choose **What happened**:
+
+| Choice | Use it when |
+|---|---|
+| Raced the feature | The car started the feature (A-main). |
+| Did not make the feature | You raced but didn't qualify for the feature. |
+| Withdrew during the event | You pulled out partway through. Pick the **reason**, such as Engine or Crash damage. |
+| Did not attend | You planned to go but didn't. |
+| Event cancelled | The meeting didn't run (rain-out, for example). |
+
+The same controls are on each event's page under **Plan & result**. Open **Edit event** to add **Withdrew after** (the last session run), **Result notes** and a **Note on the public calendar**.
+
+The boxes at the top add up the year: meetings planned, meetings you ran, feature starts, and withdrawals with their reasons.
+
+**List** shows the year as a list with the controls. **Month** shows each month as a grid with your race days marked. Your choice is remembered for you.
+
+## Suggest or import dates
+
+Shared dates are kept by the RaceOps platform admin, and teams help keep them right.
+
+- **Suggest a date** adds a missing date. Fill in the event name, date, track, series, round and the classes running.
+- **Suggest a change** on a date corrects it, for example a new date or a cancellation.
+
+Your suggestion shows **Waiting for approval** until a platform admin checks it. Once approved it's live for every team. If it isn't approved, it shows the reason. Press **Dismiss** to clear it. See [Calendar suggestions](/help/calendar-suggestions).
+
+### Import a published calendar
+
+**Import a calendar** reads the dates from what a series or track has published:
+
+- **Link**: a web page with the dates, or an iCal / webcal link.
+- **File or screenshot**: a PDF, a photo of a poster, a screenshot of a Facebook post, or an .ics file.
+- **Paste text**: copy the dates from an email or a post.
+
+Facebook pages need a login, so use a screenshot or paste the text.
+
+1. Choose where the dates come from. Pick the **series** they belong to (add the series under **Series** first if it isn't listed). If every date is at one track, pick it.
+2. Press **Read dates**. iCal is read directly. Web pages, PDFs, pictures and pasted text are read by the [AI assistant](/help/ai-assistant), so your plan needs it.
+3. Check every row. Fix the dates, names and rounds. Tracks are matched to the directory where possible. Dates already on the shared calendar are marked **already listed** and left unticked.
+4. Press **Send for approval**.
+
+## Print and publish
+
+**Print** opens the year as a printable list. Choose whether to show tentative events, the car and results, then press **Print / save as PDF**.
+
+**Publish** (owners, or anyone who can edit team settings) gives you two links for sponsors, family and fans:
+
+- **Public page**: a web page anyone with the link can open, without logging in. It works on phones and has its own **Print / save as PDF** button.
+- **Subscribe (iCal)**: add it to Apple, Google or Outlook calendars. Their calendar updates when yours does.
+
+![The published calendar on a phone](img/calendar-public.webp)
+
+Only events you're going to are shown, and never setups or notes. Choose whether to include **tentative events**, **which car** and **results**. Withdraw reasons are never shown. **New link** stops the old link working. **Stop publishing** turns both links off.
+
+## Who can do what
+
+| Job | Who |
+|---|---|
+| See the calendar | Anyone with **Calendars → view** |
+| Add dates to your calendar, record results | **Events → edit** |
+| Enter a series | **Calendars → edit** |
+| Suggest or import shared dates | **Calendars → edit** |
+| Publish, set when the racing year starts | Owner, or **Edit team settings** |
+| Approve shared dates | Platform admins |

@@ -12,7 +12,7 @@ export const LISTS = [
   { key: 'car_behaviour', label: 'Car behaviour', help: 'Driver and crew lead feedback on setup sheets.', default: CAR_BEHAVIOUR, fields: [['setup', 'driver_feel'], ['setup', 'crew_feel']] },
   { key: 'contact_roles', label: 'Contact roles', help: 'Roles a contact can hold with a track, supplier, series, event or car.', default: CONTACT_ROLES, fields: [['contact_link', 'role']] },
   { key: 'supplier_categories', label: 'Supplier categories', help: 'Categories for team suppliers.', default: SUPPLIER_CATEGORIES, fields: [['supplier', 'category']] },
-  { key: 'race_classes', label: 'Race classes', help: 'Class quick-picks for the track directory, each team’s “Classes we race” and each car’s Class.', default: RACE_CLASSES, fields: [['track', 'classes'], ['car', 'class']] },
+  { key: 'race_classes', label: 'Race classes', help: 'Class quick-picks for the track directory, each team’s “Classes we race”, each car’s Class and the classes running on calendar dates.', default: RACE_CLASSES, fields: [['track', 'classes'], ['car', 'class'], ['fixture', 'classes'], ['season_plan', 'class']] },
 ];
 export const LIST = Object.fromEntries(LISTS.map((l) => [l.key, l]));
 export const listForField = (target, key) => LISTS.find((l) => l.fields.some(([t, k]) => t === target && k === key))?.key || null;

@@ -8,9 +8,9 @@ for: module:events
 team: race
 pages: /track, /events, /events/:id, /series, /series/:id, /r/event/*, /r/series/*
 covers: type:event, type:series, module:events, feature:track
-related: setup-sheets, tracks, compare-search
+related: calendar, setup-sheets, tracks, compare-search
 ---
-An **event** is one race meeting for one car. Each **session** (Hot Laps, Heat 1, Feature…) gets its own setup sheet.
+An **event** is one race meeting for one car. Each **session** (Hot Laps, Heat 1, Feature…) gets its own setup sheet. Events are also the entries on your [Calendar](/help/calendar), where you can add them straight from the series and track calendars.
 
 ![An event with its sessions in running order](img/event-sessions.webp)
 

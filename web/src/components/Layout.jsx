@@ -7,6 +7,7 @@ import { teamType } from '@shared/shop.js';
 export const I = {
   home: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
   flag: 'M5 21V4m0 0h11l-2 4 2 4H5',
+  calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
   sheet: 'M6 3h9l4 4v14H6zM9 12h7M9 16h7M9 8h4',
   wrench: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z',
   box: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10',
@@ -57,6 +58,7 @@ export const ADMIN_LINKS = [
   { to: '/admin/plans', label: 'Plans & allocation', icon: I.ticket },
   { to: '/admin/users', label: 'Users', icon: I.user },
   { to: '/admin/directory', label: 'Tracks & directory', icon: I.globe },
+  { to: '/admin/calendar', label: 'Calendar suggestions', icon: I.calendar },
   { to: '/admin/lists', label: 'Pick-lists', icon: I.list },
   { to: '/admin/ai', label: 'AI assistant', icon: I.spark },
   { to: '/admin/settings', label: 'Settings', icon: I.sliders },
@@ -73,6 +75,7 @@ export function useNav() {
   const racing = type !== 'engine_shop';
   const groups = [
     { area: 'track', label: 'At the Track', icon: I.track, show: canArea('track') && racing, links: [
+      canModule('calendar') && { to: '/calendar', label: 'Calendar', icon: I.calendar },
       canModule('events') && { to: '/events', label: 'Events', icon: I.flag },
       canModule('events') && { to: '/series', label: 'Series', icon: I.trophy },
       canModule('tracks') && { to: '/tracks', label: 'Tracks', icon: I.pin },

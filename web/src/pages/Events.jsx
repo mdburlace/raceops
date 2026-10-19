@@ -6,6 +6,7 @@ import { eventTrack, fmtDate, formFor, num, titleOf, today, useTeamData, v } fro
 import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
 import { orderForNew, orderSessions } from '../lib/sessions.js';
+import { EntryResult } from './Calendar.jsx';
 
 /** Number of days an event runs (1 for single-day). */
 export function eventDays(ev) {
@@ -63,6 +64,7 @@ export function EventList() {
   return (
     <div>
       <PageHeader title="Events" sub="Race meetings — stand-alone or rounds of a series">
+        {canType('fixture', 'view') && <Link className="btn ghost" to="/calendar">Calendar</Link>}
         {canType('series', 'view') && <Link className="btn ghost" to="/series">Series</Link>}
         {canType('event', 'edit') && <Link className="btn primary" to={`/r/event/new${series && series !== 'none' ? `?series=${series}` : ''}`}>New event</Link>}
       </PageHeader>
@@ -239,6 +241,12 @@ export function EventDetail() {
         {days > 1 && <span className="chip static">{days}-day event</span>}
       </div>
       {facts.length > 0 && <p className="muted small track-facts">{facts.join(' · ')}</p>}
+      <div className="card entry-card" data-testid="entry-card">
+        <b>Plan & result</b>
+        <EntryResult ev={ev} />
+        {v(ev, 'withdraw_session') && <span className="muted small">Withdrew after {v(ev, 'withdraw_session')}</span>}
+        {v(ev, 'outcome_notes') && <span className="muted small pre">{v(ev, 'outcome_notes')}</span>}
+      </div>
       {v(ev, 'track_notes') && <div className="card"><p className="pre">{v(ev, 'track_notes')}</p></div>}
       {days > 1 && (
         <div className="tabs scroll">

@@ -30,4 +30,5 @@ Your feedback drives the setup advisor, so it matters that it's recorded.
 
 | I want to… | Go to |
 |---|---|
+| See where we’re racing this year | [Calendar](/help/calendar) |
 | See my results and best tracks | [Analytics](/help/analytics) |

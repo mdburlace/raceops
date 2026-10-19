@@ -19,6 +19,7 @@ import { AskPage } from './components/Ai.jsx';
 import { Calculators } from './pages/Calculators.jsx';
 import { HelpArticle, HelpHome, HelpPrint } from './pages/Help.jsx';
 import { AnalyticsPage } from './pages/Analytics.jsx';
+import { AdminCalendar, CalendarPage, CalendarPrint, PublicCalendar } from './pages/Calendar.jsx';
 import { CustomerDetail, CustomerList, JobList, JobPrint } from './pages/Shop.jsx';
 import { LinkEngine, LinkedEngineDetail, SharePage } from './pages/Sharing.jsx';
 import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
@@ -48,6 +49,7 @@ function Routed() {
       <Routes>
         <Route path="/invite/:token" element={<AcceptInvite />} />
       <Route path="/s/:token" element={<SharePage />} />
+      <Route path="/c/:token" element={<PublicCalendar />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -57,6 +59,7 @@ function Routed() {
       <Routes>
         <Route path="/invite/:token" element={<AcceptInvite />} />
       <Route path="/s/:token" element={<SharePage />} />
+      <Route path="/c/:token" element={<PublicCalendar />} />
         <Route path="*" element={<NoTeam />} />
       </Routes>
     );
@@ -65,9 +68,11 @@ function Routed() {
     <Routes>
       <Route path="/invite/:token" element={<AcceptInvite />} />
       <Route path="/s/:token" element={<SharePage />} />
+      <Route path="/c/:token" element={<PublicCalendar />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/print/job/:id" element={<AreaGate area="engines" module="jobs"><JobPrint /></AreaGate>} />
       <Route path="/print/guide" element={<HelpPrint />} />
+      <Route path="/print/calendar" element={<AreaGate area="track" module="calendar"><CalendarPrint /></AreaGate>} />
       <Route element={<Layout />}>
         <Route index element={<Landing />} />
         {/* At the track */}
@@ -76,6 +81,7 @@ function Routed() {
         <Route path="events/:id" element={<AreaGate area="track" module="events"><EventDetail /></AreaGate>} />
         <Route path="tracks" element={<AreaGate area="track" module="tracks"><TrackDirectory /></AreaGate>} />
         <Route path="tracks/:id" element={<AreaGate area="track" module="tracks"><TrackDetail /></AreaGate>} />
+        <Route path="calendar" element={<AreaGate area="track" module="calendar"><CalendarPage /></AreaGate>} />
         <Route path="series" element={<AreaGate area="track" module="events"><SeriesList /></AreaGate>} />
         <Route path="series/:id" element={<AreaGate area="track" module="events"><SeriesDetail /></AreaGate>} />
         <Route path="setups" element={<AreaGate area="track" module="setups"><SetupList /></AreaGate>} />
@@ -115,6 +121,7 @@ function Routed() {
         <Route path="profile" element={<Profile />} />
         {/* Platform admin */}
         <Route path="admin" element={<AdminGate><AdminOverview /></AdminGate>} />
+        <Route path="admin/calendar" element={<AdminGate><AdminCalendar /></AdminGate>} />
         <Route path="admin/teams" element={<AdminGate><AdminTeams /></AdminGate>} />
         <Route path="admin/plans" element={<AdminGate><AdminPlans /></AdminGate>} />
         <Route path="admin/users" element={<AdminGate><AdminUsers /></AdminGate>} />

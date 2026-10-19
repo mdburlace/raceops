@@ -36,6 +36,8 @@ export const MODULES = [
   { key: 'contacts', label: 'Contacts & suppliers', types: ['contact', 'contact_link', 'supplier'], area: null },
   { key: 'tracks', label: 'Tracks', types: ['track', 'team_track'], area: 'track' },
   { key: 'events', label: 'Events & series', types: ['event', 'series'], area: 'track' },
+  // shared series & track calendars (dates every team can pull in) and the team's series entries
+  { key: 'calendar', label: 'Calendars', types: ['fixture', 'season_plan'], area: 'track' },
   { key: 'setups', label: 'Setup sheets & advisor', types: ['setup', 'tuning_guide'], area: 'track' },
   { key: 'trackside', label: 'At-track checks', types: ['track_check'], area: 'track', feature: 'trackside' },
   { key: 'gears', label: 'Gears & tires', types: ['gear', 'gear_list', 'tire'], area: 'track', feature: 'gears' },
@@ -77,8 +79,9 @@ export const MODULE = Object.fromEntries(MODULES.map((m) => [m.key, m]));
 export const RECORD_TYPES = [...Object.keys(TYPE_MODULE), 'form'];
 
 // Types that can live in the shared, cross-team directory (tenant_id NULL on the server).
-// Only platform admins create or change global records; every team can read them.
-export const GLOBAL_TYPES = ['track', 'contact', 'supplier', 'contact_link', 'tuning_guide'];
+// Only platform admins create or change global records; every team can read them. Teams suggest
+// shared calendar dates as their own fixtures marked for review; an admin approves them.
+export const GLOBAL_TYPES = ['track', 'contact', 'supplier', 'contact_link', 'tuning_guide', 'series', 'fixture'];
 
 // ---------------- licensing ----------------
 export const FEATURES = [
@@ -150,7 +153,7 @@ export const DEFAULT_ROLES = [
     description: 'Workshop and engine work; reads setups and track checks',
     permissions: [
       ...areas('track', 'workshop', 'engines'),
-      ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view']),
+      ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view']),
       ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs'], ['view', 'edit']),
       ...mod(['customers'], ['view']),
     ],
@@ -158,6 +161,6 @@ export const DEFAULT_ROLES = [
   {
     name: 'Driver / Viewer',
     description: 'Read-only access at the track',
-    permissions: [...areas('track'), ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view'])],
+    permissions: [...areas('track'), ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view'])],
   },
 ];

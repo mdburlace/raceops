@@ -23,6 +23,7 @@ import { mountAdmin } from './admin.js';
 import { mountAi } from './ai.js';
 import { mountWeather } from './weather.js';
 import { mountPublicShare, mountSharing, onRecordSaved } from './sharing.js';
+import { mountCalendar, mountPublicCalendar } from './calendar.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -358,6 +359,7 @@ app.post('/api/invites/:token/accept', h(async (req, res) => {
 
 // ---------- signed in ----------
 mountPublicShare(app); // no-login engine pages for engine shop customers
+mountPublicCalendar(app); // no-login published team calendars and their iCal feeds
 app.use('/api', requireAuth);
 
 app.get('/api/me', h(async (req, res) => {
@@ -403,6 +405,9 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
     settings = { ...settings };
     if ('team_type' in settings && !TEAM_TYPES[settings.team_type]) delete settings.team_type;
     if (settings.shop) settings.shop = cleanShop(settings.shop);
+    // the public calendar link is only changed through /calendar/publish
+    const { rows: [cur] } = await q('SELECT settings FROM tenants WHERE id=$1', [req.tid]);
+    if (cur?.settings?.calendar_publish) settings.calendar_publish = cur.settings.calendar_publish; else delete settings.calendar_publish;
   } else settings = null;
   const { rows: [t] } = await q(
     `UPDATE tenants SET name=COALESCE($2,name), settings=COALESCE($3,settings) WHERE id=$1 RETURNING *`,
@@ -413,6 +418,7 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
 mountAi(T);
 mountWeather(T);
 mountSharing(T);
+mountCalendar(T);
 
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {

@@ -4,6 +4,7 @@ import { AFTER_KEYS, STEPS } from './setupLayout.js';
 import { FUEL_UNIT_OPTIONS } from './fuel.js';
 import { TEST_SPEEDS } from './dyno.js';
 import { BAR_TYPES, CORNERS } from './bars.js';
+import { FIXTURE_STATUS, INTENTS, OUTCOMES, PARTICIPATION, WITHDREW, WITHDRAW_REASONS } from './calendar.js';
 
 const t = (key, label, extra = {}) => ({ key, label, type: 'text', ...extra });
 
@@ -136,7 +137,45 @@ const tuningGuideForm = {
   ],
 };
 
-export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm, ...SHOP_FORMS];
+// A date on a shared series or track calendar. Global (approved) dates are seen by every team;
+// a team's own fixture records are suggestions waiting for a platform admin (values.review).
+const fixtureForm = {
+  target: 'fixture', name: 'Calendar date', is_default: true,
+  sections: [
+    { id: 'fixture', title: 'Calendar date', fields: [
+      t('name', 'Event name', { core: true, required: true, placeholder: 'e.g. Round 3 — Spring Classic' }),
+      { key: 'date', label: 'Date', type: 'date', core: true, required: true },
+      { key: 'end_date', label: 'End date', type: 'date', help: 'For meetings over more than one day.' },
+      { key: 'series', label: 'Series', type: 'ref', ref: 'series', core: true, help: 'Leave empty for a track-only date.' },
+      { key: 'round', label: 'Round', type: 'number', core: true },
+      { key: 'venue', label: 'Track', type: 'ref', ref: 'track', core: true },
+      t('track', 'Track name (not in the directory)', { showIf: 'venue=' }),
+      { key: 'classes', label: 'Classes running', type: 'tags', core: true, help: 'Teams with a car in one of these classes see this date as a match.' },
+      { key: 'status', label: 'Status', type: 'select', core: true, options: FIXTURE_STATUS, default: 'Scheduled' },
+      t('start_time', 'Times', { placeholder: 'e.g. Gates 4 pm, racing 7 pm' }),
+      t('website', 'Link / more info'),
+      { key: 'notes', label: 'Notes', type: 'textarea' },
+    ] },
+  ],
+};
+
+// A team's entry in a series for one season: which car, which class, all rounds or some.
+const seasonPlanForm = {
+  target: 'season_plan', name: 'Series entry', is_default: true,
+  sections: [
+    { id: 'entry', title: 'Series entry', fields: [
+      { key: 'series', label: 'Series', type: 'ref', ref: 'series', core: true, required: true },
+      t('season', 'Racing year', { core: true, required: true, placeholder: 'e.g. 2026 or 2026-27' }),
+      { key: 'car', label: 'Car', type: 'ref', ref: 'car', core: true, required: true },
+      { key: 'class', label: 'Class', type: 'select', allowCustom: true, core: true, options: [] },
+      { key: 'participation', label: 'Running', type: 'select', core: true, required: true, options: PARTICIPATION, default: 'Full series',
+        help: 'Full series adds every round to your calendar; partial lets you pick the rounds.' },
+      { key: 'notes', label: 'Notes', type: 'textarea' },
+    ] },
+  ],
+};
+
+export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm, fixtureForm, seasonPlanForm, ...SHOP_FORMS];
 
 // Optional chassis numbers on the setup sheet, so the advisor can learn from weight, wing and rod changes.
 export const SETUP_CHASSIS_SECTION = {
@@ -259,5 +298,17 @@ export const PHASE3_UPGRADES = [
   { target: 'setup', key: 'fuel_used', patch: { unit: '' } },
   { target: 'car', key: 'fuel_min', patch: { unit: '' } },
   { target: 'car', section: 'car', after: 'fuel_min', field: { key: 'fuel_min_unit', label: 'Minimum fuel in', type: 'select', options: FUEL_UNIT_OPTIONS } },
+  // calendars: each event is an entry on the team calendar — the shared date it came from, whether
+  // the team plans to go, and what happened (raced the feature, withdrew and why)
+  { target: 'event', section: 'event', after: 'round', field: { key: 'fixture', label: 'Calendar date', type: 'ref', ref: 'fixture', showIf: 'fixture!=',
+    help: 'The shared series or track date this entry came from.' } },
+  { target: 'event', before: '__end', insertSection: { id: 'plan', title: 'Plan & result', fields: [
+    { key: 'intent', label: 'Going?', type: 'select', core: true, options: INTENTS, default: 'Planned' },
+    { key: 'outcome', label: 'What happened', type: 'select', core: true, options: OUTCOMES, help: 'Fill in after the event.' },
+    { key: 'withdraw_reason', label: 'Reason for withdrawing', type: 'select', allowCustom: true, options: WITHDRAW_REASONS, showIf: `outcome=${WITHDREW}` },
+    { key: 'withdraw_session', label: 'Withdrew after', type: 'text', showIf: `outcome=${WITHDREW}`, placeholder: 'e.g. Heat 2' },
+    { key: 'outcome_notes', label: 'Result notes', type: 'textarea' },
+    { key: 'public_note', label: 'Note on the public calendar', type: 'text', help: 'Shown on your published calendar, if you publish one.' },
+  ] } },
   ...SHOP_UPGRADES,
 ];

@@ -14,7 +14,7 @@ export const CHECKLIST = [
   { id: 'engine', label: 'Add your engines', article: 'assets', link: '/r/asset/new?category=Engine', race: true, done: (c) => has(c, 'asset', (r) => val(r, 'category') === 'Engine') },
   { id: 'shocks', label: 'Add your shocks with position and adjustable type', article: 'assets', link: '/r/asset/new?category=Shock', race: true, done: (c) => has(c, 'asset', (r) => val(r, 'category') === 'Shock' && filled(val(r, 'position')) && filled(val(r, 'adjust_type'))) },
   { id: 'schedule', label: 'Set up a service schedule', article: 'maintenance', link: '/maintenance', race: true, done: (c) => has(c, 'schedule') },
-  { id: 'event', label: 'Create your next event', article: 'events-sessions', link: '/r/event/new', race: true, done: (c) => has(c, 'event') },
+  { id: 'event', label: 'Plan your racing year — pull your series and track dates into the Calendar', article: 'calendar', link: '/calendar?tab=shared', race: true, done: (c) => has(c, 'event') },
   { id: 'setup', label: 'Fill in your first setup sheet', article: 'setup-sheets', link: '/events', race: true, done: (c) => has(c, 'setup') },
   { id: 'shop', label: 'Set your labour rate, tax and terms', article: 'shop-settings', link: '/team/members', shop: true, admin: true, done: (c) => !!c.settings?.shop },
   { id: 'customer', label: 'Add a customer and their engine', article: 'customers', link: '/customers', shop: true, done: (c) => has(c, 'customer') && has(c, 'asset', (r) => filled(val(r, 'customer'))) },

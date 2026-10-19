@@ -5,7 +5,7 @@ import { eventTrack, fmtDate, num, titleOf, today, useTeamData, v } from '../lib
 import { useSession } from '../lib/session.jsx';
 import { dateRange, eventDays } from './Events.jsx';
 
-const roundsOf = (data, id) => data.list('event').filter((e) => v(e, 'series') === id)
+const roundsOf = (data, id) => data.list('event').filter((e) => v(e, 'series') === id || (v(e, 'series') && v(data.byId[v(e, 'series')], 'shared_as') === id))
   .sort((a, b) => (num(v(a, 'round')) ?? 999) - (num(v(b, 'round')) ?? 999) || (v(a, 'date') || '').localeCompare(v(b, 'date') || ''));
 const isFeature = (s) => /feature|a-?main/i.test(v(s, 'session') || '');
 
@@ -13,13 +13,19 @@ export function SeriesList() {
   const data = useTeamData();
   const { canType } = useSession();
   if (!data) return null;
-  const series = data.list('series').slice().sort((a, b) => String(v(b, 'season')).localeCompare(String(v(a, 'season'))) || titleOf(a).localeCompare(titleOf(b)));
+  // the team's series, plus shared series it runs in (events or a series entry); a team copy that
+  // has been shared stands in for the shared one
+  const isGlobal = (r) => !!(r?.global || r?.data?.scope === 'global');
+  const used = new Set([...data.list('event').map((e) => v(e, 'series')), ...data.list('season_plan').map((p) => v(p, 'series'))]);
+  const copied = new Set(data.list('series').map((s) => v(s, 'shared_as')).filter(Boolean));
+  const series = data.list('series').filter((s) => !isGlobal(s) || (used.has(s.id) && !copied.has(s.id))).sort((a, b) => String(v(b, 'season')).localeCompare(String(v(a, 'season'))) || titleOf(a).localeCompare(titleOf(b)));
   const seasons = [...new Set(series.map((s) => v(s, 'season') || 'No season'))];
   const standalone = data.list('event').filter((e) => !v(e, 'series')).length;
   return (
     <div>
       <PageHeader title="Race series" sub="Championships and series the team runs, made up of event rounds">
         <Link className="btn ghost" to="/events?series=none">Stand-alone events ({standalone})</Link>
+        {canType('fixture', 'view') && <Link className="btn ghost" to="/calendar?tab=shared">Series calendars</Link>}
         {canType('series', 'edit') && <Link className="btn primary" to="/r/series/new">New series</Link>}
       </PageHeader>
       {series.length === 0 && <Empty>No series yet. Create one, then add its rounds as events.</Empty>}
@@ -48,7 +54,7 @@ export function SeriesList() {
 export function SeriesDetail() {
   const { id } = useParams();
   const data = useTeamData();
-  const { canType } = useSession();
+  const { canType, user } = useSession();
   if (!data) return null;
   const s = data.byId[id];
   if (!s) return <PageHeader title="Series not found" back="/series" />;
@@ -60,7 +66,8 @@ export function SeriesDetail() {
   return (
     <div>
       <PageHeader title={v(s, 'name')} sub={[v(s, 'season'), v(s, 'class'), v(s, 'sanctioning')].filter(Boolean).join(' · ')} back="/series">
-        {canType('series', 'edit') && <Link className="btn ghost" to={`/r/series/${id}`}>Edit series</Link>}
+        {canType('fixture', 'view') && <Link className="btn ghost" to={`/calendar?tab=shared&show=series:${v(s, 'shared_as') || id}`}>Series calendar</Link>}
+        {canType('series', 'edit') && (!(s.global || s.data?.scope === 'global') || user?.is_platform_admin) && <Link className="btn ghost" to={`/r/series/${id}`}>Edit series</Link>}
         {canType('event', 'edit') && <Link className="btn primary" to={`/r/event/new?series=${id}&round=${nextRound}`}>Add round {nextRound}</Link>}
       </PageHeader>
       <Section title={`Rounds (${rounds.length})`}>

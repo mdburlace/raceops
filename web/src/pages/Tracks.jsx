@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { classMatches } from '@shared/tracks.js';
 import ContactLinks from '../components/ContactLinks.jsx';
+import { TrackDates } from './Calendar.jsx';
 import { Empty, PageHeader, Pill, Section, useOnline } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { fmtDate, titleOf, useTeamData, v, platformList } from '../lib/data.js';
@@ -250,6 +251,7 @@ export function TrackDetail() {
           {v(link, 'notes') && <p className="pre"><b>Team notes:</b> {v(link, 'notes')}</p>}
         </Section>
       </div>
+      <TrackDates data={data} trackId={t.id} />
       <ContactLinks data={data} entity={t} />
       <Section title={`Our events here (${events.length})`} actions={canType('event', 'edit') && <Link className="btn small" to={`/r/event/new?venue=${id}`}>New event here</Link>}>
         {events.length === 0 ? <p className="muted">No events recorded at this track yet.</p> : (
