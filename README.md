@@ -178,6 +178,12 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 - A shock asset, and each dyno run, can be **Non-adjustable, Single, Two-way, Three-way or Four-way**. Picking the shock on a run brings its type across.
 - An adjustable run stores **one block per adjuster setting**: a label, the adjuster positions (LS/HS comp, LS/HS reb as applicable), a note such as "good if rough/heavy", and optional readings. All settings overlay on one graph; click a legend entry to hide or show it.
 - **Paste whole printout** imports Kenco/Slade/Roehrig/Intercomp text: each title line starts a new setting, and header rows such as `Speed CC RO RC CO` map the columns.
+- **Torsion bar tests** record:
+  - the bar's identity (serial, maker, model, size, type, corner);
+  - arm length and the travel the rate is taken at (15 in and 3 in to start with);
+  - compression and rebound readings, or just the two values at the test travel.
+
+  The test shows the rate, rebound rate, split (hysteresis) and its difference from nominal and from the baseline. **Rate baselines** average the tests ticked **Use in baseline averages** for each size and type. The code is in `shared/bars.js`.
 - **Test speeds:** a shock run is tested at one or more speeds, starting with 3.00, 6.00 and 10.00 in/s; you can type others. Readings are entered per speed: each row stores its speed in `s`, and older rows without one can be moved to a speed. Each speed is its own curve.
 - Single tables also have **Paste / import** and **Fill velocity** (e.g. 0–10 every 0.25). **Paste / import** can also **Load Excel / CSV file** (.xlsx, .csv, .tsv; pick the sheet if there are several). Old-style .xls files need saving as .xlsx first.
 - **Shocks on setup sheets:** each corner lists shocks set to that **position** (or with no position) and for that car (or no car). **Show all shocks…** at the bottom of the list adds the rest.

@@ -6,6 +6,7 @@ import { WeatherTools, useWeatherUnits, withWeatherUnits } from '../components/W
 import { calcContext } from '../components/Calculator.jsx';
 import { EngineChecks } from '../components/EngineChecks.jsx';
 import { FuelPlanner, useFuelUnits } from '../components/FuelPlanner.jsx';
+import { BarResults } from '../components/BarTests.jsx';
 import { convertFuel, fuelUnit, withFuelUnits } from '@shared/fuel.js';
 import { ArrangeSections, SheetNav, SheetTools, useSheetLayout } from '../components/SheetNav.jsx';
 import { changedFields } from '@shared/setupLayout.js';
@@ -195,6 +196,12 @@ export default function RecordEdit() {
       const next = { ...s, [k]: val };
       // dyno run: picking a shock brings its adjuster type across
       if (type === 'dyno_run' && k === 'asset' && data?.byId[val] && v(data.byId[val], 'adjust_type')) next.adjust_type = v(data.byId[val], 'adjust_type');
+      // bar test: picking the bar brings its serial, maker, model and corner across (where empty)
+      if (type === 'dyno_run' && k === 'asset' && data?.byId[val] && form?.data?.dyno_kind === 'bar') {
+        const a = data.byId[val];
+        const from = { serial: v(a, 'serial_number'), manufacturer: v(a, 'manufacturer'), model: v(a, 'model'), corner: ['LF', 'RF', 'LR', 'RR'].includes(v(a, 'position')) ? v(a, 'position') : '' };
+        for (const [key, x] of Object.entries(from)) if (x && !next[key]) next[key] = x;
+      }
       // setup: four corner weights fill in total, left, rear and cross
       if (type === 'setup' && k === 'corner_weights') {
         const p = cornerPercents(val);
@@ -414,7 +421,7 @@ export default function RecordEdit() {
       {arranging && layout && <ArrangeSections form={form} layout={layout} onClose={() => setArranging(false)} />}
       <FormRenderer form={setupForm} values={shownValues} onChange={onChange} data={data} readOnly={readOnly} layout={layout} roKeys={fuelConverting ? ['fuel_start', 'fuel_finish'] : []}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
-        sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
+        sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { rate: <BarResults data={data} id={id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           race: <FuelPlanner id={id} data={data} values={shownValues} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }}
             unit={fuelShown} recorded={fuelRecorded} setView={(u) => setFuelView(u === fuelRecorded ? null : u)} setRecorded={setFuelRecorded} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />

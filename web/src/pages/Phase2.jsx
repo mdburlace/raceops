@@ -1,4 +1,6 @@
 import { runSpeeds } from '@shared/dyno.js';
+import { baselines } from '@shared/bars.js';
+import { BarBaselines, barRowMeta, barTests } from '../components/BarTests.jsx';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import DynoChart from '../components/DynoChart.jsx';
@@ -109,6 +111,7 @@ export function Dyno() {
     form: formFor(data, 'dyno_run', r.data.form_id),
   }));
   const category = kind === 'bar' ? 'Torsion Bar' : 'Shock';
+  const barBases = kind === 'bar' ? baselines(barTests(data)) : new Map();
   const toggle = (id) => setSel((selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]).slice(-6));
 
   return (
@@ -129,10 +132,12 @@ export function Dyno() {
         {selected.length > 0 && <button type="button" className="btn ghost small" onClick={() => setSel([])}>Clear selection</button>}
       </div>
       {chartRuns.length > 0 && <DynoChart runs={chartRuns} />}
+      {kind === 'bar' && <BarBaselines data={data} />}
       {runs.length === 0 ? <Empty>No {kind === 'bar' ? 'torsion bar tests' : 'shock dyno runs'} yet.</Empty> : (
         <div className="card list">
           {runs.map((r) => {
-            const rate = kind === 'bar' ? linearSlope(r.data.values?.data, 'x', 'load') : null;
+            const bm = kind === 'bar' ? barRowMeta(r.data.values, barBases) : null;
+            const rate = kind === 'bar' ? bm.s.rate ?? linearSlope(r.data.values?.data, 'x', 'load') : null;
             return (
               <div key={r.id} className={`list-row selectable${selected.includes(r.id) ? ' selected' : ''}`}>
                 <input type="checkbox" aria-label="Overlay this run" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} />
@@ -140,7 +145,8 @@ export function Dyno() {
                   <span className="row-title">{v(r, 'label') || 'Run'}</span>
                   <span className="row-sub">{[titleOf(data.byId[v(r, 'asset')]), v(r, 'adjust_type') && v(r, 'adjust_type') !== 'Non-adjustable' && `${v(r, 'adjust_type')} · ${(v(r, 'settings') || []).length} settings`, runSpeeds(r.data?.values).length > 0 && `${runSpeeds(r.data?.values).map(Number).join(' / ')} in/s`, v(r, 'purpose'), v(r, 'gas') && `${v(r, 'gas')} psi`].filter(Boolean).join(' · ')}</span>
                 </Link>
-                {rate ? <span className="row-meta"><b>{rate.toFixed(1)}</b> lb/in</span> : null}
+                {rate ? <span className="row-meta"><b>{rate.toFixed(1)}</b> lb/in{bm?.s.split !== null && bm?.s.split !== undefined ? ` · split ${Math.round(bm.s.split)} lb` : ''}</span> : null}
+                {bm?.vb && <span className={`row-meta ${bm.tone}`} title="Against the baseline average for this size and type">{bm.vb.rate > 0 ? '+' : ''}{(bm.vb.rate * 100).toFixed(1)}%</span>}
                 <span className="row-meta">{fmtDate(v(r, 'date'))}</span>
               </div>
             );

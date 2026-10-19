@@ -34,7 +34,55 @@ Each test speed is its own curve, e.g. *LF baseline · 6.00 in/s*. Tick runs to 
 
 ## Torsion bar tests
 
-Press **New bar test**, pick the bar and record the rate readings. The **Torsion bar rate** calculator is beside the nominal rate.
+Press **New bar test** and pick the bar. Its serial number, manufacturer, model and corner come across from the bar's asset record if they're set there.
+
+**Bar details**
+
+- Date tested, **Serial #**, **Manufacturer**, **Model**;
+- **Bar size (diameter)** and **Bar type** (solid, hollow / gun-drilled, titanium…);
+- **Target corner**: LF, RF, LR or RR;
+- the **Nominal rate** it's sold as, and active length.
+
+**How it was tested**
+
+- **Arm length** (15 in to start with);
+- **Rate measured at (arm travel)** (3 in to start with). Testing every bar the same way means rates compare like with like.
+
+**Readings**
+
+Under **Compression & rebound readings**, enter the force at each arm travel:
+
+- **Compression** as the bar winds up;
+- **Rebound** as it releases.
+
+The table starts at 0–3 in every 0.5 in. If your tester only gives the two numbers at the test travel, type them in **Compression at test travel** and **Rebound at test travel** instead.
+
+**Results**, at the top of **Spring rate & split**:
+
+- **Rate at 3 in.** Compression ÷ travel, in lb/in at the arm.
+- **Rebound rate.**
+- **Split (hysteresis).** Compression − rebound at the test travel, in lb and as a percentage. A growing split usually means the bar is tiring.
+- **Against baseline.** How this bar's rate compares with the baseline average for its size and type.
+- **Against nominal.** How the rate compares with the rate it's sold as.
+
+The curve shows compression (solid) and rebound (dashed). The **Torsion bar rate** calculator is beside the nominal rate.
+
+## Rate baselines
+
+The **Torsion bars** tab has a **Rate baselines** table. For each bar size and type it shows:
+
+- how many bars you have;
+- the **baseline rate**, which is the average of the tests in the baseline;
+- the range;
+- the baseline split.
+
+To set or change a baseline:
+
+1. Press **Set baseline** (or **Change baseline**) on that size and type.
+2. Tick the tests to average, usually new bars or a set you trust.
+3. Press **Save baseline**.
+
+You can also tick **Use in baseline averages** on any single test. In the list, each test shows its rate, split and its difference from the baseline. Within 2% shows green, 2–4% amber, and over 4% red.
 
 ## Runs from before test speeds
 

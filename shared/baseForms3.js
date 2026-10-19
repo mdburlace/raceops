@@ -3,6 +3,7 @@ import { SHOP_FORMS, SHOP_UPGRADES } from './baseForms4.js';
 import { AFTER_KEYS, STEPS } from './setupLayout.js';
 import { FUEL_UNIT_OPTIONS } from './fuel.js';
 import { TEST_SPEEDS } from './dyno.js';
+import { BAR_TYPES, CORNERS } from './bars.js';
 
 const t = (key, label, extra = {}) => ({ key, label, type: 'text', ...extra });
 
@@ -234,6 +235,24 @@ export const PHASE3_UPGRADES = [
   { target: 'dyno_run', kind: 'shock', key: 'test_speed', patch: { showIf: 'test_speed!=' } },
   { target: 'dyno_run', kind: 'shock', key: 'data', patch: { bySpeed: true } },
   { target: 'dyno_run', kind: 'shock', key: 'settings', patch: { bySpeed: true } },
+  // torsion bar tests: identification, rate at a standard arm travel, compression & rebound, split, baselines
+  { target: 'dyno_run', kind: 'bar', section: 'run', after: 'label', field: { key: 'serial', label: 'Serial #', type: 'text' } },
+  { target: 'dyno_run', kind: 'bar', section: 'run', after: 'serial', field: { key: 'manufacturer', label: 'Manufacturer', type: 'text', suggest: true } },
+  { target: 'dyno_run', kind: 'bar', section: 'run', after: 'manufacturer', field: { key: 'model', label: 'Model', type: 'text', suggest: true } },
+  { target: 'dyno_run', kind: 'bar', section: 'run', after: 'model', field: { key: 'bar_type', label: 'Bar type', type: 'select', options: BAR_TYPES } },
+  { target: 'dyno_run', kind: 'bar', section: 'run', after: 'bar_type', field: { key: 'corner', label: 'Target corner', type: 'select', options: CORNERS } },
+  { target: 'dyno_run', kind: 'bar', key: 'diameter', patch: { label: 'Bar size (diameter)' } },
+  { target: 'dyno_run', kind: 'bar', key: 'arm', patch: { default: '15', placeholder: '15' } },
+  { target: 'dyno_run', kind: 'bar', section: 'run', after: 'arm', field: { key: 'rate_travel', label: 'Rate measured at (arm travel)', type: 'number', unit: 'in', default: '3', placeholder: '3' } },
+  { target: 'dyno_run', kind: 'bar', before: 'data', insertSection: { id: 'rate', title: 'Spring rate & split', fields: [
+    { key: 'comp_at', label: 'Compression at test travel', type: 'number', unit: 'lb', help: 'Leave blank to read it from the readings below.' },
+    { key: 'reb_at', label: 'Rebound at test travel', type: 'number', unit: 'lb', help: 'Leave blank to read it from the readings below.' },
+    { key: 'in_baseline', label: 'Use in baseline averages', type: 'checkbox', help: 'Average rates for this size and type are worked out from tests ticked here.' },
+  ] } },
+  { target: 'dyno_run', kind: 'bar', section: 'data', ifTitle: 'Load vs deflection', sectionPatch: { title: 'Compression & rebound readings' } },
+  { target: 'dyno_run', kind: 'bar', key: 'data', patch: { columns: [{ key: 'x', label: 'Arm travel', unit: 'in' }, { key: 'load', label: 'Compression', unit: 'lb' }, { key: 'unload', label: 'Rebound', unit: 'lb' }],
+    defaultRows: [0, 0.5, 1, 1.5, 2, 2.5, 3].map((x) => ({ x: String(x) })), help: 'Force as the bar winds up (compression) and as it releases (rebound) at each arm travel.' } },
+  { target: 'dyno_run', kind: 'bar', key: 'rate', patch: { label: 'Rate (slope of compression readings)' } },
   // fuel: recorded in US gallons or litres (per sheet / per car); units follow the sheet
   { target: 'setup', key: 'fuel_start', patch: { unit: '' } },
   { target: 'setup', key: 'fuel_finish', patch: { unit: '' } },
