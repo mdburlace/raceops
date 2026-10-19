@@ -66,5 +66,6 @@ export const SHOP_FORMS = [customerForm, jobForm];
 
 export const SHOP_UPGRADES = [
   { target: 'asset', section: 'identity', after: 'car', field: { key: 'customer', label: 'Customer (owner)', type: 'ref', ref: 'customer', showIf: 'category=Engine', help: 'For engine shops: whose engine this is.' } },
+  { target: 'job', section: 'billing', after: 'paid', field: { key: 'share_prices', label: 'Show prices to the customer', type: 'checkbox', help: 'Off: the customer’s engine page shows the work and parts but no prices.' } },
   { target: 'engine_build', section: 'build', after: 'work_order', field: { key: 'job', label: 'Shop job', type: 'ref', ref: 'job', help: 'Links this build sheet to the customer’s job.' } },
 ];

@@ -22,6 +22,7 @@ import * as limiter from './ratelimit.js';
 import { mountAdmin } from './admin.js';
 import { mountAi } from './ai.js';
 import { mountWeather } from './weather.js';
+import { mountPublicShare, mountSharing, onRecordSaved } from './sharing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -356,6 +357,7 @@ app.post('/api/invites/:token/accept', h(async (req, res) => {
 }));
 
 // ---------- signed in ----------
+mountPublicShare(app); // no-login engine pages for engine shop customers
 app.use('/api', requireAuth);
 
 app.get('/api/me', h(async (req, res) => {
@@ -410,6 +412,7 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
 
 mountAi(T);
 mountWeather(T);
+mountSharing(T);
 
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {
@@ -479,6 +482,7 @@ async function applyChange(c, req, ch) {
       [id, JSON.stringify(data), !!deleted, req.user.id, clientTs]));
   }
   await history('applied');
+  await onRecordSaved(c, owner, type, cur, row);
   return { id, status: 'applied', record: current(row) };
 }
 

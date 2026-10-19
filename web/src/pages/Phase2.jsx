@@ -7,6 +7,8 @@ import {
   allFields, assetRefId, evalFormula, fieldDef, fmtDate, formFor, linearSlope, memberName, membersList, num, titleOf, today, useTeamData, v,
 } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
+import { teamType } from '@shared/shop.js';
+import { LinkedEngines } from './Sharing.jsx';
 
 const byDateDesc = (a, b) => (v(b, 'date') || '').localeCompare(v(a, 'date') || '') || b.client_updated_at.localeCompare(a.client_updated_at);
 const carOk = (rec, car) => !car || !(v(rec, 'available_for') || []).length || v(rec, 'available_for').includes(car);
@@ -151,7 +153,8 @@ export function Dyno() {
 // ======================= Engines =======================
 export function Engines() {
   const data = useTeamData();
-  const { canType } = useSession();
+  const { canType, membership } = useSession();
+  const shop = teamType(membership);
   const nav = useNavigate();
   const [sel, setSel] = useState([]);
   if (!data) return null;
@@ -161,10 +164,11 @@ export function Engines() {
   const toggle = (id) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id].slice(-4)));
   return (
     <div>
-      <PageHeader title="Engine builds" sub="Every build and freshen, per engine">
+      <PageHeader title={shop === 'engine_shop' ? 'Build sheets' : 'Engine builds'} sub="Every build and freshen, per engine">
         <button type="button" className="btn" disabled={sel.length < 2} onClick={() => nav(`/compare?ids=${sel.join(',')}`)}>Compare builds{sel.length ? ` (${sel.length})` : ''}</button>
         {canType('asset', 'edit') && <Link className="btn ghost" to="/r/asset/new?category=Engine">New engine</Link>}
       </PageHeader>
+      {shop !== 'engine_shop' && <LinkedEngines />}
       {engines.length === 0 && <Empty>Add your engines as assets (category “Engine”) to start recording builds.</Empty>}
       <div className="engine-grid">
         {engines.map((e) => {

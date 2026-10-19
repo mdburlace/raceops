@@ -32,7 +32,7 @@ export const TEAM_STATUS = { active: 'Active', trial: 'Trial', suspended: 'Suspe
 /** Plans = built-in plans merged with admin edits; admins can add plans. */
 export function mergePlans(stored = {}) {
   const out = {};
-  for (const [k, p] of Object.entries(PLANS)) out[k] = { label: p.label, features: [...p.features], seats: null, pool: null, price: '', builtin: true };
+  for (const [k, p] of Object.entries(PLANS)) out[k] = { label: p.label, features: [...p.features], seats: null, pool: null, price: '', share_limit: null, builtin: true };
   for (const [k, p] of Object.entries(stored || {})) {
     if (!p) continue;
     if (p.deleted) { delete out[k]; continue; }

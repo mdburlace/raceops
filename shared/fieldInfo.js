@@ -308,6 +308,7 @@ export const FIELD_INFO = {
     tax_rate: ['Tax (e.g. GST) for this job — starts at the shop’s rate.'],
     invoice_ref: ['The invoice number in your accounts (Xero, MYOB, QuickBooks…). RaceOps doesn’t send invoices.'],
     paid: ['Tick once the customer has paid.'],
+    share_prices: ['Show this job’s prices on the customer’s engine page. Off by default: they see the work and parts but no prices.'],
   },
   track: {
     status: ['Whether the track is operating, closed or seasonal.'],

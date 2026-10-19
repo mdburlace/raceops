@@ -18,6 +18,7 @@ import { Profile, Roles, Team } from './pages/Team.jsx';
 import { AskPage } from './components/Ai.jsx';
 import { Calculators } from './pages/Calculators.jsx';
 import { CustomerDetail, CustomerList, JobList, JobPrint } from './pages/Shop.jsx';
+import { LinkEngine, LinkedEngineDetail, SharePage } from './pages/Sharing.jsx';
 import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
 import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
 
@@ -44,6 +45,7 @@ function Routed() {
     return (
       <Routes>
         <Route path="/invite/:token" element={<AcceptInvite />} />
+      <Route path="/s/:token" element={<SharePage />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -52,6 +54,7 @@ function Routed() {
     return (
       <Routes>
         <Route path="/invite/:token" element={<AcceptInvite />} />
+      <Route path="/s/:token" element={<SharePage />} />
         <Route path="*" element={<NoTeam />} />
       </Routes>
     );
@@ -59,6 +62,7 @@ function Routed() {
   return (
     <Routes>
       <Route path="/invite/:token" element={<AcceptInvite />} />
+      <Route path="/s/:token" element={<SharePage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/print/job/:id" element={<AreaGate area="engines" module="jobs"><JobPrint /></AreaGate>} />
       <Route element={<Layout />}>
@@ -86,6 +90,8 @@ function Routed() {
         {/* Engines */}
         <Route path="engines" element={<AreaGate area="engines" module="engines"><Engines /></AreaGate>} />
         <Route path="jobs" element={<AreaGate area="engines" module="jobs"><JobList /></AreaGate>} />
+        <Route path="engines/linked/:id" element={<AreaGate area="engines" module="engines"><LinkedEngineDetail /></AreaGate>} />
+        <Route path="link-engine/:code" element={<LinkEngine />} />
         <Route path="customers" element={<AreaGate area="engines" module="customers"><CustomerList /></AreaGate>} />
         <Route path="customers/:id" element={<AreaGate area="engines" module="customers"><CustomerDetail /></AreaGate>} />
         {/* Team management */}

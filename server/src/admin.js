@@ -169,6 +169,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
       label: String(b.label).trim(),
       features: [...new Set((b.features || []).filter((f) => FEATURES.some((x) => x.key === f)))],
       seats: intOrNull(b.seats), pool: intOrNull(b.pool), price: String(b.price || '').slice(0, 120),
+      share_limit: intOrNull(b.share_limit),
     };
     const stored = { ...settings().storedPlans, [key]: plan };
     await saveSetting('plans', stored, req.user.id);

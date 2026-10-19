@@ -381,12 +381,12 @@ export function AdminTeams() {
 
 // ---------------- plans ----------------
 function PlanCard({ k, p, usage, onSaved }) {
-  const [f, setF] = useState({ label: p.label, features: p.features, seats: p.seats ?? '', pool: p.pool ?? '', price: p.price || '' });
+  const [f, setF] = useState({ label: p.label, features: p.features, seats: p.seats ?? '', pool: p.pool ?? '', price: p.price || '', share_limit: p.share_limit ?? '' });
   const [act, box] = useAct();
   const has = new Set(f.features);
   const toggle = (key, on) => setF((x) => ({ ...x, features: on ? [...x.features, key] : x.features.filter((z) => z !== key) }));
   const u = usage || { teams: 0, active: 0, members: 0, seats: 0, unlimited: 0 };
-  const save = () => act(async () => onSaved(await api(`/admin/plans/${k}`, { method: 'PUT', body: { ...f, seats: f.seats === '' ? null : Number(f.seats), pool: f.pool === '' ? null : Number(f.pool) } })), 'Plan saved.');
+  const save = () => act(async () => onSaved(await api(`/admin/plans/${k}`, { method: 'PUT', body: { ...f, seats: f.seats === '' ? null : Number(f.seats), pool: f.pool === '' ? null : Number(f.pool), share_limit: f.share_limit === '' ? null : Number(f.share_limit) } })), 'Plan saved.');
   const del = () => window.confirm(`Remove the ${p.label} plan?`) && act(async () => onSaved(await api(`/admin/plans/${k}`, { method: 'DELETE' })));
   const reset = () => window.confirm('Restore this plan’s original features and settings?') && act(async () => onSaved(await api(`/admin/plans/${k}/reset`, { method: 'POST' }), true));
   return (
@@ -404,6 +404,8 @@ function PlanCard({ k, p, usage, onSaved }) {
         <div className="field"><label htmlFor={`pp-${k}`}>Price / notes</label><input id={`pp-${k}`} value={f.price} placeholder="e.g. $49 / month" onChange={(e) => setF({ ...f, price: e.target.value })} /></div>
         <div className="field"><label htmlFor={`pseat-${k}`}>Seats per team</label><input id={`pseat-${k}`} inputMode="numeric" placeholder="Unlimited" value={f.seats} onChange={(e) => setF({ ...f, seats: e.target.value.replace(/\D/g, '') })} />
           <p className="help">Default; a team can have its own.</p></div>
+        <div className="field"><label htmlFor={`pshare-${k}`}>Shared engines (engine shops)</label><input id={`pshare-${k}`} inputMode="numeric" placeholder="Unlimited" value={f.share_limit} onChange={(e) => setF({ ...f, share_limit: e.target.value.replace(/\D/g, '') })} />
+          <p className="help">How many engines a shop on this plan can share with customers at once.</p></div>
         <div className="field"><label htmlFor={`ppool-${k}`}>Licences available</label><input id={`ppool-${k}`} inputMode="numeric" placeholder="No limit" value={f.pool} onChange={(e) => setF({ ...f, pool: e.target.value.replace(/\D/g, '') })} />
           <p className="help">Teams allowed on this plan.</p></div>
       </div>

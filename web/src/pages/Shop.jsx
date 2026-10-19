@@ -9,6 +9,7 @@ import { api } from '../lib/api.js';
 import { assetLife } from '../lib/compute.js';
 import { fmtDate, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
+import { CustomerAccess } from './Sharing.jsx';
 
 const statusPill = (s) => <Pill level={JOB_STATUS[s]?.level || 'muted'}>{s || 'No status'}</Pill>;
 const overdue = (j) => isOpen(v(j, 'status')) && v(j, 'date_promised') && v(j, 'date_promised') < today() && v(j, 'status') !== 'Ready for pickup';
@@ -211,6 +212,7 @@ export function EngineJobs({ asset }) {
   const jobs = data.list('job').filter((j) => v(j, 'engine') === asset.id).sort(jobSort);
   const owner = data.byId[v(asset, 'customer')];
   return (
+    <>
     <Section title="Shop jobs" actions={canType('job', 'edit') ? <Link className="btn small" to={`/r/job/new?engine=${asset.id}${owner ? `&customer=${owner.id}` : ''}`}>New job</Link> : null}>
       {owner && <p className="small">Owner: <Link to={`/customers/${owner.id}`}>{titleOf(owner)}</Link></p>}
       {!jobs.length ? <p className="muted small">No jobs for this engine yet.</p> : (
@@ -224,6 +226,8 @@ export function EngineJobs({ asset }) {
         </div>
       )}
     </Section>
+    <CustomerAccess asset={asset} />
+    </>
   );
 }
 

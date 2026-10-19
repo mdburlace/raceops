@@ -325,6 +325,25 @@ A team can be a **race team**, an **engine shop**, or **both**. The platform adm
 
 The shop sets its labour rate, tax rate and name (e.g. GST), whether prices include tax, the job number prefix and the printed terms under **Team → Team type & engine shop**. RaceOps records invoice numbers but doesn't produce invoices, so they still come from the shop's accounting software.
 
+#### Sharing an engine with its owner
+
+On a customer engine's page, **Customer access** offers two kinds of sharing. Both are free.
+
+- **Engine page link (no login).** This is a private link to send the owner. It shows:
+  - the engine, owner and service interval with the last service date;
+  - every build with its specs, clearances and torque figures;
+  - the work history: what was asked for, findings, work done, recommendations, and parts and labour.
+
+  It never shows internal notes, parts costs or margins. **Prices show only on jobs where "Show prices to the customer" is ticked.** You can replace the link (the old one stops working) or turn it off at any time. The panel shows how many times it has been viewed.
+- **Link to the owner's RaceOps team.** "Invite the owner's team" makes an invite link and code. Someone on the owner's team opens it, signs in and picks which of their engines it is (or adds it). Then:
+  - the team sees the shop's build and job history read-only under **Engine Builds → Engines from your engine builder**;
+  - the shop sees **only the laps and sessions run on that engine since its last service** (and when), never the team's setups, tracks or results;
+  - either side can end the link. Each keeps its own records, and the team keeps a copy of the build history as it was that day.
+
+**Changing the engine's owner** (or deleting the engine) turns off its engine page link and ends any team link automatically, and the team keeps its copy. Nothing is emailed: the shop sends the link or invite itself.
+
+Each plan has an optional **Shared engines** limit (Platform admin → Plans): how many engines a shop can share at once. It's blank (unlimited) by default.
+
 ### Teams, roles and permissions
 
 - **Multi-team:** one person can belong to several teams and switch between them in the sidebar. Platform admins create more teams under **Platform admin → Teams & licences**.
