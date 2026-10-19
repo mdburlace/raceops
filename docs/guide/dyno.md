@@ -14,23 +14,28 @@ related: assets, import-files, shocks-on-setup
 ## Record a shock run
 
 1. Press **New shock run** and pick the shock. Its adjustable type comes across from the shock.
-2. Fill in the date, valving label, purpose (baseline, after rebuild…), gas pressure and test speeds.
-3. Enter the readings:
-   - **Non-adjustable shock:** one force-vs-velocity table.
-   - **Adjustable shock:** one block per adjuster setting, with a label, the adjuster positions, a note such as *good if rough/heavy*, and optional readings.
-4. Press **Save**.
+2. Fill in the date, valving label, purpose (baseline, after rebuild…) and gas pressure.
+3. Pick the **Test speeds**. **3.00**, **6.00** and **10.00 in/s** are there to start with. Keep one or more, tap ✕ to drop one, or type another speed (e.g. 8) to add it. A run needs at least one.
+4. Enter the readings at each test speed:
+   - **Non-adjustable shock:** a force-vs-velocity table for each test speed, headed e.g. *6.00 in/s test*. Each table starts with velocities from 0 up to that speed.
+   - **Adjustable shock:** one block per adjuster setting at each speed. **+ Setting** adds a block for every test speed in the run. Each block has a label, the adjuster positions, its test speed, a note such as *good if rough/heavy*, and optional readings.
+5. Press **Save**.
 
 ## Fill the readings quickly
 
 - **Paste whole printout** reads Kenco, Slade, Roehrig and Intercomp text. Each title line starts a new setting, and header rows like `Speed CC RO RC CO` map the columns.
-- **Paste / import** on a table also has **Load Excel / CSV file** (.xlsx, .csv, .tsv). If the file has several sheets, pick one. Check the columns, then **Replace** or **Add to existing**. Old .xls files need re-saving as .xlsx.
+- Each speed's table has its own **Paste / import**, which also has **Load Excel / CSV file** (.xlsx, .csv, .tsv). If the file has several sheets, pick one. Check the columns, then **Replace** or **Add to existing**. Old .xls files need re-saving as .xlsx.
 - **Fill velocity** fills the speed column, e.g. 0–10 every 0.25.
 - With the AI add-on, **Fill from photo, PDF or Excel** reads a printout. See [Fill forms from photos, PDFs and spreadsheets](/help/import-files).
 
 ## Compare runs
 
-Tick runs to overlay their curves on one graph. Click a legend entry to hide or show a curve. From a setup sheet, **Shock dyno** shows the latest runs for the shocks on that sheet.
+Each test speed is its own curve, e.g. *LF baseline · 6.00 in/s*. Tick runs to overlay their curves on one graph. Click a legend entry to hide or show a curve. From a setup sheet, **Shock dyno** shows the latest runs for the shocks on that sheet.
 
 ## Torsion bar tests
 
 Press **New bar test**, pick the bar and record the rate readings. The **Torsion bar rate** calculator is beside the nominal rate.
+
+## Runs from before test speeds
+
+Older runs keep their readings. They show under **Readings without a test speed** until you pick the speed they were taken at and press **Move**. A run with a single test speed uses them for that speed automatically.

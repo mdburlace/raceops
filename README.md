@@ -178,6 +178,7 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 - A shock asset, and each dyno run, can be **Non-adjustable, Single, Two-way, Three-way or Four-way**. Picking the shock on a run brings its type across.
 - An adjustable run stores **one block per adjuster setting**: a label, the adjuster positions (LS/HS comp, LS/HS reb as applicable), a note such as "good if rough/heavy", and optional readings. All settings overlay on one graph; click a legend entry to hide or show it.
 - **Paste whole printout** imports Kenco/Slade/Roehrig/Intercomp text: each title line starts a new setting, and header rows such as `Speed CC RO RC CO` map the columns.
+- **Test speeds:** a shock run is tested at one or more speeds, starting with 3.00, 6.00 and 10.00 in/s; you can type others. Readings are entered per speed: each row stores its speed in `s`, and older rows without one can be moved to a speed. Each speed is its own curve.
 - Single tables also have **Paste / import** and **Fill velocity** (e.g. 0–10 every 0.25). **Paste / import** can also **Load Excel / CSV file** (.xlsx, .csv, .tsv; pick the sheet if there are several). Old-style .xls files need saving as .xlsx first.
 - **Shocks on setup sheets:** each corner lists shocks set to that **position** (or with no position) and for that car (or no car). **Show all shocks…** at the bottom of the list adds the rest.
 - **Adjuster settings** follow the shock picked at each corner. A two-way shows *Comp* and *Reb*, a three-way *LS comp / HS comp / Reb*, a four-way all four. A non-adjustable shock shows *Not adjustable*. If all four shocks are non-adjustable, the field is hidden. A shock typed in by hand, or with no type set, gets a free-text box.
@@ -192,6 +193,14 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 - **All / Before / After:** fields recorded after the session are tagged `stage: 'after'`, and the switch shows one group or the other.
 - **Quick entry:** four-corner values sit on one row. Pressures, wing, nose wing, main jet and shock adjusters have − and + buttons. Enter moves to the next box.
 - **Section changes:** shocks are a card per corner, and Wing has its own section. Radius rod and rear steer moved to Chassis. These are applied as form upgrades, and only once, so a team that rearranges its form keeps its own layout.
+
+### Fuel units
+
+- **Units:** fuel is recorded in US gallons or litres. A setup sheet stores its unit in `fuel_unit`, and a car stores its minimum in `fuel_min_unit`. A missing unit means gallons.
+- **Show in:** converts what's on screen without changing what's stored.
+- **Changing the recorded unit:** converts the amounts already entered.
+- **Team default:** `settings.fuel_units` sets the unit for new sheets and cars.
+- **Where it's used:** the fuel planner, analytics and the fuel calculator convert as needed.
 
 ### Fuel planner
 

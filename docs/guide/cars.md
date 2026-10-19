@@ -19,7 +19,7 @@ Every event, setup sheet and maintenance checklist belongs to a car.
 3. Set the three fields the sheets use:
    - **Gear list.** Which quick-change gear chart this car uses, so its setup sheets offer the right gears.
    - **Ring & pinion ratio**, e.g. 4.86. Setup sheets need this to work out the **final drive**.
-   - **Minimum fuel (pickup).** The least fuel that keeps the pickup covered under load. The [fuel planner](/help/fuel-planner) adds it to every prediction and warns when a session finishes below it.
+   - **Minimum fuel (pickup)**, in US gallons or litres (**Minimum fuel in**). The least fuel that keeps the pickup covered under load. The [fuel planner](/help/fuel-planner) adds it to every prediction and warns when a session finishes below it.
 4. Press **Save**.
 
 ## Class

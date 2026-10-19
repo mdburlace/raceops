@@ -12,6 +12,8 @@ Every RaceOps update adds a line here, and the articles it links to are updated 
 
 ## October 2026
 
+- **Shock dyno test speeds.** A run can be tested at one or more speeds (3.00, 6.00 and 10.00 in/s to start with, or your own), with readings and a curve for each. [Shock and bar dyno](/help/dyno)
+- **Fuel in US gallons or litres.** Each sheet records fuel in either unit, **Show in** converts what's on screen, and the team sets the default. [Plan fuel for a session](/help/fuel-planner)
 - **Analytics.** New page with Performance (results over time, by track, conditions and the air, handling comments), Setups (what worked, setup drift, your own jet chart) and Engines & parts (service forecast, engine health, shock fade), plus a **Form & what's due** card on Home. [Analytics](/help/analytics)
 - **Our tracks starts empty.** Tracks are added when you race at them or link them from the Directory. Classes we race now marks matching tracks in the Directory, with a **Runs our classes** filter, instead of adding them all. [Tracks and classes](/help/tracks)
 - **One class list.** A car's **Class** now picks from your team's Classes we race and the shared Race classes list, so cars, tracks and Classes we race use the same names. You can still type a class that isn't listed. [Add your cars](/help/cars)

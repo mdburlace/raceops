@@ -6,7 +6,7 @@ order: 24
 summary: Predict the fuel to start with from planned laps, past fuel use and the car's minimum fuel.
 for: module:setups
 team: race
-covers: option:fuel_plan
+covers: option:fuel_plan, setting:fuel_units
 related: cars, setup-sheets, calculators
 ---
 The **Race** section of every setup sheet starts with a **Fuel plan**.
@@ -38,3 +38,13 @@ Press **Use as fuel started** to put the prediction into *Fuel started*.
 The plan is only as good as what's recorded. After each session, fill in **Laps**, **Fuel started** and **Fuel finished**. *Fuel used* is calculated. Sessions with any of the three missing are left out.
 
 The **Fuel for a race** calculator (button beside *Fuel started*) does the same sum by hand.
+
+## US gallons or litres
+
+Fuel can be recorded in **US gallons** or **litres**. The controls are at the top of the fuel plan:
+
+- **Fuel recorded in** is the unit this sheet's fuel started and finished are in. New sheets use the team default. Changing it converts the amounts already entered, e.g. 20 L becomes 5.28 gal.
+- **Show in** switches what's on screen between US gal and litres, without changing what was recorded. While it shows the other unit, the fuel boxes are read-only; switch back to edit.
+- **Make … the team default** (owners and anyone with **Edit team settings**) sets the unit new sheets and cars start in.
+
+The fuel plan works across units: sessions recorded in litres and gallons are combined correctly, and the car's minimum fuel can be in either.

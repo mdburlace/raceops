@@ -2,6 +2,8 @@
 // runs). Worked out on the device from synced data, so it runs offline. Everything here takes
 // plain objects: { id, values } records and returns plain rows for the charts and tables.
 import { changedFields, settingFields } from './setupLayout.js';
+import { toGal } from './fuel.js';
+import { curvesBySpeed } from './dyno.js';
 
 export const num = (x) => {
   if (x === null || x === undefined || x === '') return null;
@@ -285,14 +287,14 @@ export function perMeeting(rowsUsingPart, unit, last = 6) {
   return unit === 'Races' ? 1 : avg(recent.map(([, laps]) => laps)) || null;
 }
 
-/** Engine health by meeting: fuel per lap, highest and lowest tach; plus dyno results by build. */
+/** Engine health by meeting: fuel per lap (US gallons), highest and lowest tach; plus dyno results by build. */
 export function engineTrends(engineIdValue, rows, builds = []) {
   const mine = rows.filter((r) => assetId(r.values.engine) === engineIdValue);
   const nights = new Map();
   for (const r of mine) {
     const n = nights.get(r.event) || { event: r.event, date: r.date, label: `${r.date} · ${r.trackName}`, used: 0, laps: 0, tachHigh: null, tachLow: null, ids: [] };
     const s = num(r.values.fuel_start); const f = num(r.values.fuel_finish); const l = num(r.values.laps);
-    if (s !== null && f !== null && l && s - f > 0) { n.used += s - f; n.laps += l; }
+    if (s !== null && f !== null && l && s - f > 0) { n.used += toGal(s - f, r.values.fuel_unit); n.laps += l; } // US gallons
     const th = num(r.values.tach_high); const tl = num(r.values.tach_low);
     if (th !== null) n.tachHigh = Math.max(n.tachHigh ?? th, th);
     if (tl !== null) n.tachLow = Math.min(n.tachLow ?? tl, tl);
@@ -319,19 +321,27 @@ export function trendChange(series) {
 }
 
 /**
- * Shock fade: a shock's dyno runs over time, comparing force at a test velocity (in/s).
+ * Shock fade: a shock's dyno runs over time, comparing force at a test velocity (in/s, up to the
+ * test's top speed). Runs tested at several speeds are compared at the speed most runs share.
  * Uses the average columns (CA / RA) when there, else the mean of open/closed. Fixed (single-table) runs only.
  */
 export function shockFade(runs, at = 5) {
   const pick = (row, a, b, c) => num(row[a]) ?? (num(row[b]) !== null && num(row[c]) !== null ? (num(row[b]) + num(row[c])) / 2 : num(row[b]) ?? num(row[c]));
+  const sorted = [...runs].sort((a, b) => String(a.values.date).localeCompare(String(b.values.date)));
+  const curves = sorted.map((r) => ({ r, curves: curvesBySpeed(r.values) }));
+  const count = new Map();
+  for (const { curves: cs } of curves) for (const c of cs) if (c.speed) count.set(c.speed, (count.get(c.speed) || 0) + 1);
+  const common = [...count.entries()].sort((a, b) => b[1] - a[1] || Number(b[0]) - Number(a[0]))[0]?.[0] || '';
   const out = [];
-  for (const r of [...runs].sort((a, b) => String(a.values.date).localeCompare(String(b.values.date)))) {
-    const rows = (Array.isArray(r.values.data) ? r.values.data : []).filter((x) => num(x.v) !== null);
+  for (const { r, curves: cs } of curves) {
+    const curve = cs.find((c) => c.speed === common) || cs.find((c) => !c.speed) || null;
+    const rows = (curve?.rows || []).filter((x) => num(x.v) !== null);
     if (!rows.length) continue;
-    const row = rows.reduce((best, x) => (Math.abs(num(x.v) - at) < Math.abs(num(best.v) - at) ? x : best), rows[0]);
+    const target = Math.min(at, Math.max(...rows.map((x) => num(x.v))));
+    const row = rows.reduce((best, x) => (Math.abs(num(x.v) - target) < Math.abs(num(best.v) - target) ? x : best), rows[0]);
     const comp = pick(row, 'ca', 'co', 'cc'); const reb = pick(row, 'ra', 'ro', 'rc');
     if (comp === null && reb === null) continue;
-    out.push({ id: r.id, date: r.values.date || '', label: r.values.label || r.values.date || 'run', v: num(row.v), comp, reb: reb === null ? null : Math.abs(reb) });
+    out.push({ id: r.id, date: r.values.date || '', label: r.values.label || r.values.date || 'run', speed: curve.speed, v: num(row.v), comp, reb: reb === null ? null : Math.abs(reb) });
   }
   const first = out[0];
   return out.map((x) => ({ ...x, compChange: first?.comp ? (x.comp - first.comp) / first.comp : null, rebChange: first?.reb ? (x.reb - first.reb) / first.reb : null }));

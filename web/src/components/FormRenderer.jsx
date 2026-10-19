@@ -2,10 +2,11 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 're
 import { infoFor } from '@shared/fieldInfo.js';
 import { ADJUSTERS } from '@shared/baseForms2.js';
 import { ADJUSTER_STEP, orderSections, stepValue } from '@shared/setupLayout.js';
+import { speedKey } from '@shared/dyno.js';
 import { FieldCalc } from './Calculator.jsx';
 import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
-import { SweepField, TableField } from './TableFields.jsx';
+import { SpeedTables, SweepField, TableField } from './TableFields.jsx';
 
 /** ⓘ beside a field label: shows on hover or keyboard focus, toggles on tap; Esc closes. */
 export function InfoTip({ info, label }) {
@@ -123,11 +124,11 @@ export function RefSearch({ id, recs, value, onChange, data, placeholder = 'Type
   );
 }
 
-function TagsInput({ id, value, onChange, suggestions = [], quick = [] }) {
+function TagsInput({ id, value, onChange, suggestions = [], quick = [], normalize = (x) => x.trim() }) {
   const tags = Array.isArray(value) ? value : value ? [String(value)] : [];
   const [text, setText] = useState('');
   const [more, setMore] = useState(false);
-  const add = (x) => { const tg = x.trim(); if (tg && !tags.includes(tg)) onChange([...tags, tg]); setText(''); };
+  const add = (x) => { const tg = normalize(x); if (tg && !tags.includes(tg)) onChange([...tags, tg]); setText(''); };
   return (
     <div className="tags-input">
       {tags.map((tg) => (
@@ -210,7 +211,8 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
       );
     }
     case 'tags':
-      return <TagsInput id={common.id} value={value} onChange={onChange} suggestions={suggestions || []} quick={optionsOf(field, form, data)} />;
+      return <TagsInput id={common.id} value={value} onChange={onChange} suggestions={suggestions || []} quick={optionsOf(field, form, data)}
+        normalize={field.normalize === 'speed' ? (x) => speedKey(x) : undefined} />;
     case 'entityref': {
       const t = values?.[field.typeKey];
       if (!t) return <span className="muted small">Choose what it links to first</span>;
@@ -508,7 +510,7 @@ function nextOnEnter(e) {
  * changesOnly, changed: changedFields(), openAll } — the person's section order, folded sections,
  * the Before / After switch and change highlighting.
  */
-export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [], sectionExtras = {}, calcCtx = null, layout = null }) {
+export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [], roKeys = [], sectionExtras = {}, calcCtx = null, layout = null }) {
   useSession(); // re-render when the cached member list arrives
   const suggestions = useMemo(() => {
     const out = {};
@@ -582,7 +584,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
                     ? <CornerGrid key={`g${i}`} fields={r.fields} {...props} />
                     : r.field.type === 'heading'
                       ? <h4 key={`h${i}`} className="subhead span-all">{r.field.label}</h4>
-                      : <Field key={r.field.key} f={r.field} {...props} />))}
+                      : <Field key={r.field.key} f={r.field} {...props} readOnly={readOnly || roKeys.includes(r.field.key)} />))}
                 </div>
               </>
             )}
@@ -604,7 +606,9 @@ function Field({ f, values, onChange, data, form, readOnly, errors, suggestions,
   } else if (f.type === 'sweep') {
     body = <SweepField field={f} value={values[f.key]} values={values} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'table') {
-    body = <TableField field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
+    body = f.bySpeed
+      ? <SpeedTables field={f} value={values[f.key]} values={values} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />
+      : <TableField field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'corners') {
     return <CornerGrid fields={[f]} {...{ values, onChange, data, form, readOnly, errors, calcCtx, changed }} />;
   } else if (readOnly) {

@@ -465,19 +465,21 @@ export function lapSeconds(s) {
 
 const fuelMileage = {
   id: 'fuel-mileage', cat: 'gearing', title: 'Fuel for a race',
-  blurb: 'Fuel per lap from a session, fuel to start the next one, and what it weighs.',
-  inputs: [{ k: 'used', l: 'Fuel used', u: 'gal' }, { k: 'laps', l: 'Laps run (incl. warm-up)' }, { k: 'next', l: 'Laps in the next race (incl. warm-up)' },
+  blurb: 'Fuel per lap from a session, fuel to start the next one, and what it weighs. Works in US gallons or litres.',
+  inputs: [{ k: 'units', l: 'Fuel measured in', type: 'select', options: ['US gallons', 'Litres'], dflt: 'US gallons' },
+    { k: 'used', l: 'Fuel used' }, { k: 'laps', l: 'Laps run (incl. warm-up)' }, { k: 'next', l: 'Laps in the next race (incl. warm-up)' },
     { k: 'reserve', l: 'Reserve', u: '%', dflt: '15' }, { k: 'fuel', l: 'Fuel', type: 'select', options: Object.keys(fuelDensity).filter((f) => f !== 'Water'), dflt: 'Methanol' }],
-  outputs: [{ k: 'per', l: 'Fuel per lap', u: 'gal', dp: 3 }, { k: 'lpg', l: 'Laps per gallon', dp: 2 }, { k: 'need', l: 'Fuel to start with', u: 'gal', dp: 2 }, { k: 'weight', l: 'Weight of that fuel', u: 'lb', dp: 1 }],
-  calc: ({ used, laps, next, reserve, fuel }) => {
+  outputs: [{ k: 'per', l: 'Fuel per lap (your units)', dp: 3 }, { k: 'lpg', l: 'Laps per gallon / litre', dp: 2 }, { k: 'need', l: 'Fuel to start with (your units)', dp: 2 }, { k: 'weight', l: 'Weight of that fuel', u: 'lb', dp: 1 }],
+  calc: ({ units, used, laps, next, reserve, fuel }) => {
     if (!have(used, laps) || !laps || !used) return {};
     const per = used / laps;
     const out = { per, lpg: laps / used };
-    if (have(next)) { out.need = per * next * (1 + (reserve || 0) / 100); out.weight = out.need * (fuelDensity[fuel] || 6.6); }
+    const gal = units === 'Litres' ? 1 / 3.785411784 : 1;
+    if (have(next)) { out.need = per * next * (1 + (reserve || 0) / 100); out.weight = out.need * gal * (fuelDensity[fuel] || 6.6); }
     return out;
   },
-  how: 'Fuel per lap = used ÷ laps; fuel needed = per lap × laps × (1 + reserve). Methanol weighs about 6.63 lb per US gallon.',
-  prefill: ({ values }) => ({ used: values.fuel_start && values.fuel_finish ? num(values.fuel_start) - num(values.fuel_finish) : undefined, laps: values.laps }),
+  how: 'Fuel per lap = used ÷ laps; fuel needed = per lap × laps × (1 + reserve). Methanol weighs about 6.63 lb per US gallon (1 US gallon = 3.785 litres).',
+  prefill: ({ values }) => ({ units: values.fuel_unit === 'L' ? 'Litres' : 'US gallons', used: values.fuel_start && values.fuel_finish ? num(values.fuel_start) - num(values.fuel_finish) : undefined, laps: values.laps }),
 };
 
 // ---------------------------------------------------------------- engine builder

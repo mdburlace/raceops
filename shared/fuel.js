@@ -1,3 +1,27 @@
+// Fuel units: amounts are stored as entered, with the unit they were entered in ('gal' = US
+// gallons, 'L' = litres) — sheets in values.fuel_unit, cars in fuel_min_unit. Missing = gallons.
+export const L_PER_GAL = 3.785411784;
+export const FUEL_UNITS = { gal: { label: 'US gal', long: 'US gallons', short: 'gal' }, L: { label: 'Litres', long: 'litres', short: 'L' } };
+export const FUEL_UNIT_OPTIONS = [{ value: 'gal', label: 'US gallons' }, { value: 'L', label: 'Litres' }];
+export const fuelUnit = (u) => (u === 'L' ? 'L' : 'gal');
+export const toGal = (x, unit) => (x === null || x === undefined ? x : fuelUnit(unit) === 'L' ? x / L_PER_GAL : x);
+export const fromGal = (x, unit) => (x === null || x === undefined ? x : fuelUnit(unit) === 'L' ? x * L_PER_GAL : x);
+/** Convert an entered amount between units, rounded to 2 decimals ('' stays ''). */
+export function convertFuel(value, from, to) {
+  const v = typeof value === 'number' ? value : parseFloat(String(value ?? '').replace(/,/g, ''));
+  if (!Number.isFinite(v) || fuelUnit(from) === fuelUnit(to)) return value;
+  return String(+fromGal(toGal(v, from), to).toFixed(2));
+}
+
+/** The setup form with fuel amounts labelled in `unit`. */
+export function withFuelUnits(form, unit) {
+  if (!form || form.data?.target !== 'setup') return form;
+  const label = FUEL_UNITS[fuelUnit(unit)].short;
+  const keys = ['fuel_start', 'fuel_finish', 'fuel_used'];
+  return { ...form, data: { ...form.data, sections: form.data.sections.map((s) => (s.fields.some((f) => keys.includes(f.key))
+    ? { ...s, fields: s.fields.map((f) => (keys.includes(f.key) ? { ...f, unit: label } : f)) } : s)) } };
+}
+
 // Fuel planning for a setup sheet: fuel per lap from earlier sessions, then the fuel to start
 // with = planned laps × rate + the car's minimum (so the pickup never uncovers).
 const n = (x) => {
@@ -7,11 +31,11 @@ const n = (x) => {
 };
 const assetId = (x) => (x && typeof x === 'object' ? x.asset : null);
 
-/** A session's fuel use, or null if it can't be worked out. */
+/** A session's fuel use in US gallons (whatever unit it was entered in), or null. */
 export function sessionFuel(vals) {
   const s = n(vals?.fuel_start), f = n(vals?.fuel_finish), laps = n(vals?.laps);
   if (s === null || f === null || !laps || laps <= 0 || s - f <= 0) return null;
-  return { used: s - f, laps };
+  return { used: toGal(s - f, vals?.fuel_unit), laps };
 }
 
 /** Same-track key for an event: its track record if set, else the track name. */

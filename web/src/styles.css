@@ -1303,3 +1303,11 @@ a.sc-label { color: inherit; font-weight: 600; }
 .life-bar i { display: block; height: 100%; background: var(--ok, #2f9e5b); border-radius: 3px; }
 .life-bar i.lvl-warn { background: var(--warn); } .life-bar i.lvl-over { background: var(--over); }
 @media (max-width: 640px) { .kpi-value { font-size: 22px; } .drift-grid { grid-template-columns: 1fr; } }
+
+/* fuel units bar in the fuel plan */
+.fuel-units { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.fuel-units select { width: auto; min-width: 140px; }
+/* shock dyno: a table per test speed */
+.speed-tables { display: grid; gap: 14px; }
+.speed-table .subhead { margin-top: 0; }
+.sweep-speed { width: auto; min-width: 110px; }

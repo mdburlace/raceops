@@ -1,3 +1,4 @@
+import { defaultRowsFor, rowsAt, runSpeeds, speedKey, speedLabel } from '@shared/dyno.js';
 import { useState } from 'react';
 import { ADJUSTERS } from '@shared/baseForms2.js';
 import { fillX, parseGearSets, parseSweep, parseTable } from '../lib/parse.js';
@@ -35,7 +36,7 @@ function PastePanel({ onApply, onClose, hint, allowAppend = true }) {
   );
 }
 
-export function TableField({ field, value, onChange, readOnly, compactHelp }) {
+export function TableField({ field, value, onChange, readOnly, compactHelp, labelPrefix = '' }) {
   const cols = field.columns || [];
   const rows = Array.isArray(value) && value.length ? value : (field.defaultRows || [{}]);
   const [panel, setPanel] = useState(null);
@@ -91,7 +92,7 @@ export function TableField({ field, value, onChange, readOnly, compactHelp }) {
                 {cols.map((c) => (
                   <td key={c.key}>
                     {readOnly ? (r[c.key] ?? '') : (
-                      <input inputMode={c.text ? 'text' : 'decimal'} className={c.text ? 'txt' : 'num'} aria-label={`${c.label} row ${i + 1}`}
+                      <input inputMode={c.text ? 'text' : 'decimal'} className={c.text ? 'txt' : 'num'} aria-label={`${labelPrefix}${c.label} row ${i + 1}`}
                         value={r[c.key] ?? ''} onChange={(e) => set(i, c.key, e.target.value)} />
                     )}
                   </td>
@@ -108,6 +109,49 @@ export function TableField({ field, value, onChange, readOnly, compactHelp }) {
   );
 }
 
+/**
+ * Shock dyno readings at each of the run's test speeds: one table per speed. Rows are stored in a
+ * single list, each tagged with its speed (s). Readings without a speed (older runs, or imported
+ * when the run had several speeds) are listed separately and can be assigned to a speed.
+ */
+export function SpeedTables({ field, value, onChange, readOnly, values }) {
+  const rows = Array.isArray(value) ? value : [];
+  const speeds = runSpeeds(values);
+  const present = [...new Set(rows.filter((r) => r.s).map((r) => speedKey(r.s)))].filter((k) => !speeds.includes(k));
+  const all = [...speeds, ...present].sort((a, b) => Number(a) - Number(b));
+  const loose = speeds.length === 1 ? [] : rows.filter((r) => !r.s);
+  const [assign, setAssign] = useState(speeds[0] || '');
+  const setGroup = (sp, list) => {
+    const others = rows.filter((r) => (r.s ? speedKey(r.s) !== sp : !(speeds.length === 1 && speeds[0] === sp)));
+    onChange([...others, ...list.map((r) => ({ ...r, s: sp }))]);
+  };
+  if (!all.length && !loose.length) return <p className="muted small">Pick at least one test speed above to enter readings.</p>;
+  return (
+    <div className="speed-tables">
+      {all.map((sp) => (
+        <div key={sp} className="speed-table" data-speed={sp}>
+          <h4 className="subhead">{speedLabel(sp)} test{!speeds.includes(sp) && <span className="muted small"> — not in this run’s test speeds (add it back above, or clear these readings)</span>}</h4>
+          <TableField field={{ ...field, defaultRows: defaultRowsFor(sp) }} value={rowsAt(rows, sp, speeds)} readOnly={readOnly}
+            labelPrefix={all.length > 1 ? `${speedLabel(sp)} ` : ''} onChange={(list) => setGroup(sp, list)} />
+        </div>
+      ))}
+      {loose.length > 0 && (
+        <div className="speed-table loose">
+          <h4 className="subhead">Readings without a test speed</h4>
+          {!readOnly && speeds.length > 0 && (
+            <div className="inline-row wrap">
+              <span className="muted small">These were saved before test speeds, or imported. Move them to:</span>
+              <select aria-label="Move readings to speed" value={assign} onChange={(e) => setAssign(e.target.value)}>{speeds.map((sp) => <option key={sp} value={sp}>{speedLabel(sp)}</option>)}</select>
+              <button type="button" className="btn small" onClick={() => onChange(rows.map((r) => (r.s ? r : { ...r, s: assign })))}>Move</button>
+            </div>
+          )}
+          <TableField field={field} value={loose} readOnly={readOnly} labelPrefix="Unassigned " onChange={(list) => onChange([...rows.filter((r) => r.s), ...list])} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Adjustable shock: one block per adjuster setting with positions, a note and readings. */
 export function SweepField({ field, value, onChange, readOnly, values }) {
   const list = Array.isArray(value) ? value : [];
@@ -117,14 +161,20 @@ export function SweepField({ field, value, onChange, readOnly, values }) {
   const [paste, setPaste] = useState(false);
   const [msg, setMsg] = useState('');
   const upd = (i, patch) => onChange(list.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  const speeds = field.bySpeed ? runSpeeds(values) : [];
   const add = (from) => {
-    const base = from ? { ...structuredClone(from), label: `${from.label} (copy)` } : { label: `Setting ${list.length + 1}`, adj: {}, note: '', data: field.defaultRows || [] };
-    onChange([...list, base]);
+    if (from) { onChange([...list, { ...structuredClone(from), label: `${from.label} (copy)` }]); setOpen(list.length); return; }
+    const label = `Setting ${new Set(list.map((x) => x.label)).size + 1}`;
+    // a new setting gets a block at each of the run's test speeds
+    const blocks = speeds.length
+      ? speeds.map((sp) => ({ label, adj: {}, note: '', speed: sp, data: defaultRowsFor(sp) }))
+      : [{ label, adj: {}, note: '', data: field.defaultRows || [] }];
+    onChange([...list, ...blocks]);
     setOpen(list.length);
   };
   const move = (i, d) => { const j = i + d; if (j < 0 || j >= list.length) return; const n = list.slice(); [n[i], n[j]] = [n[j], n[i]]; onChange(n); setOpen(j); };
   const applyPaste = (text, mode) => {
-    const parsed = parseSweep(text, field.columns, field.xKey);
+    const parsed = parseSweep(text, field.columns, field.xKey).map((b) => (speeds.length === 1 && !b.speed ? { ...b, speed: speeds[0] } : b));
     if (!parsed.length) { setMsg('Nothing recognised — check the format.'); return; }
     onChange(mode === 'append' ? [...list, ...parsed] : parsed);
     setMsg(`${parsed.length} setting${parsed.length === 1 ? '' : 's'} imported.`);
@@ -154,6 +204,12 @@ export function SweepField({ field, value, onChange, readOnly, values }) {
               <span className="sweep-no">{i + 1}</span>
               {readOnly ? <b className="grow">{s.label}</b>
                 : <input className="sweep-label" aria-label={`Setting ${i + 1} label`} value={s.label || ''} onChange={(e) => upd(i, { label: e.target.value })} />}
+              {field.bySpeed && (readOnly ? (s.speed ? <span className="chip static">{speedLabel(s.speed)}</span> : null) : (
+                <select className="sweep-speed" aria-label={`Setting ${i + 1} test speed`} value={s.speed ? speedKey(s.speed) : ''} onChange={(e) => upd(i, { speed: e.target.value })}>
+                  <option value="">Speed…</option>
+                  {[...new Set([...speeds, ...(s.speed ? [speedKey(s.speed)] : [])])].map((sp) => <option key={sp} value={sp}>{speedLabel(sp)}</option>)}
+                </select>
+              ))}
               <span className="sweep-adj">
                 {adjusters.map((a) => (
                   <label key={a} className="adj">

@@ -331,6 +331,7 @@ export function applyUpgrades(form) {
   const has = (k) => form.sections.some((s) => s.fields.some((f) => f.key === k));
   for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES]) {
     if (u.target !== form.target) continue;
+    if (u.kind && form.dyno_kind !== u.kind) continue; // e.g. shock runs only, not bar tests
     if (u.insertSection) {
       if (!form.sections.some((x) => x.id === u.insertSection.id)) {
         const i = form.sections.findIndex((x) => x.id === u.before);

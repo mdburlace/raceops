@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { allFields, linearSlope, num } from '../lib/data.js';
+import { curvesBySpeed, speedLabel } from '@shared/dyno.js';
 
 const COLORS = ['var(--accent)', 'var(--info)', 'var(--ok)', '#9b59b6', '#d4a017', '#e84393', '#16a3a3', '#7a5c3e', '#5b6b8c', '#c0392b'];
 
@@ -17,7 +18,18 @@ export default function DynoChart({ runs: inputRuns, height = 300 }) {
     const sw = r.values?.settings;
     const adjustable = r.values?.adjust_type && r.values.adjust_type !== 'Non-adjustable';
     if (tf && adjustable && Array.isArray(sw) && sw.length) {
-      return sw.map((st, i) => ({ id: `${r.id}#${i}`, name: inputRuns.length > 1 ? `${r.name} · ${st.label}` : st.label || `Setting ${i + 1}`, values: { [tf.key]: st.data }, form: r.form }));
+      return sw.map((st, i) => {
+        const nm = `${st.label || `Setting ${i + 1}`}${st.speed ? ` · ${speedLabel(st.speed)}` : ''}`;
+        return { id: `${r.id}#${i}`, name: inputRuns.length > 1 ? `${r.name} · ${nm}` : nm, values: { [tf.key]: st.data }, form: r.form };
+      });
+    }
+    // runs tested at several speeds: a curve per test speed
+    if (tf && tf.bySpeed) {
+      const curves = curvesBySpeed(r.values);
+      if (curves.length > 1 || (curves.length === 1 && curves[0].speed)) {
+        return curves.map((c) => ({ id: `${r.id}@${c.speed}`, name: c.speed ? (inputRuns.length > 1 ? `${r.name} · ${speedLabel(c.speed)}` : speedLabel(c.speed)) : r.name,
+          values: { [tf.key]: c.rows }, form: r.form }));
+      }
     }
     return [r];
   });

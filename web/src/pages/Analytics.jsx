@@ -13,6 +13,8 @@ import { assetLife, scheduleStatus, setupsByAsset } from '../lib/compute.js';
 import { formFor, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { downloadCsv } from './Phase2.jsx';
+import { FUEL_UNITS, fromGal } from '@shared/fuel.js';
+import { useFuelUnits } from '../components/FuelPlanner.jsx';
 
 const TABS = [['performance', 'Performance'], ['setups', 'Setups'], ['engines', 'Engines & parts']];
 const signed = (x, dp = 1) => (x === null || x === undefined ? '—' : `${x > 0 ? '+' : ''}${x.toFixed(dp)}`);
@@ -320,6 +322,7 @@ export function partForecasts(data, rows) {
 }
 
 function EnginesParts({ data, rows, allRows, car }) {
+  const fuelU = useFuelUnits();
   const parts = partForecasts(data, allRows);
   const engines = data.list('asset').filter((a) => v(a, 'category') === 'Engine' && v(a, 'status') !== 'Retired');
   const shocks = data.list('asset').filter((a) => v(a, 'category') === 'Shock' && data.list('dyno_run').some((r) => v(r, 'asset') === a.id));
@@ -362,7 +365,7 @@ function EnginesParts({ data, rows, allRows, car }) {
         {!et ? <p className="muted small">Add your engines in Assets and pick them on setup sheets.</p> : (
           <>
             <div className="drift-grid">
-              {mini('Fuel per lap', et.fuel, 'gal', 3, setupHref)}
+              {mini('Fuel per lap', et.fuel.map((p) => ({ ...p, y: fromGal(p.y, fuelU) })), FUEL_UNITS[fuelU].short, 3, setupHref)}
               {mini('Highest rpm', et.tachHigh, 'rpm', 0, setupHref)}
               {mini('Lowest rpm', et.tachLow, 'rpm', 0, setupHref)}
               {mini('Dyno HP', et.hp, 'hp', 0, (id) => `/r/engine_build/${id}`)}
@@ -384,7 +387,7 @@ function EnginesParts({ data, rows, allRows, car }) {
               <thead><tr><th>Run</th><th>Compression</th><th>Change</th><th>Rebound</th><th>Change</th></tr></thead>
               <tbody>{fade.map((x) => <tr key={x.id}><td><Link to={`/r/dyno_run/${x.id}`}>{x.date}</Link> <span className="muted small">{x.label !== x.date ? x.label : ''}</span></td><td>{fmtNum(x.comp, 0)}</td><td>{pct(x.compChange)}</td><td>{fmtNum(x.reb, 0)}</td><td>{pct(x.rebChange)}</td></tr>)}</tbody>
             </table></div>
-            <p className="muted small">Force at about {fmtNum(fade[0].v)} in/s on each run, against the first run. A steady drop usually means the shock needs a service.</p>
+            <p className="muted small">Force at about {fmtNum(fade[0].v)} in/s{fade[0].speed ? ` in the ${Number(fade[0].speed)} in/s test` : ''} on each run, against the first run. A steady drop usually means the shock needs a service.</p>
           </>
         )}
       </Section>

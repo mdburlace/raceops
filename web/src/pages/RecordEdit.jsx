@@ -5,7 +5,8 @@ import { AiTools } from '../components/Ai.jsx';
 import { WeatherTools, useWeatherUnits, withWeatherUnits } from '../components/Weather.jsx';
 import { calcContext } from '../components/Calculator.jsx';
 import { EngineChecks } from '../components/EngineChecks.jsx';
-import { FuelPlanner } from '../components/FuelPlanner.jsx';
+import { FuelPlanner, useFuelUnits } from '../components/FuelPlanner.jsx';
+import { convertFuel, fuelUnit, withFuelUnits } from '@shared/fuel.js';
 import { ArrangeSections, SheetNav, SheetTools, useSheetLayout } from '../components/SheetNav.jsx';
 import { changedFields } from '@shared/setupLayout.js';
 import { JobExtras } from './Shop.jsx';
@@ -119,9 +120,11 @@ export default function RecordEdit() {
   const [stage, setStage] = useState('all'); // setup: All / Before / After the session
   const [changesOnly, setChangesOnly] = useState(false);
   const [arranging, setArranging] = useState(false);
+  const [fuelView, setFuelView] = useState(null); // setup: show fuel in this unit (null = as recorded)
 
   const form = data ? formFor(data, type, formId || rec?.data.form_id || params.get('form')) : null;
   const wxUnits = useWeatherUnits();
+  const teamFuel = useFuelUnits();
   const sheet = useSheetLayout(type === 'setup' ? form : null, { isNew, values });
 
   // initialise once data + record are available
@@ -137,6 +140,8 @@ export default function RecordEdit() {
     if (type === 'dyno_run' && init.asset && v(data.byId[init.asset], 'adjust_type')) init.adjust_type = v(data.byId[init.asset], 'adjust_type');
     if (allFields(f).some((fd) => fd.key === 'date' && fd.type === 'date')) init.date ||= today();
     if (type === 'setup' && init.order !== undefined) init.order = num(init.order);
+    if (type === 'setup' && !init.fuel_unit) init.fuel_unit = teamFuel; // fuel recorded in the team's default unit
+    if (type === 'car' && !init.fuel_min_unit) init.fuel_min_unit = teamFuel;
     if (type === 'job') {
       const shop = shopSettings(membership);
       init.job_no ||= nextJobNo(data.list('job').map((j) => v(j, 'job_no')), shop.job_prefix);
@@ -240,7 +245,7 @@ export default function RecordEdit() {
       if (!f.required) continue;
       if (!isVisible(f, values)) continue;
       const val = values[f.key];
-      if (val === undefined || val === null || val === '') errs[f.key] = 'Required';
+      if (val === undefined || val === null || val === '' || (Array.isArray(val) && !val.length)) errs[f.key] = 'Required';
     }
     setErrors(errs);
     if (Object.keys(errs).length) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
@@ -271,7 +276,17 @@ export default function RecordEdit() {
   };
 
   // setup sheets: changes against the session this sheet was copied from (or the previous session)
-  const setupForm = type === 'setup' ? withWeatherUnits(form, wxUnits) : form;
+  const fuelRecorded = fuelUnit(values.fuel_unit);
+  const fuelShown = fuelView || fuelRecorded;
+  const fuelConverting = type === 'setup' && fuelShown !== fuelRecorded;
+  const setupForm = type === 'setup' ? withFuelUnits(withWeatherUnits(form, wxUnits), fuelShown) : form;
+  const shownValues = fuelConverting
+    ? { ...values, fuel_start: convertFuel(values.fuel_start, fuelRecorded, fuelShown), fuel_finish: convertFuel(values.fuel_finish, fuelRecorded, fuelShown) }
+    : values;
+  const setFuelRecorded = (u) => {
+    setValues((x) => ({ ...x, fuel_unit: u, fuel_start: convertFuel(x.fuel_start, fuelUnit(x.fuel_unit), u), fuel_finish: convertFuel(x.fuel_finish, fuelUnit(x.fuel_unit), u) }));
+    setFuelView(null); setDirty(true);
+  };
   const base = type === 'setup' ? (values.copied_from && data.byId[values.copied_from]) || prevSession : null;
   const baseLabel = base ? (v(base, 'event') === values.event ? v(base, 'session') || 'the copied session' : titleOf(base, data)) : '';
   const changed = type === 'setup' && base ? changedFields(form, values, base.data?.values || {}) : {};
@@ -397,10 +412,11 @@ export default function RecordEdit() {
 
 
       {arranging && layout && <ArrangeSections form={form} layout={layout} onClose={() => setArranging(false)} />}
-      <FormRenderer form={setupForm} values={values} onChange={onChange} data={data} readOnly={readOnly} layout={layout}
+      <FormRenderer form={setupForm} values={shownValues} onChange={onChange} data={data} readOnly={readOnly} layout={layout} roKeys={fuelConverting ? ['fuel_start', 'fuel_finish'] : []}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
         sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
-          race: <FuelPlanner id={id} data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}
+          race: <FuelPlanner id={id} data={data} values={shownValues} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }}
+            unit={fuelShown} recorded={fuelRecorded} setView={(u) => setFuelView(u === fuelRecorded ? null : u)} setRecorded={setFuelRecorded} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />
       {type === 'engine_build' && <EngineChecks values={values} />}
       {type === 'job' && <JobExtras id={id} values={values} isNew={isNew} />}

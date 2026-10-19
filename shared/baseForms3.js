@@ -1,6 +1,8 @@
 // Tracks, contacts, suppliers, contact roles and race series.
 import { SHOP_FORMS, SHOP_UPGRADES } from './baseForms4.js';
 import { AFTER_KEYS, STEPS } from './setupLayout.js';
+import { FUEL_UNIT_OPTIONS } from './fuel.js';
+import { TEST_SPEEDS } from './dyno.js';
 
 const t = (key, label, extra = {}) => ({ key, label, type: 'text', ...extra });
 
@@ -225,5 +227,18 @@ export const PHASE3_UPGRADES = [
   ...Object.entries(STEPS).map(([key, step]) => ({ target: 'setup', key, patch: { step } })),
   // car class picks from the shared class list (team classes + platform Race classes); typing a new one still works
   { target: 'car', key: 'class', patch: { allowCustom: true, placeholder: 'Choose or type a class' } },
+  // shock dyno: one or more test speeds per run, readings entered at each
+  { target: 'dyno_run', kind: 'shock', section: 'run', after: 'stroke', field: { key: 'test_speeds', label: 'Test speeds', type: 'tags', unit: 'in/s', core: true, required: true,
+    options: TEST_SPEEDS, default: TEST_SPEEDS, normalize: 'speed', help: 'One or more — readings are entered for each speed. Type another speed to add it.' } },
+  { target: 'dyno_run', kind: 'shock', key: 'speeds', patch: { showIf: 'speeds!=' } },
+  { target: 'dyno_run', kind: 'shock', key: 'test_speed', patch: { showIf: 'test_speed!=' } },
+  { target: 'dyno_run', kind: 'shock', key: 'data', patch: { bySpeed: true } },
+  { target: 'dyno_run', kind: 'shock', key: 'settings', patch: { bySpeed: true } },
+  // fuel: recorded in US gallons or litres (per sheet / per car); units follow the sheet
+  { target: 'setup', key: 'fuel_start', patch: { unit: '' } },
+  { target: 'setup', key: 'fuel_finish', patch: { unit: '' } },
+  { target: 'setup', key: 'fuel_used', patch: { unit: '' } },
+  { target: 'car', key: 'fuel_min', patch: { unit: '' } },
+  { target: 'car', section: 'car', after: 'fuel_min', field: { key: 'fuel_min_unit', label: 'Minimum fuel in', type: 'select', options: FUEL_UNIT_OPTIONS } },
   ...SHOP_UPGRADES,
 ];
