@@ -142,7 +142,7 @@ export function Dyno() {
               <div key={r.id} className={`list-row selectable${selected.includes(r.id) ? ' selected' : ''}`}>
                 <input type="checkbox" aria-label="Overlay this run" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} />
                 <Link to={`/r/dyno_run/${r.id}`} className="grow">
-                  <span className="row-title">{v(r, 'label') || 'Run'}</span>
+                  <span className="row-title">{v(r, 'label') || 'Run'}{v(r, 'initial') && <span className="pill pill-info">Initial</span>}</span>
                   <span className="row-sub">{[titleOf(data.byId[v(r, 'asset')]), v(r, 'adjust_type') && v(r, 'adjust_type') !== 'Non-adjustable' && `${v(r, 'adjust_type')} · ${(v(r, 'settings') || []).length} settings`, runSpeeds(r.data?.values).length > 0 && `${runSpeeds(r.data?.values).map(Number).join(' / ')} in/s`, v(r, 'purpose'), v(r, 'gas') && `${v(r, 'gas')} psi`].filter(Boolean).join(' · ')}</span>
                 </Link>
                 {rate ? <span className="row-meta"><b>{rate.toFixed(1)}</b> lb/in{bm?.s.split !== null && bm?.s.split !== undefined ? ` · split ${Math.round(bm.s.split)} lb` : ''}</span> : null}

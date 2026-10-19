@@ -385,9 +385,9 @@ function EnginesParts({ data, rows, allRows, car }) {
                 { name: 'Rebound', points: fade.map((x, i) => (x.reb !== null ? { x: i, y: x.reb, href: `/r/dyno_run/${x.id}` } : null)).filter(Boolean) }]} />
             <div className="table-scroll"><table className="table" data-testid="fade">
               <thead><tr><th>Run</th><th>Compression</th><th>Change</th><th>Rebound</th><th>Change</th></tr></thead>
-              <tbody>{fade.map((x) => <tr key={x.id}><td><Link to={`/r/dyno_run/${x.id}`}>{x.date}</Link> <span className="muted small">{x.label !== x.date ? x.label : ''}</span></td><td>{fmtNum(x.comp, 0)}</td><td>{pct(x.compChange)}</td><td>{fmtNum(x.reb, 0)}</td><td>{pct(x.rebChange)}</td></tr>)}</tbody>
+              <tbody>{fade.map((x) => <tr key={x.id}><td><Link to={`/r/dyno_run/${x.id}`}>{x.date}</Link> <span className="muted small">{x.label !== x.date ? x.label : ''}</span>{x.initial && <span className="pill pill-info">Initial</span>}</td><td>{fmtNum(x.comp, 0)}</td><td>{pct(x.compChange)}</td><td>{fmtNum(x.reb, 0)}</td><td>{pct(x.rebChange)}</td></tr>)}</tbody>
             </table></div>
-            <p className="muted small">Force at about {fmtNum(fade[0].v)} in/s{fade[0].speed ? ` in the ${Number(fade[0].speed)} in/s test` : ''} on each run, against the first run. A steady drop usually means the shock needs a service.</p>
+            <p className="muted small">Force at about {fmtNum(fade[0].v)} in/s{fade[0].speed ? ` in the ${Number(fade[0].speed)} in/s test` : ''} on each run, against the {fade.some((x) => x.initial) ? 'initial measurement (at purchase or first build)' : 'first run — mark a run as the initial measurement to compare with that instead'}. A steady drop usually means the shock needs a service.</p>
           </>
         )}
       </Section>

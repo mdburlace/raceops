@@ -19,15 +19,15 @@ Use **‹** and **›** to change the year. Anything you save here goes live for
 
 Choose a view:
 
-- **Series**: every shared series for the year, including new ones with no dates yet. Tap one to see and manage its rounds. **Edit series** changes its name, season, class or other details.
+- **Series**: every shared series for the year, including new ones with no dates yet. Tap one to see and manage its rounds. **Edit series** changes its name, season, class, sanctioning body or other details.
 - **Tracks**: every track with dates this year. Tap one for its dates.
 - **Major events**: titles, championships and classics, such as the Australian Sprintcar Title.
 - **All dates**: everything for the year.
 
 ### Add or change dates
 
-- **Add a date**: fill in the event name, date (and end date for a multi-day meeting), track, series and round, and the classes running. Tick **Major event** for a title or classic. Adding from a series, track or the Major events view fills that in for you.
-- **Edit**: change a date. Teams with it on their calendar are told it changed and can update their entry.
+- **Add a date**: fill in the event name, date (and end date for a multi-day meeting), track, series and round, and the classes running. Tick **Major event** for a title or classic and give it its **Major event name**, and set the **Sanctioning body** if it differs from the series'. Adding from a series, track or the Major events view fills that in for you.
+- **Edit**: change a date. The form opens under that date. Teams with it on their calendar are told it changed and can update their entry.
 - **Delete**: removes the date from the shared calendar. Teams that already added it keep their own entry. To keep it visible but show it's off, edit it and set **Status** to **Cancelled** instead.
 - **New series** (in the Series view): adds a series every team can use. Name and season are required.
 - **Import a calendar**: read the dates from a link, iCal feed, PDF, photo, screenshot or pasted text, check them, then save. The AI reading counts against the team you're signed in to, so that team needs the AI add-on (iCal doesn't).

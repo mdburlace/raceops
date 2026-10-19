@@ -50,7 +50,7 @@ Every chart says what it's **based on**, e.g. *Based on 34 sessions over 17 nigh
   - It works out average use per meeting over the last six meetings, how many meetings are left, and an approximate due date from your usual gap between meetings.
   - Soonest first; **CSV** downloads it.
 - **Engine health:** pick an engine to see fuel per lap, highest and lowest rpm by meeting, and dyno HP from its build sheets. Rising fuel use or falling rpm can point to wear.
-- **Shock fade:** pick a shock to compare its dyno runs. Force at about 5 in/s on each run against the first, with the change as a percentage. Runs with adjuster settings (sweeps) aren't compared yet.
+- **Shock fade:** pick a shock to compare its dyno runs. Force at about 5 in/s on each run against its [initial measurement](/help/dyno) (or the first run if none is marked), with the change as a percentage. Runs with adjuster settings (sweeps) aren't compared yet.
 
 ## On Home
 

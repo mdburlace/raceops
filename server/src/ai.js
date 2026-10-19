@@ -611,7 +611,7 @@ const CAL_SCHEMA = {
     items: {
       type: 'array', description: 'Every race meeting on the calendar',
       items: {
-        type: 'object', additionalProperties: false, required: ['name', 'date', 'end_date', 'track', 'series', 'round', 'classes', 'major', 'notes'],
+        type: 'object', additionalProperties: false, required: ['name', 'date', 'end_date', 'track', 'series', 'round', 'classes', 'major', 'major_name', 'sanctioning', 'notes'],
         properties: {
           name: { type: 'string', description: 'Meeting name as written (e.g. "Spring Classic"); use the series name + round if there is no name' },
           date: { type: 'string', description: 'First day, YYYY-MM-DD' },
@@ -621,6 +621,8 @@ const CAL_SCHEMA = {
           round: { type: 'string', description: 'Round number if shown, digits only, else empty' },
           classes: { type: 'array', items: { type: 'string' }, description: 'Classes / divisions racing, as written' },
           major: { type: 'boolean', description: 'True for a title, national/state championship meeting, or a named classic; false for ordinary club nights and series rounds' },
+          major_name: { type: 'string', description: 'For a major event, its name (e.g. "Australian Sprintcar Title"); else empty' },
+          sanctioning: { type: 'string', description: 'Sanctioning body if shown (e.g. Speedway Australia), else empty' },
           notes: { type: 'string', description: 'Times, "TBC", "postponed" and similar, briefly' },
         },
       },
@@ -723,11 +725,11 @@ function mockModel(body) {
   if (schema?.properties?.calendar_of) { // calendar import: "YYYY-MM-DD Name @ Track" lines, else two sample dates
     const calText = (last.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
     const items = [...calText.matchAll(/(\d{4}-\d{2}-\d{2})\s+(.+?)\s+@\s+([^\n@]+?)(?=\s+\d{4}-\d{2}-\d{2}|\n|$)/g)]
-      .map((m, i) => ({ name: m[2].trim(), date: m[1], end_date: '', track: m[3].trim(), series: '', round: String(i + 1), classes: ['410 Sprintcars'], major: /title|classic/i.test(m[2]), notes: '' }));
+      .map((m, i) => ({ name: m[2].trim(), date: m[1], end_date: '', track: m[3].trim(), series: '', round: String(i + 1), classes: ['410 Sprintcars'], major: /title|classic/i.test(m[2]), major_name: /title|classic/i.test(m[2]) ? m[2].trim() : '', sanctioning: '', notes: '' }));
     const y = new Date().getFullYear() + 1;
     const out = { calendar_of: 'Mock calendar', _unclear: 'Mock reading — test data only.',
-      items: items.length ? items : [{ name: 'Mock Night 1', date: `${y}-01-10`, end_date: '', track: 'Mock Speedway', series: '', round: '1', classes: [], major: false, notes: '' },
-        { name: 'Mock Night 2', date: `${y}-02-14`, end_date: `${y}-02-15`, track: 'Mock Speedway', series: '', round: '2', classes: [], major: false, notes: 'TBC' }] };
+      items: items.length ? items : [{ name: 'Mock Night 1', date: `${y}-01-10`, end_date: '', track: 'Mock Speedway', series: '', round: '1', classes: [], major: false, major_name: '', sanctioning: '', notes: '' },
+        { name: 'Mock Night 2', date: `${y}-02-14`, end_date: `${y}-02-15`, track: 'Mock Speedway', series: '', round: '2', classes: [], major: false, major_name: '', sanctioning: '', notes: 'TBC' }] };
     return { content: [{ type: 'text', text: JSON.stringify(out) }], stop_reason: 'end_turn', usage };
   }
   if (schema?.properties?.rules) { // guide import

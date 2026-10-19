@@ -34,6 +34,7 @@ Add new shocks with their **position** and **adjustable type**, so they show at 
 
 | I want to… | Go to |
 |---|---|
+| Record a new shock's or bar's numbers when we buy it | [Shock and bar dyno](/help/dyno) — **Initial measurement** |
 | See which parts are due in the next few meetings | [Analytics](/help/analytics) — **Engines & parts** |
 | Check if a shock is fading | [Analytics](/help/analytics) — **Shock fade** |
 | Record hot pressures and travel when the car comes in | [Quick editing on the setup sheet](/help/setup-sheet-layout) — **After** |

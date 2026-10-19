@@ -93,6 +93,7 @@ async function publicCalendar(token) {
       car: opts.show_cars && car ? [car.number && `#${car.number}`, car.name].filter(Boolean).join(' ') : '',
       result: opts.show_results && v.outcome && !cancelled ? (v.outcome === 'Withdrew during the event' ? 'Withdrew' : v.outcome) : '',
       note: v.public_note || '', season: seasonOf(v.date, sm),
+      major: v.major || fx?.major ? (v.major ? v.major_name : fx.major_name) || 'Major event' : '', sanctioning: v.sanctioning || fx?.sanctioning || series?.sanctioning || '',
     });
   }
   items.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
@@ -118,7 +119,7 @@ export function mountPublicCalendar(app) {
         uid: `${i.id}@raceops`, date: i.date, end_date: i.end_date,
         summary: `${i.tentative ? '(Tentative) ' : ''}${i.cancelled ? 'CANCELLED: ' : ''}${i.name}${i.track && !i.name.includes(i.track) ? ` — ${i.track}` : ''}`,
         location: [i.track, i.location].filter(Boolean).join(', '),
-        description: [i.series && `${i.series}${i.round ? ` round ${i.round}` : ''}`, i.car && `Car: ${i.car}`, i.result && `Result: ${i.result}`, i.note].filter(Boolean).join('\n'),
+        description: [i.major, i.series && `${i.series}${i.round ? ` round ${i.round}` : ''}`, i.sanctioning && `Sanctioned by ${i.sanctioning}`, i.car && `Car: ${i.car}`, i.result && `Result: ${i.result}`, i.note].filter(Boolean).join('\n'),
         status: i.cancelled ? 'CANCELLED' : i.tentative ? 'TENTATIVE' : 'CONFIRMED',
       })),
     });
@@ -195,7 +196,7 @@ async function updateRecord(c, id, type, tenantId, data, userId, deleted = false
 }
 
 const lc = (s) => String(s ?? '').trim().toLowerCase();
-const FIXTURE_KEYS = ['name', 'date', 'end_date', 'series', 'round', 'venue', 'track', 'classes', 'major', 'status', 'start_time', 'website', 'notes'];
+const FIXTURE_KEYS = ['name', 'date', 'end_date', 'series', 'round', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes'];
 
 /** The standard form for a record type, upgraded — for admin pages that edit shared records outside a team. */
 function baseForm(target) {

@@ -7,6 +7,7 @@ import { calcContext } from '../components/Calculator.jsx';
 import { EngineChecks } from '../components/EngineChecks.jsx';
 import { FuelPlanner, useFuelUnits } from '../components/FuelPlanner.jsx';
 import { BarResults } from '../components/BarTests.jsx';
+import { InitialClash, ShockVsInitial } from '../components/DynoInitial.jsx';
 import { convertFuel, fuelUnit, withFuelUnits } from '@shared/fuel.js';
 import { ArrangeSections, SheetNav, SheetTools, useSheetLayout } from '../components/SheetNav.jsx';
 import { changedFields } from '@shared/setupLayout.js';
@@ -260,6 +261,12 @@ export default function RecordEdit() {
     if (type === 'event' && vals.venue && data.byId[vals.venue]) vals.track = v(data.byId[vals.venue], 'name');
     const scope = isGlobal ? { scope: 'global' } : {};
     const saved = await saveRecord(tid, type, isNew ? null : id, { ...(rec?.data || {}), ...scope, form_id: form.id, values: vals }, user.id);
+    // only one initial measurement per shock or bar: this one takes over
+    if (type === 'dyno_run' && vals.initial && vals.asset) {
+      for (const r of data.list('dyno_run')) {
+        if (r.id !== saved.id && v(r, 'asset') === vals.asset && v(r, 'initial')) await saveRecord(tid, 'dyno_run', r.id, { ...r.data, values: { ...r.data.values, initial: false } }, user.id);
+      }
+    }
     setDirty(false);
     nav(params.get('back') || afterSave(type, saved), { replace: true });
   };
@@ -421,7 +428,8 @@ export default function RecordEdit() {
       {arranging && layout && <ArrangeSections form={form} layout={layout} onClose={() => setArranging(false)} />}
       <FormRenderer form={setupForm} values={shownValues} onChange={onChange} data={data} readOnly={readOnly} layout={layout} roKeys={fuelConverting ? ['fuel_start', 'fuel_finish'] : []}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
-        sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { rate: <BarResults data={data} id={id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
+        sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { run: <InitialClash data={data} id={id} values={values} />, rate: <BarResults data={data} id={id} values={values} /> }
+          : type === 'dyno_run' ? { run: <InitialClash data={data} id={id} values={values} />, data: <ShockVsInitial data={data} id={isNew ? null : id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           race: <FuelPlanner id={id} data={data} values={shownValues} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }}
             unit={fuelShown} recorded={fuelRecorded} setView={(u) => setFuelView(u === fuelRecorded ? null : u)} setRecorded={setFuelRecorded} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />

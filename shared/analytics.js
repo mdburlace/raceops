@@ -343,6 +343,8 @@ export function shockFade(runs, at = 5) {
     if (comp === null && reb === null) continue;
     out.push({ id: r.id, date: r.values.date || '', label: r.values.label || r.values.date || 'run', speed: curve.speed, v: num(row.v), comp, reb: reb === null ? null : Math.abs(reb) });
   }
-  const first = out[0];
-  return out.map((x) => ({ ...x, compChange: first?.comp ? (x.comp - first.comp) / first.comp : null, rebChange: first?.reb ? (x.reb - first.reb) / first.reb : null }));
+  // compared with the initial measurement (at purchase or first build) when one is marked, else the first run
+  const first = out.find((x) => sorted.find((r) => r.id === x.id)?.values?.initial) || out[0];
+  return out.map((x) => ({ ...x, initial: x.id === first?.id && !!sorted.find((r) => r.id === x.id)?.values?.initial,
+    compChange: first?.comp ? (x.comp - first.comp) / first.comp : null, rebChange: first?.reb ? (x.reb - first.reb) / first.reb : null }));
 }

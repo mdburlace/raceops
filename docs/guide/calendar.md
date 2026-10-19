@@ -66,6 +66,23 @@ Entering a series records which car you're running in it and whether you're doin
 
 **Series entries** shows each entry with how many rounds are on your calendar. If the series adds a round later, press **Add missing rounds**. Deleting an entry leaves its events on your calendar.
 
+## Quick edit an entry
+
+Press **Edit** on any entry in **Our calendar**. The quick edit opens right under that entry, so you don't lose your place. You can change:
+
+- the **event name**, **date** and **end date**;
+- the **Series** it's a round of, and the **Round**. The list has your series and the shared ones. **Add a series** makes a new one;
+- the **Sanctioning body**, such as Speedway Australia. Picking a series fills it in from the series if it's empty;
+- **Major event**, with the **Major event name** (e.g. *Australian Sprintcar Title*).
+
+Press **Save**. **All details** opens the full event form.
+
+## Sanctioning bodies and major events
+
+- **Series:** each series has a **Sanctioning body**, picked from a shared list or typed.
+- **Events and shared dates:** these have their own sanctioning body for meetings that differ from the series or aren't in one. When you add a shared date, the event takes its sanctioning body, or the series'. It shows beside the series on each entry, the print-out and the public page.
+- **Major events:** these have a **Major event name** as well as the meeting's name. For example, the name *Night 2* with the major event *Australian Sprintcar Title*. They show as **★ Australian Sprintcar Title** on the calendars, the print-out and the public page.
+
 ## Going, and what happened
 
 Each entry on **Our calendar** has a **Going?** choice before the meeting:
@@ -94,8 +111,8 @@ The boxes at the top add up the year: meetings planned, meetings you ran, featur
 
 Shared dates are kept by the RaceOps platform admin, and teams help keep them right.
 
-- **Suggest a date** adds a missing date. Fill in the event name, date, track, series, round and the classes running. Tick **Major event** for a title or classic.
-- **Suggest a change** on a date corrects it, for example a new date or a cancellation.
+- **Suggest a date** adds a missing date. Fill in the event name, date, track, series, round and the classes running. Tick **Major event** for a title or classic and give it its **Major event name**. Add the **Sanctioning body** if it differs from the series.
+- **Suggest a change** on a date corrects it, for example a new date or a cancellation. The form opens right under that date.
 
 Your suggestion shows **Waiting for approval** until a platform admin checks it. Once approved it's live for every team. If it isn't approved, it shows the reason. Press **Dismiss** to clear it. See [Shared calendars (platform admin)](/help/calendar-suggestions).
 

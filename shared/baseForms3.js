@@ -292,6 +292,9 @@ export const PHASE3_UPGRADES = [
   { target: 'dyno_run', kind: 'bar', key: 'data', patch: { columns: [{ key: 'x', label: 'Arm travel', unit: 'in' }, { key: 'load', label: 'Compression', unit: 'lb' }, { key: 'unload', label: 'Rebound', unit: 'lb' }],
     defaultRows: [0, 0.5, 1, 1.5, 2, 2.5, 3].map((x) => ({ x: String(x) })), help: 'Force as the bar winds up (compression) and as it releases (rebound) at each arm travel.' } },
   { target: 'dyno_run', kind: 'bar', key: 'rate', patch: { label: 'Rate (slope of compression readings)' } },
+  // the first test of a shock or bar, at purchase or first build: later tests are compared with it
+  ...['shock', 'bar'].map((kind) => ({ target: 'dyno_run', kind, section: 'run', after: 'date', field: { key: 'initial', label: 'Initial measurement (at purchase or first build)', type: 'checkbox', core: true,
+    help: `The first test of this ${kind === 'bar' ? 'bar' : 'shock'} — later tests are compared with it. One per ${kind === 'bar' ? 'bar' : 'shock'}.` } })),
   // fuel: recorded in US gallons or litres (per sheet / per car); units follow the sheet
   { target: 'setup', key: 'fuel_start', patch: { unit: '' } },
   { target: 'setup', key: 'fuel_finish', patch: { unit: '' } },
@@ -313,5 +316,16 @@ export const PHASE3_UPGRADES = [
   // major events (titles, classics) get their own calendar view
   { target: 'fixture', section: 'fixture', after: 'classes', field: { key: 'major', label: 'Major event', type: 'checkbox', core: true,
     help: 'A title or big one-off meeting, e.g. the Australian Sprintcar Title — listed under Major events.' } },
+  // sanctioning body on series, events and calendar dates (shared pick-list); major events get a name
+  { target: 'series', key: 'sanctioning', patch: { type: 'select', allowCustom: true, options: [], suggest: false, placeholder: 'Choose or type' } },
+  { target: 'fixture', section: 'fixture', after: 'round', field: { key: 'sanctioning', label: 'Sanctioning body', type: 'select', allowCustom: true, options: [],
+    help: 'Leave empty to use the series’ sanctioning body.' } },
+  { target: 'fixture', section: 'fixture', after: 'major', field: { key: 'major_name', label: 'Major event name', type: 'text', suggest: true, showIf: 'major=true',
+    placeholder: 'e.g. Australian Sprintcar Title' } },
+  { target: 'event', section: 'event', after: 'round', field: { key: 'sanctioning', label: 'Sanctioning body', type: 'select', allowCustom: true, options: [] } },
+  { target: 'event', section: 'event', after: 'sanctioning', field: { key: 'major', label: 'Major event', type: 'checkbox',
+    help: 'A title or big one-off meeting, e.g. the Australian Sprintcar Title.' } },
+  { target: 'event', section: 'event', after: 'major', field: { key: 'major_name', label: 'Major event name', type: 'text', suggest: true, showIf: 'major=true',
+    placeholder: 'e.g. Australian Sprintcar Title' } },
   ...SHOP_UPGRADES,
 ];

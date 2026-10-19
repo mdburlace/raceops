@@ -2,6 +2,7 @@
 // and the baseline average) and the baseline averages on the dyno page.
 import { useState } from 'react';
 import { barStats, baselines, groupKey, vsBaseline } from '@shared/bars.js';
+import { initialRun } from '@shared/dyno.js';
 import { saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { fmtDate, titleOf, v } from '../lib/data.js';
@@ -25,6 +26,10 @@ export function BarResults({ data, id, values }) {
   const g = groupKey(values);
   const base = baselines(barTests(data).filter((t) => t.id !== id || values.in_baseline).map((t) => (t.id === id ? { ...t, values } : t))).get(g.key);
   const vb = vsBaseline(values, base);
+  // against this bar's initial measurement (at purchase or first build)
+  const init = values.initial ? null : initialRun(barTests(data), values.asset, id);
+  const is = init ? barStats(init.values) : null;
+  const sinceRate = is?.rate && s.rate !== null ? (s.rate - is.rate) / is.rate : null;
   return (
     <div className="bar-results" data-testid="bar-results">
       <div className="kpis">
@@ -33,6 +38,11 @@ export function BarResults({ data, id, values }) {
         <div className="kpi"><span className="kpi-label">Split (hysteresis)</span><b className="kpi-value">{r0(s.split)}</b><span className="muted small">lb{s.splitPct !== null ? ` · ${(s.splitPct * 100).toFixed(1)}% of compression` : ''}</span></div>
         <div className="kpi"><span className="kpi-label">Against baseline</span><b className={`kpi-value ${tone(vb?.rate)}`}>{vb ? pct(vb.rate) : '—'}</b>
           <span className="muted small">{base ? `${g.label}: avg ${r0(base.rate)} lb/in from ${base.n} test${base.n === 1 ? '' : 's'}` : `No baseline yet for ${g.label}`}</span></div>
+        <div className="kpi" data-testid="since-initial"><span className="kpi-label">Since initial test</span>
+          {values.initial ? <><b className="kpi-value">—</b><span className="muted small">This is the initial measurement</span></>
+            : init ? <><b className={`kpi-value ${tone(sinceRate)}`}>{pct(sinceRate)}</b><span className="muted small">{r0(is.rate)} lb/in on {fmtDate(init.values.date)}{is.split !== null && s.split !== null ? ` · split ${s.split - is.split >= 0 ? '+' : ''}${r0(s.split - is.split)} lb` : ''}</span></>
+              : <><b className="kpi-value">—</b><span className="muted small">No initial test marked for this bar</span></>}
+        </div>
       </div>
       <p className="muted small">
         {s.source === 'entered' ? 'From the compression and rebound entered below.' : s.source === 'readings' ? `Read from the table at ${r1(s.travel)} in of arm travel.` : `Enter the readings (or the compression and rebound at ${r1(s.travel)} in) to see the rate and split.`}

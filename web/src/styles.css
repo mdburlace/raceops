@@ -1386,3 +1386,9 @@ a.sc-label { color: inherit; font-weight: 600; }
 .cal-crumb { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 4px 0 12px; }
 .cal-crumb h2 { margin: 0; font-size: 20px; }
 .cal-row .pill { margin-right: 6px; }
+.quick-edit, .inline-editor { flex-basis: 100%; margin: 10px 0 0; display: grid; gap: 8px; }
+.qe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 12px; }
+.quick-edit .field { margin: 0; }
+.quick-edit .row-actions { justify-content: flex-start; gap: 8px; }
+.cal-status { gap: 6px; align-items: center; flex-wrap: wrap; }
+.cs-major { font-weight: 700; color: #8a5a00; }

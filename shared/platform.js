@@ -3,6 +3,8 @@ import { PLANS, FEATURES } from './catalog.js';
 import { TRACK_CONDITIONS, CAR_BEHAVIOUR, CONTACT_ROLES } from './baseForms3.js';
 
 export const SUPPLIER_CATEGORIES = ['Parts', 'Tires', 'Fuel & oil', 'Engines', 'Shocks & suspension', 'Chassis', 'Safety gear', 'Services', 'Other'];
+export const SANCTIONING_BODIES = ['Speedway Australia', 'Sprintcars Australia', 'Speedway Motorsports New Zealand', 'World of Outlaws', 'USAC',
+  'All Star Circuit of Champions', 'ASCS', 'NARC', 'POWRi', 'IMCA', 'Club sanctioned'];
 export const RACE_CLASSES = ['410 Sprintcars', '360 Sprintcars', '305 Sprintcars', 'Wingless Sprints', 'Speedcars / Midgets', 'Micro Sprints',
   'Late Models', 'Modifieds', 'Super Sedans', 'Street Stocks', 'Junior Sedans', 'Formula 500', 'Compact Speedcars'];
 
@@ -12,6 +14,8 @@ export const LISTS = [
   { key: 'car_behaviour', label: 'Car behaviour', help: 'Driver and crew lead feedback on setup sheets.', default: CAR_BEHAVIOUR, fields: [['setup', 'driver_feel'], ['setup', 'crew_feel']] },
   { key: 'contact_roles', label: 'Contact roles', help: 'Roles a contact can hold with a track, supplier, series, event or car.', default: CONTACT_ROLES, fields: [['contact_link', 'role']] },
   { key: 'supplier_categories', label: 'Supplier categories', help: 'Categories for team suppliers.', default: SUPPLIER_CATEGORIES, fields: [['supplier', 'category']] },
+  { key: 'sanctioning_bodies', label: 'Sanctioning bodies', help: 'Who sanctions a series or race meeting — picked on series, events and calendar dates.', default: SANCTIONING_BODIES,
+    fields: [['series', 'sanctioning'], ['event', 'sanctioning'], ['fixture', 'sanctioning']] },
   { key: 'race_classes', label: 'Race classes', help: 'Class quick-picks for the track directory, each team’s “Classes we race”, each car’s Class and the classes running on calendar dates.', default: RACE_CLASSES, fields: [['track', 'classes'], ['car', 'class'], ['fixture', 'classes'], ['season_plan', 'class']] },
 ];
 export const LIST = Object.fromEntries(LISTS.map((l) => [l.key, l]));

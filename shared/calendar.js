@@ -64,13 +64,16 @@ export function carsForFixture(fx, series, cars) {
 }
 
 /** Values for a new team event from a shared date. */
-export function eventFromFixture(fx, fixtureId, carId, seriesId) {
+export function eventFromFixture(fx, fixtureId, carId, seriesId, series = null) {
   const v = fx || {};
   const out = { name: v.name, date: v.date, fixture: fixtureId, car: carId, intent: 'Planned', event_type: seriesId ? 'Series' : 'Points race' };
   if (v.end_date) out.end_date = v.end_date;
   if (v.venue) out.venue = v.venue; else if (v.track) out.track = v.track;
   if (seriesId) out.series = seriesId;
   if (v.round) out.round = v.round;
+  const sanctioning = v.sanctioning || series?.sanctioning;
+  if (sanctioning) out.sanctioning = sanctioning;
+  if (v.major) { out.major = true; out.event_type = 'Special event'; if (v.major_name) out.major_name = v.major_name; }
   return out;
 }
 
@@ -94,6 +97,11 @@ export function sameFixture(a, b) {
 
 // ---------------------------------------------------------------- what's shown
 export const isWithdrawn = (v) => v?.outcome === WITHDREW;
+/** "★ Australian Sprintcar Title", or "★ Major event" when it has no name; '' if not a major event. */
+export const majorLabel = (v) => (v?.major ? `★ ${v.major_name || 'Major event'}` : '');
+/** Sanctioning body of a date or entry, falling back to its series'. */
+export const sanctioningOf = (v, series) => v?.sanctioning || series?.sanctioning || '';
+
 /** Short status for a team calendar entry. */
 export function entryStatus(v, today) {
   if (v?.intent === 'Not going') return { label: 'Not going', level: 'muted' };

@@ -92,6 +92,9 @@ export const FIELD_INFO = {
     withdraw_reason: ['Why the car was withdrawn during the meeting. Pick one or type your own — the calendar adds these up for the season.'],
     withdraw_session: ['The last session the car ran before withdrawing, e.g. “Heat 2”.'],
     outcome_notes: ['Anything else about how the meeting went for the team.'],
+    sanctioning: ['Who sanctions the meeting, e.g. Speedway Australia. Filled in from the series or the shared calendar date; pick from the list or type your own.'],
+    major: ['Tick for a title or big one-off meeting, e.g. the Australian Sprintcar Title.'],
+    major_name: ['The major event’s name, e.g. “Australian Sprintcar Title”. Shown with a ★ on the calendar, print-out and public page.'],
     public_note: ['A short note shown on your published calendar for this event, e.g. “Sponsor night — come and say hi”.'],
     name: ['Name of the race meeting, e.g. “Easter Spectacular”.'],
     venue: ['The track, picked from the directory — fills in location, length, surface and banking.'],
@@ -197,6 +200,7 @@ export const FIELD_INFO = {
     available_for: ['Cars this tyre can be used on.'],
   },
   dyno_run: {
+    initial: ['Tick on the first test of a shock or bar — when it was bought or first built. Later tests show how far they’ve moved from it (rate and split for bars, forces for shocks). One per shock or bar: ticking another moves it.'],
     asset: ['The shock or torsion bar tested.'],
     label: ['Valving or test label so runs can be compared, e.g. “4-2 rebound, 12 hole piston”.'],
     model: ['Shock or bar model.'],
@@ -349,7 +353,7 @@ export const FIELD_INFO = {
   series: {
     season: ['Season or year.'],
     class: ['Class the series is for.'],
-    sanctioning: ['Sanctioning body.'],
+    sanctioning: ['Who sanctions the series, e.g. Speedway Australia or the World of Outlaws. Pick from the list or type your own; its events and calendar dates use it unless they say otherwise.'],
     points: ['How points are awarded, and rules you need to remember.'],
   },
   fixture: {
@@ -361,6 +365,8 @@ export const FIELD_INFO = {
     venue: ['The track, picked from the directory.'],
     track: ['Only if the track isn’t in the directory: type its name.'],
     classes: ['Classes racing at this meeting. Teams with a car in one of these classes see the date as a match, and the right car is picked when they add it.'],
+    sanctioning: ['Who sanctions this meeting, if it differs from the series (or there is no series), e.g. Speedway Australia.'],
+    major_name: ['The major event’s name, e.g. “Australian Sprintcar Title” — the event name can then be the night (e.g. “Night 2”).'],
     major: ['Tick for a title or big one-off meeting (e.g. the Australian Sprintcar Title or a classic). It’s listed under Major events as well as on its track’s and series’ calendars.'],
     status: ['Scheduled, Postponed or Cancelled. Teams with the date on their calendar see the change.'],
     start_time: ['Gate and racing times, if published.'],

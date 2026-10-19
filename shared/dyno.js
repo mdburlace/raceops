@@ -41,3 +41,13 @@ export function curvesBySpeed(values) {
   if (loose.length) out.push({ speed: '', rows: loose });
   return out;
 }
+
+/**
+ * The initial measurement for a shock or bar: the run marked "Initial measurement" (taken at purchase
+ * or first build) for that asset. runs: [{ id, values }]. Leaves out `exceptId` (the run being viewed).
+ */
+export function initialRun(runs, assetId, exceptId = null) {
+  if (!assetId) return null;
+  return runs.filter((r) => r.id !== exceptId && r.values?.asset === assetId && r.values?.initial)
+    .sort((a, b) => String(a.values.date || '').localeCompare(String(b.values.date || '')))[0] || null;
+}

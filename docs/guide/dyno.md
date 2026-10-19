@@ -64,8 +64,20 @@ The table starts at 0–3 in every 0.5 in. If your tester only gives the two num
 - **Split (hysteresis).** Compression − rebound at the test travel, in lb and as a percentage. A growing split usually means the bar is tiring.
 - **Against baseline.** How this bar's rate compares with the baseline average for its size and type.
 - **Against nominal.** How the rate compares with the rate it's sold as.
+- **Since initial test.** How far the rate (and split) has moved since the bar's initial measurement.
 
 The curve shows compression (solid) and rebound (dashed). The **Torsion bar rate** calculator is beside the nominal rate.
+
+## Initial measurement (at purchase or first build)
+
+Tick **Initial measurement (at purchase or first build)** on the first test of a shock or bar: when it was bought, or first built or revalved. Every later test of that shock or bar is compared with it.
+
+- **Torsion bars:** **Since initial test** shows the change in rate, as a percentage, and in split.
+- **Non-adjustable shocks:** the readings show the change in compression and rebound force at about 5 in/s.
+- **Adjustable shocks:** each adjuster setting is compared with the setting of the same name in the initial run, such as *set 10* against *set 10*.
+- **The dyno list** marks the initial run with **Initial**. [Analytics → Shock fade](/help/analytics) measures from it.
+
+Each shock or bar has one initial measurement. If you tick it on another run, you're warned, and saving moves it to that run.
 
 ## Rate baselines
 
