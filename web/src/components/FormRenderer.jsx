@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { infoFor } from '@shared/fieldInfo.js';
+import { ADJUSTERS } from '@shared/baseForms2.js';
 import { FieldCalc } from './Calculator.jsx';
 import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
@@ -51,23 +52,36 @@ function Opt({ o }) {
   return <option value={value}>{label}</option>;
 }
 
-function AssetPicker({ field, value, onChange, data, compact }) {
+/**
+ * scope (corner pickers on setup sheets): { corner, car } — by default only assets for that
+ * position (or with no position) and that car (or no car) are listed; "Show all" lists the rest.
+ */
+function AssetPicker({ field, value, onChange, data, compact, scope }) {
   const assets = useMemo(() => data.list('asset')
     .filter((a) => !field.category || v(a, 'category') === field.category)
     .filter((a) => v(a, 'status') !== 'Retired' || a.id === assetRefId(value))
     .sort((a, b) => titleOf(a).localeCompare(titleOf(b))), [data, field.category, value]);
   const id = assetRefId(value);
   const [textMode, setTextMode] = useState(!id && !!value);
+  const [all, setAll] = useState(false);
+  const fits = (a) => !scope || ((!v(a, 'position') || ['N/A', 'Any'].includes(v(a, 'position')) || v(a, 'position') === scope.corner)
+    && (!scope.car || !v(a, 'car') || v(a, 'car') === scope.car));
+  const main = assets.filter((a) => fits(a) || a.id === id);
+  const others = scope ? assets.filter((a) => !main.includes(a)) : [];
+  const label = (a) => `${titleOf(a)}${v(a, 'spec') ? ` (${v(a, 'spec')})` : ''}${scope && v(a, 'position') && v(a, 'position') !== scope.corner ? ` — ${v(a, 'position')}` : ''}`;
   const sel = id || (textMode ? '__text' : '');
   return (
     <div className={`asset-picker${compact ? ' compact' : ''}`}>
       <select id={`f-${field.key}`} value={sel} onChange={(e) => {
         const x = e.target.value;
+        if (x === '__all') { setAll(true); return; }
         if (x === '__text') { setTextMode(true); onChange(''); }
         else { setTextMode(false); onChange(x ? { asset: x } : ''); }
       }}>
         <option value="">—</option>
-        {assets.map((a) => <option key={a.id} value={a.id}>{titleOf(a)}{v(a, 'spec') ? ` (${v(a, 'spec')})` : ''}</option>)}
+        {main.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}
+        {all && others.length > 0 && <optgroup label={`Other ${String(field.category || 'asset').toLowerCase()}s`}>{others.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}</optgroup>}
+        {!all && others.length > 0 && <option value="__all">Show all {String(field.category || 'asset').toLowerCase()}s ({others.length} more)…</option>}
         <option value="__text">Type a value…</option>
       </select>
       {sel === '__text' && (
@@ -133,7 +147,7 @@ function TagsInput({ id, value, onChange, suggestions = [], quick = [] }) {
   );
 }
 
-export function FieldInput({ field, value, onChange, data, form, suggestions, compact, values }) {
+export function FieldInput({ field, value, onChange, data, form, suggestions, compact, values, scope }) {
   const common = { id: `f-${field.key}`, placeholder: field.placeholder || '' };
   switch (field.type) {
     case 'textarea':
@@ -218,7 +232,7 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
       );
     }
     case 'asset':
-      return <AssetPicker field={field} value={value} onChange={onChange} data={data} compact={compact} />;
+      return <AssetPicker field={field} value={value} onChange={onChange} data={data} compact={compact} scope={scope} />;
     case 'text':
     default:
       return (
@@ -230,10 +244,50 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
   }
 }
 
-function Corners({ field, value, onChange, data, form, readOnly }) {
+/** Adjuster names for the shock picked at a corner: null = unknown (free text), [] = not adjustable. */
+export function shockAdjusters(values, corner, data) {
+  const a = data?.byId[assetRefId(values?.shocks?.[corner])];
+  if (!a) return null;
+  const t = v(a, 'adjust_type');
+  if (!t) return null;
+  return t === 'Non-adjustable' ? [] : ADJUSTERS[t] || null;
+}
+const ADJ_SEP = ' · ';
+export const parseAdjust = (s, names) => {
+  const out = {};
+  for (const part of String(s || '').split(ADJ_SEP)) {
+    const n = names.find((x) => part.startsWith(`${x} `));
+    if (n) out[n] = part.slice(n.length + 1);
+  }
+  return out;
+};
+const joinAdjust = (obj, names) => names.filter((n) => String(obj[n] ?? '').trim() !== '').map((n) => `${n} ${String(obj[n]).trim()}`).join(ADJ_SEP);
+
+function ShockAdjust({ field, corner, value, values, data, onChange }) {
+  const names = shockAdjusters(values, corner, data);
+  if (names === null) return <input id={`f-${field.key}-${corner}`} value={value || ''} placeholder={field.placeholder || 'e.g. 3 clicks'} onChange={(e) => onChange(e.target.value)} />;
+  if (!names.length) return <span className="ro muted small">Not adjustable</span>;
+  const parsed = parseAdjust(value, names);
+  const legacy = value && !Object.keys(parsed).length ? value : '';
+  return (
+    <div className={`adj-inputs n${names.length}`}>
+      {names.map((n) => (
+        <label key={n} className="adj-input"><span>{n}</span>
+          <input id={`f-${field.key}-${corner}-${n.replace(/\s+/g, '_')}`} inputMode="decimal" className="num" value={parsed[n] ?? ''} placeholder="clicks"
+            aria-label={`${corner} ${n}`} onChange={(e) => onChange(joinAdjust({ ...parsed, [n]: e.target.value }, names))} /></label>
+      ))}
+      {legacy && <small className="muted span-all">Was: {legacy}</small>}
+    </div>
+  );
+}
+
+function Corners({ field, value, onChange, data, form, readOnly, values }) {
   const corners = field.corners || ['LF', 'RF', 'LR', 'RR'];
   const sub = { ...field, type: field.input === 'asset' ? 'asset' : field.input || 'number', key: field.key };
   const val = value || {};
+  // setup sheets: shocks (and anything marked filterByCorner) list that corner's & car's assets first
+  const scoped = form?.data?.target === 'setup' && field.input === 'asset' && (field.category === 'Shock' || field.filterByCorner);
+  const adjust = form?.data?.target === 'setup' && field.key === 'shock_adjust';
   return (
     <div className={`corners n${corners.length}`}>
       {corners.map((c) => (
@@ -241,8 +295,10 @@ function Corners({ field, value, onChange, data, form, readOnly }) {
           <span className="corner-tag">{c}</span>
           {readOnly
             ? <span className="ro">{display(sub, val[c], data) || '—'}</span>
-            : <FieldInput compact field={{ ...sub, key: `${field.key}-${c}` }} value={val[c]} data={data} form={form}
-                onChange={(x) => onChange({ ...val, [c]: x })} />}
+            : adjust
+              ? <ShockAdjust field={field} corner={c} value={val[c]} values={values} data={data} onChange={(x) => onChange({ ...val, [c]: x })} />
+              : <FieldInput compact field={{ ...sub, key: `${field.key}-${c}` }} value={val[c]} data={data} form={form}
+                  scope={scoped ? { corner: c, car: values?.car } : undefined} onChange={(x) => onChange({ ...val, [c]: x })} />}
         </div>
       ))}
     </div>
@@ -351,7 +407,12 @@ function Field({ f, values, onChange, data, form, readOnly, errors, suggestions,
   } else if (f.type === 'table') {
     body = <TableField field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'corners') {
-    body = <Corners field={f} value={values[f.key]} data={data} form={form} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
+    // adjuster settings only when a picked shock is adjustable (or the shock isn't known)
+    if (f.key === 'shock_adjust' && form?.data?.target === 'setup') {
+      const known = (f.corners || ['LF', 'RF', 'LR', 'RR']).map((c) => shockAdjusters(values, c, data));
+      if (known.every((x) => Array.isArray(x) && x.length === 0) && !Object.values(values.shock_adjust || {}).some(Boolean)) return null;
+    }
+    body = <Corners field={f} value={values[f.key]} data={data} form={form} readOnly={readOnly} values={values} onChange={(x) => onChange(f.key, x)} />;
   } else if (readOnly) {
     body = <div className="ro">{display(f, values[f.key], data) || '—'}{values[f.key] && f.unit && f.type === 'number' ? <small> {f.unit}</small> : null}</div>;
   } else {

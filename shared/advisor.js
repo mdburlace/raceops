@@ -75,7 +75,7 @@ const cornerMatch = (ruleCorner, corner) => !ruleCorner || ruleCorner === corner
 const NOT_SETTINGS = new Set(['event', 'car', 'session', 'day', 'order', 'crew_chief', 'baseline', 'baseline_name', 'temp', 'baro', 'corrected', 'alt',
   'humidity', 'dew_point', 'grains', 'wind', 'weather_source',
   'adr', 'wb', 'laps', 'start', 'finish', 'fuel_start', 'fuel_finish', 'fuel_used', 'tach_low', 'tach_high', 'notes', 'pressure_hot', 'stagger_hot',
-  'travel', 'track_conditions', 'conditions_notes', 'driver_feel', 'driver_comments', 'crew_feel', 'crew_comments', 'changes_next']);
+  'travel', 'planned_laps', 'track_conditions', 'conditions_notes', 'driver_feel', 'driver_comments', 'crew_feel', 'crew_comments', 'changes_next']);
 
 const fieldsOf = (form) => (form?.data?.sections || []).flatMap((s) => s.fields);
 /** Stiffness of a bar/spring asset from its spec or name ("1000 lb/in", "Bar 1.025"). */

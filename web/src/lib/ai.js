@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import { useSession } from './session.jsx';
+import { isSheet, readSpreadsheet, sheetToText } from './sheets.js';
 
 /** Whether the AI assistant can be used right now (licence, role, team switch, allowance, online). */
 export function useAiStatus() {
@@ -27,11 +28,18 @@ const readAsDataUrl = (blob) => new Promise((ok, fail) => { const r = new FileRe
 
 /** Photos are shrunk on the phone (max 1600 px, JPEG) before upload; PDFs are sent as they are. */
 export async function fileToPart(file) {
+  if (isSheet(file)) {
+    // spreadsheets go to the AI as text (one block per sheet), so any layout can be read
+    const sheets = await readSpreadsheet(file);
+    const text = sheets.map((s) => `Sheet "${s.name}":\n${sheetToText(s)}`).join('\n\n').slice(0, 150_000);
+    if (!text.trim()) throw new Error(`${file.name} looks empty.`);
+    return { media_type: 'text/plain', name: file.name, text };
+  }
   if (file.type === 'application/pdf') {
     if (file.size > 6 * 1024 * 1024) throw new Error(`${file.name} is over 6 MB — use a photo or a smaller PDF.`);
     return { media_type: 'application/pdf', data: (await readAsDataUrl(file)).split(',')[1] };
   }
-  if (!file.type.startsWith('image/')) throw new Error(`${file.name} isn't a photo or PDF.`);
+  if (!file.type.startsWith('image/')) throw new Error(`${file.name} isn't a photo, PDF or spreadsheet (Excel .xlsx or CSV).`);
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => fail(new Error(`Couldn't open ${file.name}.`)); i.src = url; });

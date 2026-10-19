@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { SpeechRecognition, fileToPart, useAiStatus, aiChanged } from '../lib/ai.js';
+import { SHEET_ACCEPT } from '../lib/sheets.js';
 import { allFields } from '../lib/data.js';
 import { parseSweep, parseTable } from '../lib/parse.js';
 import { useSession } from '../lib/session.jsx';
@@ -89,10 +90,10 @@ function PhotoFill({ form, values, onReview, onError }) {
 
   return (
     <>
-      <input ref={input} type="file" hidden multiple accept="image/*,application/pdf" aria-label="Photos to read"
+      <input ref={input} type="file" hidden multiple accept={`image/*,application/pdf,${SHEET_ACCEPT}`} aria-label="Photos to read"
         onChange={(e) => { if (e.target.files.length) read(e.target.files); e.target.value = ''; }} />
       <button type="button" className="btn small ai-btn" disabled={busy} onClick={() => input.current?.click()}>
-        <Icon d={SPARK} size={16} />{busy ? 'Reading…' : 'Fill from photo'}
+        <Icon d={SPARK} size={16} />{busy ? 'Reading…' : 'Fill from photo, PDF or Excel'}
       </button>
     </>
   );

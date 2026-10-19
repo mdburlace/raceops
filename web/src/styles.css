@@ -1036,3 +1036,21 @@ html.scrolled .calc-filters { box-shadow: 0 8px 10px -10px rgba(0,0,0,.3); }
 .feed-option { margin: 8px 0; }
 .feed-option .check-row span { font-weight: 600; }
 .feed-option p { margin: 2px 0 0 30px; }
+
+.paste-file { margin-bottom: 8px; }
+.file-btn { position: relative; overflow: hidden; cursor: pointer; }
+.file-btn input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+
+/* shock adjusters per shock type */
+.adj-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 6px; width: 100%; }
+.adj-inputs.n1 { grid-template-columns: 1fr; }
+.adj-input { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.adj-input span { font-size: 11px; color: var(--muted); font-weight: 600; }
+.adj-input input { min-height: 34px; }
+.adj-inputs .span-all { grid-column: 1 / -1; }
+
+/* fuel planner */
+.fuel-planner { display: grid; gap: 6px; padding: 10px 12px; margin-bottom: 10px; border: 1px solid var(--line-2); border-radius: 10px; }
+.fuel-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.fuel-row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.fuel-start { font-size: 1.15em; }

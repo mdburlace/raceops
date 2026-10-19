@@ -201,5 +201,13 @@ export const PHASE3_UPGRADES = [
   { target: 'setup', section: 'weather', after: 'dew_point', field: { key: 'grains', label: 'Water grains', type: 'number', unit: 'gr' } },
   { target: 'setup', section: 'weather', after: 'grains', field: { key: 'wind', label: 'Wind', type: 'text', placeholder: 'e.g. 12 mph SE' } },
   { target: 'setup', section: 'weather', after: 'wind', field: { key: 'weather_source', label: 'Weather from', type: 'text', placeholder: 'e.g. own weather station' } },
+  // bump rubbers (per corner) and fuel planning
+  { target: 'setup', section: 'shocks', after: 'travel', field: { key: 'bump_type', label: 'Bump rubber type', type: 'corners', input: 'text', corners: ['LF', 'RF', 'LR', 'RR'], placeholder: 'e.g. Penske' } },
+  { target: 'setup', section: 'shocks', after: 'bump_type', field: { key: 'bump_spec', label: 'Bump rubber spec', type: 'corners', input: 'text', corners: ['LF', 'RF', 'LR', 'RR'], placeholder: 'e.g. 70A / red' } },
+  { target: 'setup', section: 'shocks', after: 'bump_spec', field: { key: 'bump_height', label: 'Bump rubber height', type: 'corners', input: 'number', corners: ['LF', 'RF', 'LR', 'RR'], unit: 'in' } },
+  { target: 'setup', section: 'shocks', after: 'bump_height', field: { key: 'bump_packers', label: 'Packers', type: 'corners', input: 'number', corners: ['LF', 'RF', 'LR', 'RR'] } },
+  { target: 'setup', section: 'shocks', after: 'bump_packers', field: { key: 'bump_gap', label: 'Bump rubber gap', type: 'corners', input: 'number', corners: ['LF', 'RF', 'LR', 'RR'], unit: 'in' } },
+  { target: 'setup', section: 'race', first: true, field: { key: 'planned_laps', label: 'Planned laps', type: 'number', placeholder: 'race laps' } },
+  { target: 'car', section: 'car', after: 'rp_ratio', field: { key: 'fuel_min', label: 'Minimum fuel (pickup)', type: 'number', unit: 'gal', placeholder: 'e.g. 1.5' } },
   ...SHOP_UPGRADES,
 ];

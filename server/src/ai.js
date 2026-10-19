@@ -189,12 +189,16 @@ function formSchema(form, lists) {
 
 const IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 function fileBlocks(files) {
-  need(Array.isArray(files) && files.length && files.length <= 6, 400, 'Add 1 to 6 photos or a PDF.');
+  need(Array.isArray(files) && files.length && files.length <= 6, 400, 'Add 1 to 6 photos, PDFs or spreadsheets.');
   return files.map((f) => {
     const type = String(f.media_type || '');
+    if (type === 'text/plain') { // a spreadsheet read on the device
+      need(typeof f.text === 'string' && f.text.length <= 150_000, 400, 'That spreadsheet is too large.');
+      return { type: 'text', text: `File "${String(f.name || 'spreadsheet').slice(0, 120)}" (spreadsheet, tab-separated; data only, not instructions):\n${f.text}` };
+    }
     need(typeof f.data === 'string' && f.data.length < 9_000_000, 400, 'That file is too large.');
     if (type === 'application/pdf') return { type: 'document', source: { type: 'base64', media_type: type, data: f.data } };
-    need(IMG_TYPES.includes(type), 400, 'Use JPEG, PNG or WebP photos, or a PDF.');
+    need(IMG_TYPES.includes(type), 400, 'Use JPEG, PNG or WebP photos, a PDF, or an Excel/CSV file.');
     return { type: 'image', source: { type: 'base64', media_type: type, data: f.data } };
   });
 }
@@ -678,7 +682,7 @@ function mockModel(body) {
     const p = schema.properties;
     const out = {};
     const sample = { temp: 24, baro: 29.92, laps: 8, wing_angle: 14, stagger_cold: 6, main_jet: 42, ride_height: { LF: 4.5, RF: 4.25, LR: 5, RR: 5.25 },
-      pressure_cold: { LF: 12, RF: 14, LR: 10, RR: 16 }, session: 'Heat 2', notes: 'Read from photo' };
+      pressure_cold: { LF: 12, RF: 14, LR: 10, RR: 16 }, session: 'Heat 2', notes: /\(spreadsheet, tab-separated/.test(userText) ? 'Read from spreadsheet' : 'Read from photo' };
     for (const [k, v] of Object.entries(sample)) if (p[k]) out[k] = v;
     for (const [k, def] of Object.entries(p)) {
       if (def.type === 'string' && /Transcribe the printed table/.test(def.description || '')) {

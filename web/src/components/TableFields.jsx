@@ -1,11 +1,30 @@
 import { useState } from 'react';
 import { ADJUSTERS } from '@shared/baseForms2.js';
 import { fillX, parseGearSets, parseSweep, parseTable } from '../lib/parse.js';
+import { SHEET_ACCEPT, readSpreadsheet, sheetToText } from '../lib/sheets.js';
 
 function PastePanel({ onApply, onClose, hint, allowAppend = true }) {
   const [text, setText] = useState('');
+  const [sheets, setSheets] = useState(null);
+  const [err, setErr] = useState('');
+  const load = async (file) => {
+    setErr('');
+    try {
+      const s = await readSpreadsheet(file);
+      if (!s.some((x) => x.rows.length)) throw new Error('That file has no rows.');
+      setSheets(s.length > 1 ? s : null);
+      setText(sheetToText(s.find((x) => x.rows.length)));
+    } catch (e) { setErr(e.message); }
+  };
   return (
     <div className="paste-panel">
+      <div className="inline-row wrap paste-file">
+        <label className="btn small ghost file-btn">Load Excel / CSV file
+          <input type="file" accept={SHEET_ACCEPT} aria-label="Spreadsheet to import" onChange={(e) => { if (e.target.files[0]) load(e.target.files[0]); e.target.value = ''; }} /></label>
+        {sheets && <select aria-label="Sheet" onChange={(e) => setText(sheetToText(sheets[Number(e.target.value)]))}>{sheets.map((s, i) => <option key={s.name} value={i}>{s.name}</option>)}</select>}
+        <span className="muted small">or paste below — check the columns, then Replace or Add.</span>
+      </div>
+      {err && <div className="notice error small">{err}</div>}
       <textarea rows={6} value={text} onChange={(e) => setText(e.target.value)} placeholder={hint} aria-label="Paste data" autoFocus />
       <div className="inline-row end">
         <button type="button" className="btn small ghost" onClick={onClose}>Cancel</button>

@@ -178,8 +178,20 @@ Pull or replace the files and **re-deploy** the stack with "re-pull / rebuild" t
 - A shock asset, and each dyno run, can be **Non-adjustable, Single, Two-way, Three-way or Four-way**. Picking the shock on a run brings its type across.
 - An adjustable run stores **one block per adjuster setting**: a label, the adjuster positions (LS/HS comp, LS/HS reb as applicable), a note such as "good if rough/heavy", and optional readings. All settings overlay on one graph; click a legend entry to hide or show it.
 - **Paste whole printout** imports Kenco/Slade/Roehrig/Intercomp text: each title line starts a new setting, and header rows such as `Speed CC RO RC CO` map the columns.
-- Single tables also have **Paste / import** and **Fill velocity** (e.g. 0–10 every 0.25).
-- Setup sheets now record the **Adjuster settings** per corner, plus gear **position** and **final drive**.
+- Single tables also have **Paste / import** and **Fill velocity** (e.g. 0–10 every 0.25). **Paste / import** can also **Load Excel / CSV file** (.xlsx, .csv, .tsv; pick the sheet if there are several). Old-style .xls files need saving as .xlsx first.
+- **Shocks on setup sheets:** each corner lists shocks set to that **position** (or with no position) and for that car (or no car). **Show all shocks…** at the bottom of the list adds the rest.
+- **Adjuster settings** follow the shock picked at each corner. A two-way shows *Comp* and *Reb*, a three-way *LS comp / HS comp / Reb*, a four-way all four. A non-adjustable shock shows *Not adjustable*. If all four shocks are non-adjustable, the field is hidden. A shock typed in by hand, or with no type set, gets a free-text box.
+- **Bump rubbers** per corner: type, spec, height, number of packers and gap.
+- Setup sheets also record gear **position** and **final drive**.
+
+### Fuel planner
+
+The **Race** section of a setup sheet opens with a fuel plan:
+
+- **Fuel per lap** comes from sessions with laps, fuel started and fuel finished filled in. It uses this event's earlier sessions and this track with this engine at other events (track matched by track record, or name). If there are none, it falls back to this track with this car, then this car anywhere. The sources and session counts are shown.
+- **Planned laps** × fuel per lap + the car's **Minimum fuel (pickup)** = the fuel to start with. **Use as fuel started** puts it in.
+- Set **Minimum fuel (pickup)** on the car: the least fuel that keeps the pickup covered under load.
+- Warnings show if fuel started is below the plan, or fuel finished came in under the minimum.
 
 ### Areas, access and licensing
 
@@ -229,7 +241,7 @@ The AI features use Claude through the Anthropic API. They're off until a platfo
 
 | Feature | Where | How it works |
 |---|---|---|
-| **Fill from photo** | The **AI** bar on any form you can edit: setup sheets, dyno runs, engine builds, maintenance… | Take or pick up to 6 photos, or a PDF: a paper setup sheet, a tire-temperature card, a dyno printout. The AI reads them and lists the values it found next to what's already there. Untick anything wrong, then **Apply**. Dyno printout tables go through the same importer as *Paste whole printout*, so each setting becomes its own curve. Only clearly readable values are filled; nothing is guessed. |
+| **Fill from photo** | The **AI** bar on any form you can edit: setup sheets, dyno runs, engine builds, maintenance… | Take or pick up to 6 photos, a PDF, or an Excel / CSV file: a paper setup sheet, a tire-temperature card, a dyno printout. The AI reads them and lists the values it found next to what's already there. Untick anything wrong, then **Apply**. Dyno printout tables go through the same importer as *Paste whole printout*, so each setting becomes its own curve. Only clearly readable values are filled; nothing is guessed. |
 | **Voice debrief** | Setup sheets → **Voice debrief** | Choose Driver or Crew lead, tap **Talk** (or use the keyboard's microphone) and describe the session. **Fill feedback** turns it into track-condition and car-behaviour descriptions from your pick-lists, tidied comments, track notes and *changes for next session*, all shown for review first. Offline, **Save to comments as is** keeps the words so they can be tidied later. |
 | **Ask RaceOps** | **Ask RaceOps** in the menu | Questions in plain English about your records, e.g. "What did we run last time the track was slick?" or "Which shocks are due for service?" Answers link to the setup sheets, events and assets they came from. It can only **read** what that person is allowed to see, and it never changes anything. |
 
@@ -257,7 +269,7 @@ The AI features use Claude through the Anthropic API. They're off until a platfo
 
 **+ Add to changes** appends a remedy to the sheet's *Changes for next session*. With the AI add-on, **Talk it through** weighs the history against the guides and suggests one to four changes in order, linked to the sessions and guide rules they're based on.
 
-**Tuning guides** (from the advisor page) lists the guides. Two shared guides are seeded for every team: *XXX Tech Department — Recommended Chassis Adjustments* and *J & J Auto Racing — Chassis Adjustment Guide*. Only the platform admin can edit shared guides. Teams can add their own, type rules in, or **Import a guide from PDF or photo** (AI) and check the rules before saving. A rule linked to a setup setting and direction (e.g. *Stagger ↓*) can be matched against the team's history. Rules without one are still listed.
+**Tuning guides** (from the advisor page) lists the guides. Two shared guides are seeded for every team: *XXX Tech Department — Recommended Chassis Adjustments* and *J & J Auto Racing — Chassis Adjustment Guide*. Only the platform admin can edit shared guides. Teams can add their own, type rules in, or **Import a guide from PDF, photo or Excel** (AI) and check the rules before saving. A rule linked to a setup setting and direction (e.g. *Stagger ↓*) can be matched against the team's history. Rules without one are still listed.
 
 Setup sheets also gained a **Weights & chassis** section with total weight, left/rear/cross %, wing position, nose wing, LR radius rod and rear steer, so more guide remedies can be tracked.
 

@@ -7,6 +7,7 @@ import { TRACK_CONDITIONS } from '@shared/baseForms3.js';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { I, Icon } from '../components/Layout.jsx';
 import { api } from '../lib/api.js';
+import { SHEET_ACCEPT } from '../lib/sheets.js';
 import { aiChanged, fileToPart, useAiStatus } from '../lib/ai.js';
 import { eventTrack, fmtDate, formFor, platformList, titleOf, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
@@ -257,9 +258,9 @@ export function GuideList() {
         <div className="card ai-bar">
           <div className="inline-row wrap">
             <span className="ai-tag"><Icon d={I.spark} size={16} />AI</span>
-            <input ref={input} type="file" hidden multiple accept="image/*,application/pdf" aria-label="Guide file"
+            <input ref={input} type="file" hidden multiple accept={`image/*,application/pdf,${SHEET_ACCEPT}`} aria-label="Guide file"
               onChange={(e) => { if (e.target.files.length) importFile(e.target.files); e.target.value = ''; }} />
-            <button type="button" className="btn small ai-btn" disabled={!st.available || busy} onClick={() => input.current?.click()}>{busy ? 'Reading…' : 'Import a guide from PDF or photo'}</button>
+            <button type="button" className="btn small ai-btn" disabled={!st.available || busy} onClick={() => input.current?.click()}>{busy ? 'Reading…' : 'Import a guide from PDF, photo or Excel'}</button>
             <span className="muted small">{st.available ? 'You check every rule before it’s saved.' : st.reason}</span>
           </div>
           {err && <div className="notice error small">{err}</div>}

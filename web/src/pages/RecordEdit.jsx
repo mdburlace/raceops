@@ -5,6 +5,7 @@ import { AiTools } from '../components/Ai.jsx';
 import { WeatherTools, useWeatherUnits, withWeatherUnits } from '../components/Weather.jsx';
 import { calcContext } from '../components/Calculator.jsx';
 import { EngineChecks } from '../components/EngineChecks.jsx';
+import { FuelPlanner } from '../components/FuelPlanner.jsx';
 import { JobExtras } from './Shop.jsx';
 import { nextJobNo, shopSettings } from '@shared/shop.js';
 import { FIELD_CALCS, cornerPercents } from '@shared/calcs.js';
@@ -366,7 +367,8 @@ export default function RecordEdit() {
 
       <FormRenderer form={type === 'setup' ? withWeatherUnits(form, wxUnits) : form} values={values} onChange={onChange} data={data} readOnly={readOnly}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
-        sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}
+        sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
+          race: <FuelPlanner id={id} data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />
       {type === 'engine_build' && <EngineChecks values={values} />}
       {type === 'job' && <JobExtras id={id} values={values} isNew={isNew} />}
