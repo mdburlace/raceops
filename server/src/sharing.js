@@ -108,7 +108,7 @@ async function checkLimit(db, t, engineId) {
   need(n < Number(limit), 409, `Your plan allows ${limit} shared engine${Number(limit) === 1 ? '' : 's'} at a time. Turn off sharing on another engine, or ask about a bigger plan.`);
 }
 
-const linkOut = (l) => ({ id: l.id, status: l.status, code: l.status === 'pending' ? l.code : undefined, team: l.team_name || null, created_at: l.created_at, accepted_at: l.accepted_at, ended_at: l.ended_at, ended_reason: l.ended_reason });
+const linkOut = (l) => ({ id: l.id, status: l.status, feed_lifecycle: !!l.feed_lifecycle, code: l.status === 'pending' ? l.code : undefined, team: l.team_name || null, created_at: l.created_at, accepted_at: l.accepted_at, ended_at: l.ended_at, ended_reason: l.ended_reason });
 
 // ---------------------------------------------------------------- public (no login)
 const hits = new Map();
@@ -232,8 +232,8 @@ export function mountSharing(T) {
       }
       const { rows: [dup] } = await c.query(`SELECT 1 FROM engine_links WHERE team_tenant_id=$1 AND team_asset_id=$2 AND status='active'`, [req.tid, assetIdOut]);
       need(!dup, 409, 'That engine is already linked to an engine builder.');
-      const { rows: [x] } = await c.query(`UPDATE engine_links SET status='active', team_tenant_id=$2, team_asset_id=$3, accepted_by=$4, accepted_at=now() WHERE id=$1 RETURNING *`,
-        [l.id, req.tid, assetIdOut, req.user.id]);
+      const { rows: [x] } = await c.query(`UPDATE engine_links SET status='active', team_tenant_id=$2, team_asset_id=$3, accepted_by=$4, accepted_at=now(), feed_lifecycle=$5 WHERE id=$1 RETURNING *`,
+        [l.id, req.tid, assetIdOut, req.user.id, !!b.feed_lifecycle]);
       return x;
     });
     res.json({ id: out.id, asset_id: out.team_asset_id });
@@ -247,7 +247,34 @@ export function mountSharing(T) {
     const out = [];
     for (const l of rows) {
       const pack = l.status === 'active' ? await packFor(DB, l.shop_tenant_id, l.engine_id, l) : l.snapshot;
-      out.push({ id: l.id, status: l.status, shop: l.shop_name, team_asset_id: l.team_asset_id, accepted_at: l.accepted_at, ended_at: l.ended_at, ended_reason: l.ended_reason, pack });
+      out.push({ id: l.id, status: l.status, shop: l.shop_name, team_asset_id: l.team_asset_id, feed_lifecycle: !!l.feed_lifecycle, accepted_at: l.accepted_at, ended_at: l.ended_at, ended_reason: l.ended_reason, pack });
+    }
+    res.json(out);
+  }));
+
+  // team: choose whether this engine's laps count on the builder's service tracker
+  T.patch('/linked-engines/:id', h(async (req, res) => {
+    need(!req.readOnly, 403, 'This team is read-only.');
+    need(canType(req.role, req.ent, 'asset', 'edit'), 403, 'Not permitted');
+    need(typeof req.body?.feed_lifecycle === 'boolean', 400, 'feed_lifecycle must be true or false');
+    const { rows: [l] } = await q(`UPDATE engine_links SET feed_lifecycle=$3 WHERE id=$1 AND team_tenant_id=$2 AND status='active' RETURNING id, feed_lifecycle`,
+      [req.params.id, req.tid, req.body.feed_lifecycle]);
+    need(l, 404, 'Active link not found');
+    res.json(l);
+  }));
+
+  // shop: laps since last service for every engine whose team counts them on the shop's tracker
+  T.get('/engine-usage', h(async (req, res) => {
+    need(canType(req.role, req.ent, 'asset', 'view') || canType(req.role, req.ent, 'job', 'view'), 403, 'Not permitted');
+    const { rows: links } = await q(`SELECT * FROM engine_links WHERE shop_tenant_id=$1 AND status='active' AND feed_lifecycle`, [req.tid]);
+    const out = {};
+    if (links.length) {
+      const { rows } = await q(`SELECT id, type, data FROM records WHERE tenant_id=$1 AND NOT deleted AND type='job'`, [req.tid]);
+      for (const l of links) {
+        const jobs = rows.filter((r) => vals(r).engine === l.engine_id);
+        const u = await teamUsage(DB, l, lastServiceDate(jobs));
+        if (u) out[l.engine_id] = u;
+      }
     }
     res.json(out);
   }));

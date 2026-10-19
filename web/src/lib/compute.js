@@ -29,13 +29,20 @@ function usageFrom(setups, data, sinceDate) {
   };
 }
 
+// Engine shops: laps a linked race team counts on the shop's service tracker (per engine, the
+// team's choice), loaded from the server by the session and cached for offline use.
+let LINKED = {};
+export const setLinkedUsage = (map) => { LINKED = map || {}; };
+export const linkedUsage = (id) => LINKED[id] || null;
+
 /** Lifecycle status for an asset. */
 export function assetLife(asset, data, byAsset = setupsByAsset(data)) {
   const unit = v(asset, 'life_unit') || 'Laps';
   const limit = num(v(asset, 'life_limit'));
   const offset = num(v(asset, 'usage_offset')) || 0;
   const u = usageFrom(byAsset[asset.id] || [], data);
-  const used = unit === 'Laps' ? u.laps + offset : unit === 'Races' ? u.races + offset : offset;
+  const linked = unit === 'Laps' ? LINKED[asset.id] || null : null;
+  const used = unit === 'Laps' ? u.laps + offset + (linked?.laps || 0) : unit === 'Races' ? u.races + offset : offset;
   const pct = limit ? used / limit : null;
   const exp = v(asset, 'expiry_date');
   const daysToExpiry = exp ? Math.round((new Date(`${exp}T00:00:00`) - new Date(`${today()}T00:00:00`)) / 864e5) : null;
@@ -43,7 +50,7 @@ export function assetLife(asset, data, byAsset = setupsByAsset(data)) {
   if ((pct !== null && pct >= 1) || (daysToExpiry !== null && daysToExpiry < 0)) level = 'over';
   else if ((pct !== null && pct >= 0.8) || (daysToExpiry !== null && daysToExpiry <= 60)) level = 'warn';
   if (v(asset, 'status') === 'Out for Service' && level === 'ok') level = 'warn';
-  return { unit, limit, used, pct, daysToExpiry, level, laps: u.laps, races: u.races, setups: u.setups };
+  return { unit, limit, used, pct, daysToExpiry, level, laps: u.laps, races: u.races, setups: u.setups, linked };
 }
 
 /** Due status for a maintenance schedule. */

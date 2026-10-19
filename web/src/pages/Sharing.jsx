@@ -92,7 +92,8 @@ export function CustomerAccess({ asset }) {
   const [st, setSt] = useState(null);
   const [err, setErr] = useState('');
   const [copied, setCopied] = useState('');
-  const load = () => api(`/t/${tid}/engines/${asset.id}/sharing`).then(setSt).catch((e) => setErr(e.message));
+  // refreshing this panel also refreshes the team laps counted on lifecycle bars
+  const load = () => api(`/t/${tid}/engines/${asset.id}/sharing`).then((x) => { setSt(x); window.dispatchEvent(new Event('raceops:linked-changed')); }).catch((e) => setErr(e.message));
   useEffect(() => { if (online) load(); }, [asset.id, online]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!canType('job', 'view')) return null;
   const edit = canType('job', 'edit');
@@ -128,6 +129,7 @@ export function CustomerAccess({ asset }) {
               <>
                 <p><Pill level="ok">Linked</Pill> <b>{active.team}</b> since {fmtDate(active.accepted_at)}</p>
                 {st.usage && <p className="small"><b>{st.usage.laps}</b> laps in {st.usage.sessions} session{st.usage.sessions === 1 ? '' : 's'} since {st.usage.since ? fmtDate(st.usage.since) : 'the link started'}{st.usage.last ? ` · last raced ${fmtDate(st.usage.last)}` : ''}</p>}
+                <p className="small">{active.feed_lifecycle ? <><Pill level="ok">On</Pill> The team counts these laps on your service tracker, so this engine’s lifecycle bar includes them.</> : <><Pill level="muted">Off</Pill> The team hasn’t chosen to count these laps on your service tracker — the lifecycle bar shows only laps you record.</>}</p>
                 <p className="muted small">Only the engine’s laps and session dates come across — never their setups, tracks or results.</p>
                 {edit && <button type="button" className="btn small ghost danger" onClick={() => window.confirm(`End the link with ${active.team}? They keep a copy of the build history as it is today.`) && act(() => api(`/t/${tid}/engine-links/${active.id}/end`, { method: 'POST' }))}>End link</button>}
               </>
@@ -163,12 +165,13 @@ export function LinkEngine() {
   const [pick, setPick] = useState('');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
+  const [feed, setFeed] = useState(false);
   useEffect(() => { setInfo(null); setErr(''); api(`/t/${tid}/engine-invites/${encodeURIComponent(code)}`).then((x) => { setInfo(x); setName(x.engine); }).catch((e) => setErr(e.message)); }, [tid, code]);
   const engines = data ? data.list('asset').filter((a) => v(a, 'category') === 'Engine').sort((a, b) => titleOf(a).localeCompare(titleOf(b))) : [];
   const accept = async () => {
     setBusy(true); setErr('');
     try {
-      await api(`/t/${tid}/engine-invites/${encodeURIComponent(code)}/accept`, { method: 'POST', body: pick && pick !== '__new' ? { asset_id: pick } : { new_engine_name: name } });
+      await api(`/t/${tid}/engine-invites/${encodeURIComponent(code)}/accept`, { method: 'POST', body: { ...(pick && pick !== '__new' ? { asset_id: pick } : { new_engine_name: name }), feed_lifecycle: feed } });
       nav('/engines?linked=1', { replace: true });
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
@@ -191,9 +194,21 @@ export function LinkEngine() {
               <option value="__new">It’s not in RaceOps yet — add it</option>
             </select></div>
           {pick === '__new' && <div className="field"><label htmlFor="le-name">Name for the engine</label><input id="le-name" value={name} onChange={(e) => setName(e.target.value)} /></div>}
+          <FeedOption shop={info.shop} checked={feed} onChange={setFeed} />
           <div className="inline-row"><button type="button" className="btn primary" disabled={busy || !pick || (pick === '__new' && !name.trim())} onClick={accept}>{busy ? 'Linking…' : 'Link engine'}</button></div>
         </Section>
       )}
+    </div>
+  );
+}
+
+/** The team's per-engine choice: count our laps on the builder's service tracker. */
+function FeedOption({ shop, checked, onChange, disabled }) {
+  return (
+    <div className="feed-option">
+      <label className="check-row"><input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+        <span>Count our laps on {shop}’s service tracker for this engine</span></label>
+      <p className="muted small">When on, the laps you record on setup sheets with this engine count towards its service interval in {shop}’s app, so their lifecycle bar matches yours and they can tell you when it’s due. They already see the lap count either way; this only decides whether it counts on their tracker. You can change it at any time.</p>
     </div>
   );
 }
@@ -238,6 +253,7 @@ export function LinkedEngineDetail() {
   const nav = useNavigate();
   const [l, setL] = useState(null);
   const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
   useEffect(() => { api(`/t/${tid}/linked-engines`).then((xs) => { const x = xs.find((y) => y.id === id); if (x) setL(x); else setErr('Not found.'); }).catch((e) => setErr(e.message)); }, [tid, id]);
   if (err) return <div><PageHeader title="Linked engine" back="/engines" /><div className="notice">{err}</div></div>;
   if (!l) return <p className="pad muted">Loading…</p>;
@@ -253,6 +269,16 @@ export function LinkedEngineDetail() {
           }}>End link</button>
         )}
       </PageHeader>
+      {l.status === 'active' && (
+        <Section title="Service tracking">
+          <FeedOption shop={l.shop} checked={!!l.feed_lifecycle} disabled={!canType('asset', 'edit')}
+            onChange={async (x) => {
+              const before = l.feed_lifecycle;
+              setL({ ...l, feed_lifecycle: x }); setSaving(true); // show the change at once; undo if it doesn't save
+              try { await api(`/t/${tid}/linked-engines/${l.id}`, { method: 'PATCH', body: { feed_lifecycle: x } }); } catch (e) { setL((cur) => ({ ...cur, feed_lifecycle: before })); window.alert(e.message); } finally { setSaving(false); }
+            }} />
+        </Section>
+      )}
       <EnginePackView pack={l.pack} frozen={l.status === 'ended' ? `This is a copy as at ${fmtDate(l.ended_at)} (${l.ended_reason}). Ask ${l.shop} to link it again for updates.` : null} />
     </div>
   );

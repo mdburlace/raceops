@@ -1033,3 +1033,6 @@ html.scrolled .calc-filters { box-shadow: 0 8px 10px -10px rgba(0,0,0,.3); }
 .pack .ps-table { margin: 6px 0; }
 .pack .ps-table th, .pack .ps-table td { border-bottom-color: var(--line); }
 @media print { .share-page { padding: 0; } .pack .card { box-shadow: none; border: 0; padding: 0; } }
+.feed-option { margin: 8px 0; }
+.feed-option .check-row span { font-weight: 600; }
+.feed-option p { margin: 2px 0 0 30px; }

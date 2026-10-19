@@ -5,6 +5,8 @@ import { fullResync, setSyncTenant, syncNow } from './sync.js';
 import { can as canP, canType as canT, canArea as canA, canModule as canM, entitlements } from '@shared/catalog.js';
 import { setMembersCache, setPlatformLists } from './data.js';
 import { applyPrefsTheme } from './theme.js';
+import { setLinkedUsage } from './compute.js';
+import { isShop } from '@shared/shop.js';
 
 // Preference changes made offline wait here (per user) until they reach the server.
 const pendingKey = (uid) => `raceops.prefs.pending.${uid}`;
@@ -110,6 +112,24 @@ export function SessionProvider({ children }) {
     return () => { cancelled = true; };
   }, [membership?.tenant_id]);
 
+  // engine shops: team laps that count on the shop's service tracker (cached for offline)
+  const [linkedVersion, setLinkedVersion] = useState(0);
+  const shopTeam = isShop(membership);
+  useEffect(() => {
+    const tid = membership?.tenant_id;
+    setLinkedUsage({});
+    if (!tid || !shopTeam) return undefined;
+    let cancelled = false;
+    const apply = (m) => { if (!cancelled) { setLinkedUsage(m); setLinkedVersion((x) => x + 1); } };
+    getMeta(`linked:${tid}`, {}).then(apply);
+    const load = () => { if (navigator.onLine) api(`/t/${tid}/engine-usage`).then(async (m) => { await setMeta(`linked:${tid}`, m); apply(m); }).catch(() => {}); };
+    load();
+    const t = setInterval(() => { if (!document.hidden) load(); }, 5 * 60 * 1000);
+    window.addEventListener('online', load);
+    window.addEventListener('raceops:linked-changed', load);
+    return () => { cancelled = true; clearInterval(t); window.removeEventListener('online', load); window.removeEventListener('raceops:linked-changed', load); };
+  }, [membership?.tenant_id, shopTeam]);
+
   useEffect(() => {
     setSyncTenant(membership?.tenant_id || null);
     if (membership) syncNow();
@@ -126,6 +146,7 @@ export function SessionProvider({ children }) {
     role: membership?.role,
     ent,
     membersVersion,
+    linkedVersion,
     platform,
     licence: membership?.licence || 'active',
     can: (p) => canP(membership?.role, p),
@@ -135,7 +156,7 @@ export function SessionProvider({ children }) {
     licensed: (f) => ent.has(f),
     login, logout, refresh,
     switchTenant: (id) => update({ ...loadSession(), tenantId: id }),
-  }), [session, membership, ent, membersVersion, login, logout, refresh, update, prefs, setPrefs]);
+  }), [session, membership, ent, membersVersion, linkedVersion, login, logout, refresh, update, prefs, setPrefs]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

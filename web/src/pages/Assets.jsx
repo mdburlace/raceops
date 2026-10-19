@@ -132,6 +132,7 @@ export function AssetDetail() {
           <dl className="kv">
             <dt>Usage</dt><dd>{lifeText(life) || '—'}</dd>
             <dt>From setups</dt><dd>{life.laps} laps · {life.races} race meeting{life.races === 1 ? '' : 's'}</dd>
+            {life.linked ? <><dt>From {life.linked.team}</dt><dd>{life.linked.laps} laps in {life.linked.sessions} session{life.linked.sessions === 1 ? '' : 's'} since {life.linked.since ? fmtDate(life.linked.since) : 'the link started'} <span className="muted small">— counted by the team’s choice</span></dd></> : null}
             {num(v(a, 'usage_offset')) ? <><dt>Manual adj.</dt><dd>{v(a, 'usage_offset')}</dd></> : null}
             {v(a, 'expiry_date') && <><dt>Expiry</dt><dd>{fmtDate(v(a, 'expiry_date'))}</dd></>}
           </dl>

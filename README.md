@@ -339,6 +339,7 @@ On a customer engine's page, **Customer access** offers two kinds of sharing. Bo
   - the team sees the shop's build and job history read-only under **Engine Builds → Engines from your engine builder**;
   - the shop sees **only the laps and sessions run on that engine since its last service** (and when), never the team's setups, tracks or results;
   - either side can end the link. Each keeps its own records, and the team keeps a copy of the build history as it was that day.
+  - **the team decides, per engine, whether its laps count on the shop's service tracker.** The switch is "Count our laps on …'s service tracker", when accepting the link or later on the linked engine's page, and it's off by default. When it's on, the shop's lifecycle bars for that engine (engine page, customer page, asset list, home screen alerts) include the team's laps since the last service. When it's off, the shop still sees the lap count in Customer access, but its service tracker uses only the laps it records itself.
 
 **Changing the engine's owner** (or deleting the engine) turns off its engine page link and ends any team link automatically, and the team keeps its copy. Nothing is emailed: the shop sends the link or invite itself.
 
