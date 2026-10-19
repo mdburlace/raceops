@@ -5,6 +5,7 @@ import { assetLife, scheduleStatus, setupsByAsset } from '../lib/compute.js';
 import { allFields, display, fmtDate, formFor, num, optionsOf, titleOf, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { scheduleText } from './Maintenance.jsx';
+import { EngineJobs } from './Shop.jsx';
 
 const STATUS_LEVEL = { 'In Service': 'ok', Spare: 'info', 'Out for Service': 'warn', 'On Order': 'info', Retired: 'muted' };
 
@@ -118,6 +119,7 @@ export function AssetDetail() {
         <Pill level={STATUS_LEVEL[v(a, 'status')] || 'info'}>{v(a, 'status')}</Pill>
         {canType('asset', 'edit') && <Link className="btn" to={`/r/asset/${id}`}>Edit</Link>}
       </PageHeader>
+      <EngineJobs asset={a} />
 
       <div className="grid-2">
         <Section title="Lifecycle">

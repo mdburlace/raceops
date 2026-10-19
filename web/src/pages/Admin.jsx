@@ -10,6 +10,7 @@ import { fmtDate, fmtDateTime } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { OnlineOnly, useLoad } from './Team.jsx';
 import { TrackImport } from './Tracks.jsx';
+import { TEAM_TYPES } from '@shared/shop.js';
 
 const LICENCE_PILL = { active: ['ok', 'Active'], trial: ['info', 'Trial'], expired: ['over', 'Expired · read-only'], suspended: ['over', 'Suspended'] };
 const LicencePill = ({ state }) => <Pill level={LICENCE_PILL[state]?.[0] || 'muted'}>{LICENCE_PILL[state]?.[1] || state}</Pill>;
@@ -190,7 +191,7 @@ function TeamEditor({ t, plans, onSaved, onDeleted }) {
   const [f, setF] = useState({
     name: t.name, plan: t.plan, status: t.status, features: t.features || {},
     seats: t.seats ?? '', licence_expires: t.licence_expires ? String(t.licence_expires).slice(0, 10) : '', admin_notes: t.admin_notes || '',
-    ai_budget_usd: t.ai_budget_usd ?? '',
+    ai_budget_usd: t.ai_budget_usd ?? '', team_type: t.settings?.team_type || 'race',
   });
   const [act, box] = useAct();
   const set = (k, val) => setF((x) => ({ ...x, [k]: val }));
@@ -217,6 +218,11 @@ function TeamEditor({ t, plans, onSaved, onDeleted }) {
           <select id={`tp-${t.id}`} value={f.plan} onChange={(e) => set('plan', e.target.value)}>
             {Object.entries(plans).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
             {!plans[f.plan] && <option value={f.plan}>{f.plan} (removed)</option>}
+          </select>
+        </div>
+        <div className="field"><label htmlFor={`tt-${t.id}`}>Team type</label>
+          <select id={`tt-${t.id}`} value={f.team_type} onChange={(e) => set('team_type', e.target.value)}>
+            {Object.entries(TEAM_TYPES).map(([k, x]) => <option key={k} value={k}>{x.label}</option>)}
           </select>
         </div>
         <div className="field"><label htmlFor={`ts-${t.id}`}>Status</label>
@@ -255,7 +261,7 @@ function TeamEditor({ t, plans, onSaved, onDeleted }) {
 
 function CreateTeam({ plans, onCreated }) {
   const { refresh } = useSession();
-  const blank = { name: '', plan: '', seats: '', licence_expires: '', status: 'active', owner_email: '', join: true };
+  const blank = { name: '', plan: '', seats: '', licence_expires: '', status: 'active', owner_email: '', join: true, team_type: 'race' };
   const [f, setF] = useState(blank);
   const [invite, setInvite] = useState(null);
   const [act, box] = useAct();
@@ -293,6 +299,10 @@ function CreateTeam({ plans, onCreated }) {
           </div>
           <div className="field"><label htmlFor="nt-seats">Seats</label><input id="nt-seats" inputMode="numeric" placeholder="Plan default" value={f.seats} onChange={(e) => set('seats', e.target.value.replace(/\D/g, ''))} /></div>
           <div className="field"><label htmlFor="nt-exp">Licence ends</label><input id="nt-exp" type="date" value={f.licence_expires} onChange={(e) => set('licence_expires', e.target.value)} /></div>
+          <div className="field"><label htmlFor="nt-type">Team type</label>
+            <select id="nt-type" value={f.team_type} onChange={(e) => { set('team_type', e.target.value); if (e.target.value === 'engine_shop' && !f.plan && plans.engine_shop) set('plan', 'engine_shop'); }}>
+              {Object.entries(TEAM_TYPES).map(([k, x]) => <option key={k} value={k}>{x.label}</option>)}
+            </select></div>
           <div className="field"><label htmlFor="nt-owner">Owner’s email</label><input id="nt-owner" type="email" placeholder="Optional — creates an owner invite link" value={f.owner_email} onChange={(e) => set('owner_email', e.target.value)} /></div>
         </div>
         <div className="inline-row end">

@@ -43,6 +43,9 @@ export const MODULES = [
   { key: 'assets', label: 'Assets', types: ['asset', 'measurement'], area: 'workshop' },
   { key: 'dyno', label: 'Shock & bar dyno', types: ['dyno_run'], area: 'workshop', feature: 'dyno' },
   { key: 'engines', label: 'Engine builds', types: ['engine_build'], area: 'engines' },
+  // engine shop work for customers (shown to teams set up as an engine shop)
+  { key: 'jobs', label: 'Shop jobs (parts & labour)', types: ['job'], area: 'engines' },
+  { key: 'customers', label: 'Customers', types: ['customer'], area: 'engines' },
   { key: 'reports', label: 'Reports & Crew Chief stats', types: [], area: 'team', actions: ['view'], feature: 'reports' },
   { key: 'reviews', label: 'Performance reviews', types: ['review'], area: 'team', feature: 'reviews' },
   // AI assistant: photo fill, voice debrief, Ask RaceOps (needs the 'ai' licence add-on)
@@ -145,7 +148,8 @@ export const DEFAULT_ROLES = [
     permissions: [
       ...areas('track', 'workshop', 'engines'),
       ...mod(['cars', 'events', 'setups', 'gears', 'tracks', 'contacts', 'ai'], ['view']),
-      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines'], ['view', 'edit']),
+      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs'], ['view', 'edit']),
+      ...mod(['customers'], ['view']),
     ],
   },
   {

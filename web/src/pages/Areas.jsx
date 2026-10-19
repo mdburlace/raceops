@@ -7,6 +7,8 @@ import { assetLife, scheduleStatus, setupsByAsset } from '../lib/compute.js';
 import { fmtDate, levelLabel, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { scheduleText } from './Maintenance.jsx';
+import { teamType } from '@shared/shop.js';
+import { ShopHome } from './Shop.jsx';
 
 // ---------- access gate used by routes ----------
 export function AreaGate({ area, module, children }) {
@@ -71,7 +73,8 @@ export function Landing() {
   const groups = useNav();
   if (!s) return <p className="muted pad">Loading…</p>;
   const teamAdmin = can('members.manage') || can('roles.manage') || can('forms.manage') || can('team.manage');
-  const empty = !s.data.list('car').length;
+  const type = teamType(membership);
+  const empty = type !== 'engine_shop' && !s.data.list('car').length;
 
   return (
     <div>
@@ -87,8 +90,9 @@ export function Landing() {
           </ol>
         </div>
       )}
+      {type !== 'race' && <ShopHome />}
       <div className="area-grid">
-        {AREAS.map((a) => {
+        {AREAS.filter((a) => type !== 'engine_shop' || a.key !== 'track').map((a) => {
           const isLicensed = licensed(a.key);
           const allowed = isLicensed && (canArea(a.key) || (a.key === 'team' && teamAdmin));
           const g = groups.find((x) => x.area === a.key);
@@ -97,8 +101,8 @@ export function Landing() {
               <div className="area-top">
                 <span className="area-icon"><Icon d={AREA_ICON[a.key]} size={26} /></span>
                 <div>
-                  <h2>{a.label}</h2>
-                  <p className="muted">{a.blurb}</p>
+                  <h2>{g?.label || a.label}</h2>
+                  <p className="muted">{a.key === 'engines' && type !== 'race' ? 'Jobs with parts & labour, customers and their engines, build sheets and handover packs.' : a.blurb}</p>
                 </div>
                 {!allowed && <span className="area-lock"><Icon d={I.lock} size={18} />{isLicensed ? 'No access' : 'Not in plan'}</span>}
               </div>

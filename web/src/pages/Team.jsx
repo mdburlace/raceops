@@ -8,6 +8,7 @@ import { fullResync, getSyncStatus, subscribeSync, syncNow } from '../lib/sync.j
 import { TeamAiSection } from '../components/Ai.jsx';
 import { ACTIONS, ADMIN_PERMISSIONS, AREAS, MODULES, moduleActions } from '@shared/catalog.js';
 import { Appearance } from '../components/Appearance.jsx';
+import { ShopSettings } from './Shop.jsx';
 
 export function OnlineOnly({ children }) {
   const online = useOnline();
@@ -53,6 +54,7 @@ export function Team() {
           <p className="muted small">Your platform administrator manages plans, seats and licence dates.</p>
         </Section>
         <TeamAiSection Section={Section} />
+        <ShopSettings />
         {can('team.manage') && (
           <Section title="Team settings">
             <div className="inline-row">

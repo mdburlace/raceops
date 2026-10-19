@@ -11,6 +11,7 @@ import { LISTS, DEFAULT_GENERAL, ANNOUNCE_LEVELS, TEAM_STATUS, licenceState, mer
 import { settings, saveSetting, audit, seatLimit } from './settings.js';
 import * as limiter from './ratelimit.js';
 import { mountAiAdmin } from './ai.js';
+import { TEAM_TYPES } from '../../shared/shop.js';
 
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg); };
@@ -64,6 +65,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
     const out = await tx(async (c) => {
       const t = await createTenant(c, String(b.name).trim(), join ? req.user.id : null, {
         plan: b.plan, seats: intOrNull(b.seats), licence_expires: dateOrNull(b.licence_expires), status: TEAM_STATUS[b.status] ? b.status : 'active',
+        team_type: b.team_type,
       });
       let invite = null;
       if (owner) {
@@ -97,9 +99,13 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
       admin_notes: b.admin_notes !== undefined ? String(b.admin_notes) : cur.admin_notes,
       ai_budget_usd: 'ai_budget_usd' in b ? (b.ai_budget_usd === null || b.ai_budget_usd === '' ? null : Math.max(0, Number(b.ai_budget_usd) || 0)) : (cur.ai_budget_usd === null ? null : Number(cur.ai_budget_usd)),
     };
+    if (b.team_type !== undefined) need(TEAM_TYPES[b.team_type], 400, 'Unknown team type');
+    next.team_type = b.team_type || cur.settings?.team_type || 'race';
     const { rows: [t] } = await q(
-      `UPDATE tenants SET name=$2, plan=$3, features=$4, status=$5, seats=$6, licence_expires=$7, admin_notes=$8, ai_budget_usd=$9 WHERE id=$1 RETURNING *`,
-      [cur.id, next.name, next.plan, JSON.stringify(next.features), next.status, next.seats, next.licence_expires, next.admin_notes, next.ai_budget_usd]);
+      `UPDATE tenants SET name=$2, plan=$3, features=$4, status=$5, seats=$6, licence_expires=$7, admin_notes=$8, ai_budget_usd=$9,
+              settings = COALESCE(settings,'{}'::jsonb) || jsonb_build_object('team_type', $10::text) WHERE id=$1 RETURNING *`,
+      [cur.id, next.name, next.plan, JSON.stringify(next.features), next.status, next.seats, next.licence_expires, next.admin_notes, next.ai_budget_usd, next.team_type]);
+    cur.team_type = cur.settings?.team_type || 'race';
     const changed = Object.fromEntries(Object.keys(next).filter((k) => JSON.stringify(cur[k] instanceof Date ? cur[k].toISOString().slice(0, 10) : cur[k]) !== JSON.stringify(next[k]))
       .map((k) => [k, next[k]]));
     if (Object.keys(changed).length) await audit(req.user.id, 'team.update', t.name, { id: t.id, ...changed });

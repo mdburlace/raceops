@@ -306,6 +306,25 @@ Each person picks their own look under **Profile & device → Appearance**. It i
 - **Custom themes:** pick a light or dark base and five colours: page background, cards, text, accent and sidebar. Borders, faint text and soft highlights are derived from those. The whole app previews changes live and warns when text would be hard to read. Each person can keep up to 12.
 - **Sidebar sections:** the arrow beside each section heading (At the Track, In the Workshop, …) collapses it to just the heading. A dot on a collapsed heading shows that the current page is inside it. Sections can also be shown or hidden, or collapsed and expanded all at once, from Appearance.
 
+### Engine shops (building for customers)
+
+A team can be a **race team**, an **engine shop**, or **both**. The platform admin sets this when creating the team (the "Engine shop" plan suits shops), and a team owner can change it under **Team → Team type & engine shop**. Engine shops get:
+
+- **Engine Shop** in the sidebar, with Jobs, Customers, Customer engines, Build sheets and Calculators. Shops that don't race don't see At the Track, Cars or Car maintenance. The home screen shows **In the shop**: jobs by status, jobs due in the next 7 days or overdue, and jobs ready for pickup.
+- **Customers**, each with their engines (engine assets with a *Customer (owner)*) and their job history.
+- **Jobs (work orders)**, which record:
+  - customer, engine, job type and status (Quote → Booked in → In progress → Waiting on parts → Ready for pickup → Collected);
+  - dates and who the job is assigned to;
+  - what was asked for, findings, work done and recommendations;
+  - **parts** (cost and price) and **labour** (hours × rate, using the shop rate when blank);
+  - discount, tax, invoice number and paid.
+
+  Totals show parts, labour, tax, total and parts margin. Job numbers count up automatically, with the shop's prefix.
+- **Build sheets linked to the job.** "New build sheet" on a job fills in the engine, customer and work order.
+- **Job sheet / handover pack.** This is a printable page (print or save as PDF) with the work done, parts and labour, with prices optional. It also includes the build specifications, clearances and torque figures, the next service, and the shop's terms.
+
+The shop sets its labour rate, tax rate and name (e.g. GST), whether prices include tax, the job number prefix and the printed terms under **Team → Team type & engine shop**. RaceOps records invoice numbers but doesn't produce invoices, so they still come from the shop's accounting software.
+
 ### Teams, roles and permissions
 
 - **Multi-team:** one person can belong to several teams and switch between them in the sidebar. Platform admins create more teams under **Platform admin → Teams & licences**.

@@ -961,3 +961,47 @@ html.scrolled .page-head .ai-bar .inline-row > .muted { flex: 1 1 auto; min-widt
 .calc-filters { position: sticky; top: calc(var(--topbar-h) + var(--head-h)); z-index: 5; background: var(--bg); display: flex; flex-direction: column; gap: 10px; padding: 6px 0 10px; margin-top: -6px; }
 html.scrolled .calc-filters { box-shadow: 0 8px 10px -10px rgba(0,0,0,.3); }
 .calc-cat h3 { scroll-margin-top: calc(var(--topbar-h) + var(--head-h) + 110px); }
+
+/* engine shop */
+.shop-home .chips .chip b { margin-left: 4px; }
+.shop-home .list-row { padding: 6px 2px; }
+.job-totals .totals { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 8px 16px; }
+.job-totals .totals dt { font-size: 12px; color: var(--ink-2); }
+.job-totals .totals dd { margin: 0; font-size: 18px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.job-totals .totals .grand dd { color: var(--accent); font-size: 22px; font-weight: 800; }
+.shop-settings { margin-top: 12px; }
+.job-row .row-meta { min-width: 90px; text-align: right; }
+
+/* job sheet / handover pack */
+.print-page { background: var(--surface-2); min-height: 100vh; padding: 16px; }
+.print-tools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; max-width: 820px; margin: 0 auto 12px; }
+.print-sheet { max-width: 820px; margin: 0 auto; background: #fff; color: #111; padding: 32px 36px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.08); font-size: 14px; }
+.print-sheet .muted { color: #666; }
+.print-sheet h1 { font-size: 22px; }
+.print-sheet h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: #555; margin: 18px 0 6px; }
+.print-sheet section p { margin: 0; }
+.ps-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #111; padding-bottom: 12px; }
+.ps-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ps-meta b { font-size: 20px; }
+.ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ps-table { width: 100%; border-collapse: collapse; }
+.ps-table th, .ps-table td { padding: 5px 6px; border-bottom: 1px solid #ddd; text-align: left; vertical-align: top; }
+.ps-table th { font-size: 11px; text-transform: uppercase; color: #666; }
+.ps-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.ps-totals { display: flex; flex-direction: column; align-items: flex-end; margin-top: 12px; }
+.ps-totals dl { margin: 0; min-width: 260px; }
+.ps-totals dl > div { display: flex; justify-content: space-between; gap: 16px; padding: 3px 0; }
+.ps-totals dd { margin: 0; font-variant-numeric: tabular-nums; }
+.ps-totals .grand { border-top: 2px solid #111; font-weight: 800; font-size: 16px; padding-top: 6px; }
+.ps-specs { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 16px; }
+.ps-specs > div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dotted #ccc; padding: 2px 0; }
+.ps-specs dt { color: #555; }
+.ps-specs dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
+.ps-terms { margin-top: 24px; border-top: 1px solid #ccc; padding-top: 10px; color: #444; }
+@media (max-width: 640px) { .print-sheet { padding: 18px; } .ps-grid { grid-template-columns: 1fr; } .ps-specs { grid-template-columns: 1fr 1fr; } }
+@media print {
+  .no-print { display: none !important; }
+  .print-page { background: #fff; padding: 0; }
+  .print-sheet { box-shadow: none; max-width: none; padding: 0; border-radius: 0; }
+  .ps-table tr, .ps-specs > div { break-inside: avoid; }
+}

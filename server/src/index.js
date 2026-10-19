@@ -12,6 +12,7 @@ import {
 import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, GLOBAL_TYPES, canType, can, entitlements } from '../../shared/catalog.js';
 import { mapImportedTrack } from '../../shared/tracks.js';
 import { cleanPrefs } from '../../shared/themes.js';
+import { TEAM_TYPES, cleanShop } from '../../shared/shop.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
 import { FORM_REPLACE, applyUpgrades } from '../../shared/baseForms2.js';
 import { SEED_GEAR_LISTS } from '../../shared/gearLists.js';
@@ -83,6 +84,10 @@ async function createTenant(c, name, ownerId, opts = {}) {
       'INSERT INTO roles(tenant_id,name,description,permissions,is_owner) VALUES ($1,$2,$3,$4,$5) RETURNING *',
       [t.id, r.name, r.description, JSON.stringify(r.permissions), !!r.is_owner]);
     if (r.is_owner) ownerRole = role;
+  }
+  if (TEAM_TYPES[opts.team_type]) {
+    await c.query("UPDATE tenants SET settings = COALESCE(settings,'{}'::jsonb) || $2::jsonb WHERE id=$1", [t.id, JSON.stringify({ team_type: opts.team_type })]);
+    t.settings = { ...(t.settings || {}), team_type: opts.team_type };
   }
   if (ownerId) await c.query('INSERT INTO memberships(user_id,tenant_id,role_id) VALUES ($1,$2,$3)', [ownerId, t.id, ownerRole.id]);
   await ensureTeamBase(c, t.id);
@@ -390,7 +395,13 @@ T.use((req, _res, next) => next(req.readOnly && req.method !== 'GET'
   ? new HttpError(403, 'The team licence has expired, so the data is read-only. Contact the platform administrator to renew.') : undefined));
 
 T.patch('/', perm('team.manage'), h(async (req, res) => {
-  const { name, settings } = req.body || {};
+  const { name } = req.body || {};
+  let { settings } = req.body || {};
+  if (settings && typeof settings === 'object') {
+    settings = { ...settings };
+    if ('team_type' in settings && !TEAM_TYPES[settings.team_type]) delete settings.team_type;
+    if (settings.shop) settings.shop = cleanShop(settings.shop);
+  } else settings = null;
   const { rows: [t] } = await q(
     `UPDATE tenants SET name=COALESCE($2,name), settings=COALESCE($3,settings) WHERE id=$1 RETURNING *`,
     [req.tid, name || null, settings ? JSON.stringify(settings) : null]);

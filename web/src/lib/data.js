@@ -94,6 +94,9 @@ export function titleOf(rec, data) {
     case 'supplier': return vals.name || 'Supplier';
     case 'series': return `${vals.name || 'Series'}${vals.season ? ` ${vals.season}` : ''}`;
     case 'contact_link': return `${titleOf(data?.byId[vals.contact], data)} — ${vals.role || ''}`;
+    case 'customer': return vals.name || 'Customer';
+    case 'job': return `${vals.job_no || 'Job'}${data?.byId[vals.customer] ? ` · ${titleOf(data.byId[vals.customer])}` : ''}`;
+    case 'tuning_guide': return vals.name || 'Tuning guide';
     default: return rec.type;
   }
 }

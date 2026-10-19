@@ -1,4 +1,5 @@
 // Tracks, contacts, suppliers, contact roles and race series.
+import { SHOP_FORMS, SHOP_UPGRADES } from './baseForms4.js';
 
 const t = (key, label, extra = {}) => ({ key, label, type: 'text', ...extra });
 
@@ -131,7 +132,7 @@ const tuningGuideForm = {
   ],
 };
 
-export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm];
+export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm, ...SHOP_FORMS];
 
 // Optional chassis numbers on the setup sheet, so the advisor can learn from weight, wing and rod changes.
 export const SETUP_CHASSIS_SECTION = {
@@ -200,4 +201,5 @@ export const PHASE3_UPGRADES = [
   { target: 'setup', section: 'weather', after: 'dew_point', field: { key: 'grains', label: 'Water grains', type: 'number', unit: 'gr' } },
   { target: 'setup', section: 'weather', after: 'grains', field: { key: 'wind', label: 'Wind', type: 'text', placeholder: 'e.g. 12 mph SE' } },
   { target: 'setup', section: 'weather', after: 'wind', field: { key: 'weather_source', label: 'Weather from', type: 'text', placeholder: 'e.g. own weather station' } },
+  ...SHOP_UPGRADES,
 ];

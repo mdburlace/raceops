@@ -5,6 +5,8 @@ import { AiTools } from '../components/Ai.jsx';
 import { WeatherTools, useWeatherUnits, withWeatherUnits } from '../components/Weather.jsx';
 import { calcContext } from '../components/Calculator.jsx';
 import { EngineChecks } from '../components/EngineChecks.jsx';
+import { JobExtras } from './Shop.jsx';
+import { nextJobNo, shopSettings } from '@shared/shop.js';
 import { FIELD_CALCS, cornerPercents } from '@shared/calcs.js';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
@@ -21,6 +23,7 @@ export const TYPE_LABEL = {
   schedule: 'Maintenance schedule', measurement: 'Measurement', track_check: 'Between-rounds check',
   gear: 'Gear set', gear_list: 'Gear list', tire: 'Tire', track: 'Track', team_track: 'Team track', contact: 'Contact',
   supplier: 'Supplier', contact_link: 'Contact role', series: 'Series', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
+  customer: 'Customer', job: 'Job',
 };
 
 // New records pre-filled from the latest record with the same car / engine.
@@ -43,6 +46,8 @@ function afterSave(type, rec) {
     case 'track': return `/tracks/${rec.id}`;
     case 'team_track': return vals.track ? `/tracks/${vals.track}` : '/tracks';
     case 'contact': return `/contacts/${rec.id}`;
+    case 'customer': return `/customers/${rec.id}`;
+    case 'job': return `/r/job/${rec.id}`;
     case 'supplier': return '/suppliers';
     case 'contact_link': return vals.contact ? `/contacts/${vals.contact}` : '/contacts';
     case 'series': return `/series/${rec.id}`;
@@ -91,7 +96,7 @@ export default function RecordEdit() {
   const { type, id } = useParams();
   const [params] = useSearchParams();
   const nav = useNavigate();
-  const { tid, user, canType, canModule } = useSession();
+  const { tid, user, canType, canModule, membership } = useSession();
   const data = useTeamData();
   const rec = useRecordById(id === 'new' ? null : id);
   const isNew = id === 'new';
@@ -125,6 +130,14 @@ export default function RecordEdit() {
     if (type === 'dyno_run' && init.asset && v(data.byId[init.asset], 'adjust_type')) init.adjust_type = v(data.byId[init.asset], 'adjust_type');
     if (allFields(f).some((fd) => fd.key === 'date' && fd.type === 'date')) init.date ||= today();
     if (type === 'setup' && init.order !== undefined) init.order = num(init.order);
+    if (type === 'job') {
+      const shop = shopSettings(membership);
+      init.job_no ||= nextJobNo(data.list('job').map((j) => v(j, 'job_no')), shop.job_prefix);
+      init.status ||= 'Booked in';
+      init.date_in ||= today();
+      if (init.tax_rate === undefined) init.tax_rate = String(shop.tax_rate);
+      if (!init.customer && init.engine && v(data.byId[init.engine], 'customer')) init.customer = v(data.byId[init.engine], 'customer');
+    }
     if (type === 'event' && !init.car) {
       const active = data.list('car').filter((c) => v(c, 'active') !== false);
       if (active.length === 1) init.car = active[0].id; // the only car the team runs
@@ -253,6 +266,7 @@ export default function RecordEdit() {
     <div className={`record-edit type-${type}`}>
       <PageHeader title={title} sub={sub} back={params.get('back') || (isNew ? -1 : afterSave(type, rec || { data: { values } }))}
         below={!readOnly && canType(type, 'edit') ? <AiTools type={type} form={form} values={values} setValues={(fn) => { setValues(fn); setDirty(true); }} /> : null}>
+        {type === 'job' && !isNew && <Link className="btn ghost" to={`/print/job/${id}`}>Job sheet / handover pack</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost advisor-link" to={`/track/advisor?setup=${id}`} title="What’s worked before for this handling problem, and what the tuning guides suggest">Setup advisor</Link>}
         {type === 'setup' && !isNew && canModule('dyno') && <Link className="btn ghost" to={`/workshop/dyno?setup=${id}`}>Shock dyno</Link>}
@@ -355,6 +369,7 @@ export default function RecordEdit() {
         sectionExtras={type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />
       {type === 'engine_build' && <EngineChecks values={values} />}
+      {type === 'job' && <JobExtras id={id} values={values} isNew={isNew} />}
 
       {type === 'dyno_run' && <DynoChart runs={[{ id: id || 'new', name: values.label || 'This run', values, form }]} />}
 

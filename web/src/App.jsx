@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
 import { SessionProvider, useSession } from './lib/session.jsx';
 import { AcceptInvite, Login } from './pages/Auth.jsx';
@@ -17,8 +17,15 @@ import { FormBuilder, FormList } from './pages/Forms.jsx';
 import { Profile, Roles, Team } from './pages/Team.jsx';
 import { AskPage } from './components/Ai.jsx';
 import { Calculators } from './pages/Calculators.jsx';
+import { CustomerDetail, CustomerList, JobList, JobPrint } from './pages/Shop.jsx';
 import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
 import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
+
+/** A fresh record page per record — moving between records never carries one's state into another. */
+function RecordRoute() {
+  const { type, id } = useParams();
+  return <RecordEdit key={`${type}/${id}`} />;
+}
 
 function NoTeam() {
   const { logout, user } = useSession();
@@ -53,6 +60,7 @@ function Routed() {
     <Routes>
       <Route path="/invite/:token" element={<AcceptInvite />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
+      <Route path="/print/job/:id" element={<AreaGate area="engines" module="jobs"><JobPrint /></AreaGate>} />
       <Route element={<Layout />}>
         <Route index element={<Landing />} />
         {/* At the track */}
@@ -77,6 +85,9 @@ function Routed() {
         <Route path="workshop/dyno" element={<AreaGate area="workshop" module="dyno"><Dyno /></AreaGate>} />
         {/* Engines */}
         <Route path="engines" element={<AreaGate area="engines" module="engines"><Engines /></AreaGate>} />
+        <Route path="jobs" element={<AreaGate area="engines" module="jobs"><JobList /></AreaGate>} />
+        <Route path="customers" element={<AreaGate area="engines" module="customers"><CustomerList /></AreaGate>} />
+        <Route path="customers/:id" element={<AreaGate area="engines" module="customers"><CustomerDetail /></AreaGate>} />
         {/* Team management */}
         <Route path="team" element={<AreaGate area="team"><TeamHub /></AreaGate>} />
         <Route path="team/members" element={<Team />} />
@@ -91,7 +102,7 @@ function Routed() {
         <Route path="contacts/:id" element={<ContactDetail />} />
         <Route path="suppliers" element={<SupplierList />} />
         <Route path="compare" element={<Compare />} />
-        <Route path="r/:type/:id" element={<RecordEdit />} />
+        <Route path="r/:type/:id" element={<RecordRoute />} />
         <Route path="profile" element={<Profile />} />
         {/* Platform admin */}
         <Route path="admin" element={<AdminGate><AdminOverview /></AdminGate>} />

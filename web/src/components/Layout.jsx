@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useSession } from '../lib/session.jsx';
 import { SyncBadge, useHeightVar } from './ui.jsx';
+import { teamType } from '@shared/shop.js';
 
 export const I = {
   home: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
@@ -47,6 +48,7 @@ export const Icon = ({ d, size = 20 }) => (
 export const AREA_ICON = { track: I.track, workshop: I.shop, engines: I.engine, team: I.team, admin: I.admin };
 export const AREA_PATH = { track: '/track', workshop: '/workshop', engines: '/engines', team: '/team', admin: '/admin' };
 const TAB_LABEL = { track: 'Track', workshop: 'Workshop', engines: 'Engines', team: 'Team', admin: 'Admin' };
+const tabLabel = (g) => (g.area === 'engines' && g.label === 'Engine Shop' ? 'Shop' : TAB_LABEL[g.area]);
 
 export const ADMIN_LINKS = [
   { to: '/admin', label: 'Overview', icon: I.admin, end: true },
@@ -64,8 +66,12 @@ export const ADMIN_LINKS = [
 export function useNav() {
   const { can, canArea, canModule, user, membership } = useSession();
   const admin = can('members.manage') || can('roles.manage') || can('forms.manage') || can('team.manage');
+  // engine shops see jobs and customers; shops that don't race don't see the race-team pages
+  const type = teamType(membership);
+  const shop = type !== 'race';
+  const racing = type !== 'engine_shop';
   const groups = [
-    { area: 'track', label: 'At the Track', icon: I.track, show: canArea('track'), links: [
+    { area: 'track', label: 'At the Track', icon: I.track, show: canArea('track') && racing, links: [
       canModule('events') && { to: '/events', label: 'Events', icon: I.flag },
       canModule('events') && { to: '/series', label: 'Series', icon: I.trophy },
       canModule('tracks') && { to: '/tracks', label: 'Tracks', icon: I.pin },
@@ -76,17 +82,20 @@ export function useNav() {
       { to: '/calculators?area=track', label: 'Calculators', icon: I.calc },
     ] },
     { area: 'workshop', label: 'In the Workshop', icon: I.shop, show: canArea('workshop'), links: [
-      canModule('maintenance') && { to: '/maintenance', label: 'Car maintenance', icon: I.wrench },
+      racing && canModule('maintenance') && { to: '/maintenance', label: 'Car maintenance', icon: I.wrench },
       canModule('assets') && { to: '/assets', label: 'Assets', icon: I.box },
       canModule('dyno') && { to: '/workshop/dyno', label: 'Shock & bar dyno', icon: I.wave },
       { to: '/calculators?area=workshop', label: 'Calculators', icon: I.calc },
     ] },
-    { area: 'engines', label: 'Engine Builds', icon: I.engine, show: canArea('engines'), links: [
-      canModule('engines') && { to: '/engines', label: 'Engines & builds', icon: I.engine, end: true },
+    { area: 'engines', label: shop ? 'Engine Shop' : 'Engine Builds', icon: I.engine, show: canArea('engines'), links: [
+      shop && canModule('jobs') && { to: '/jobs', label: 'Jobs', icon: I.ticket },
+      shop && canModule('customers') && { to: '/customers', label: 'Customers', icon: I.users },
+      shop && canModule('assets') && { to: '/assets?category=Engine', label: 'Customer engines', icon: I.box },
+      canModule('engines') && { to: '/engines', label: shop ? 'Build sheets' : 'Engines & builds', icon: I.engine, end: true, keep: shop },
       { to: '/calculators?area=engines', label: 'Calculators', icon: I.calc },
     ] },
     { area: 'team', label: 'Team Management', icon: I.team, show: canArea('team') || admin, links: [
-      canModule('cars') && { to: '/cars', label: 'Cars', icon: I.car },
+      racing && canModule('cars') && { to: '/cars', label: 'Cars', icon: I.car },
       canModule('contacts') && { to: '/contacts', label: 'Contacts', icon: I.book },
       canModule('contacts') && { to: '/suppliers', label: 'Suppliers', icon: I.truck },
       { to: '/team/members', label: 'Members & invites', icon: I.users },
@@ -210,7 +219,7 @@ export default function Layout() {
                     <Icon d={I.chevron} size={16} />
                   </button>
                 </div>
-                {!collapsed && <div id={`nav-${g.area}`} className="nav-links">{g.links.filter((l) => l.to !== AREA_PATH[g.area]).map(link)}</div>}
+                {!collapsed && <div id={`nav-${g.area}`} className="nav-links">{g.links.filter((l) => l.keep || l.to !== AREA_PATH[g.area]).map(link)}</div>}
               </div>
             );
           })}
@@ -234,7 +243,7 @@ export default function Layout() {
             const active = inGroup(g, loc.pathname);
             return (
               <NavLink key={g.area} to={AREA_PATH[g.area]} className={`tab area-${g.area}${active ? ' active' : ''}`}>
-                <Icon d={g.icon} size={22} /><span>{TAB_LABEL[g.area]}</span>
+                <Icon d={g.icon} size={22} /><span>{tabLabel(g)}</span>
               </NavLink>
             );
           })}
