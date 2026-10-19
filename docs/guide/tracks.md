@@ -14,7 +14,7 @@ RaceOps comes with a shared directory of 700+ tracks: address, size, surface, ba
 
 ## Make the list yours
 
-- **Classes we race.** On the Tracks page, press **Edit** beside *Classes we race*, pick your classes and press **Save classes**. Tracks that run those classes show under **Our tracks**. This needs the **Edit team settings** right.
+- **Classes we race.** On the Tracks page, press **Edit** beside *Classes we race*, pick your classes and press **Save classes**. Tracks that run those classes show under **Our tracks**. This needs the **Edit team settings** right. Your cars' classes are offered as quick picks, and the classes you save here are listed first when you pick a car's **Class**.
 - **Link to team.** Open any track and press **Link to team** to add it to Our tracks. You can also mark a home track, or hide a class-matched track.
 - **Team notes.** Each track can hold your team's own notes, such as pit gate, power or fuel. Only your team sees them.
 - **Missing track?** Add a team-only track. Or, when creating an event, type the track name; a free-text field appears for tracks not in the directory.

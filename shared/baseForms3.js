@@ -223,5 +223,7 @@ export const PHASE3_UPGRADES = [
   { target: 'setup', section: 'weights', ifTitle: 'Weights & chassis', sectionPatch: { title: 'Weights' } },
   ...AFTER_KEYS.map((key) => ({ target: 'setup', key, patch: { stage: 'after' } })),
   ...Object.entries(STEPS).map(([key, step]) => ({ target: 'setup', key, patch: { step } })),
+  // car class picks from the shared class list (team classes + platform Race classes); typing a new one still works
+  { target: 'car', key: 'class', patch: { allowCustom: true, placeholder: 'Choose or type a class' } },
   ...SHOP_UPGRADES,
 ];

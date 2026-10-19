@@ -12,6 +12,7 @@ Every RaceOps update adds a line here, and the articles it links to are updated 
 
 ## October 2026
 
+- **One class list.** A car's **Class** now picks from your team's Classes we race and the shared Race classes list, so cars, tracks and Classes we race use the same names. You can still type a class that isn't listed. [Add your cars](/help/cars)
 - **Setup sheet quick editing.** A section bar to jump around, your own section order, folding sections, changes highlighted with what they were, **Changes only**, a **Before / After** switch, − and + buttons, and four-corner values on one row. Shocks are a card per corner, and Wing has its own section. [Quick editing on the setup sheet](/help/setup-sheet-layout)
 - **Help & guide.** This guide is now built into the app and works offline. It has guides for each role, a **?** on each page that opens the article for that page, a **Set up your team** checklist on Home, and **Print / PDF** for the whole guide. [Using this guide](/help/help-guide)
 - **Shocks on setup sheets.** Each corner lists that corner's shocks first. Adjuster boxes match each shock's type, and you can record bump rubbers. [Shocks, adjusters and bump rubbers](/help/shocks-on-setup)

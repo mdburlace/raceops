@@ -6,6 +6,11 @@ import { listForField } from '@shared/platform.js';
 // Pick-lists managed by the platform admin (kept with the session so they work offline).
 let PLATFORM_LISTS = {};
 export const setPlatformLists = (lists) => { PLATFORM_LISTS = lists || {}; };
+// the team's own "Classes we race", offered first wherever a class is picked
+let TEAM_CLASSES = [];
+export const setTeamClasses = (list) => { TEAM_CLASSES = Array.isArray(list) ? list : []; };
+// the car form's original fixed classes, superseded by the shared Race classes list
+const OLD_CAR_CLASSES = ['410 Winged Sprint', '360 Winged Sprint', '305 Winged Sprint', 'Other'];
 export const platformList = (key) => PLATFORM_LISTS[key] || null;
 
 /** All live (non-deleted) records of the current team, indexed by type and id. */
@@ -42,6 +47,11 @@ export const fieldDef = (form, key) => allFields(form).find((f) => f.key === key
 
 export function optionsOf(field, form, data) {
   const lk = field.list !== false && listForField(form?.data?.target, field.key);
+  if (lk === 'race_classes') {
+    // one class list: the team's classes, then the platform's, then any the team added to the form
+    const extra = (field.options || []).filter((o) => !OLD_CAR_CLASSES.includes(o));
+    return [...new Set([...TEAM_CLASSES, ...(PLATFORM_LISTS[lk] || []), ...extra])];
+  }
   if (lk && PLATFORM_LISTS[lk]?.length) return PLATFORM_LISTS[lk];
   if (field.optionsFrom === 'sessions') return form?.data.sessions || [];
   if (field.optionsFrom === 'levels') return (form?.data.levels || []).map((l) => ({ value: l.key, label: l.label }));

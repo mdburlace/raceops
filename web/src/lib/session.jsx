@@ -3,7 +3,7 @@ import { api, loadSession, saveSession } from './api.js';
 import { db, getMeta, setMeta } from './store.js';
 import { fullResync, setSyncTenant, syncNow } from './sync.js';
 import { can as canP, canType as canT, canArea as canA, canModule as canM, entitlements } from '@shared/catalog.js';
-import { setMembersCache, setPlatformLists } from './data.js';
+import { setMembersCache, setPlatformLists, setTeamClasses } from './data.js';
 import { applyPrefsTheme } from './theme.js';
 import { setLinkedUsage } from './compute.js';
 import { isShop } from '@shared/shop.js';
@@ -93,6 +93,7 @@ export function SessionProvider({ children }) {
   }, [update]);
   const platform = session?.platform || null;
   setPlatformLists(platform?.lists);
+  setTeamClasses(membership?.settings?.classes);
   useEffect(() => { document.title = platform?.app_name || 'RaceOps'; }, [platform?.app_name]);
   const ent = useMemo(() => entitlements(membership), [membership]);
   const [membersVersion, setMembersVersion] = useState(0);

@@ -104,7 +104,7 @@ export const FIELD_INFO = {
   },
   car: {
     number: ['The car’s race number.'],
-    class: ['Class the car races in.'],
+    class: ['Class the car races in. Pick from your team’s “Classes we race” and the standard class list, or type one. Use the same name as your tracks use so they link up.', 'Classes we race is on the Tracks page; the standard list is kept by your platform admin.'],
     driver: ['Usual driver of this car.'],
     chassis_make: ['Chassis manufacturer.'],
     chassis_number: ['Chassis serial / ID number.', 'Usually stamped on the frame or on the builder’s tag.'],

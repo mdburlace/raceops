@@ -18,7 +18,7 @@ Platform admins run the RaceOps server for every team. The first account created
 | **Plans & allocation** | What each plan includes, seats per team, licences to allocate, a price note, and the **Shared engines** limit for engine shops. Add plans, remove unused ones, or restore a built-in plan. |
 | **Users** | Every account, its teams and last sign-in. Edit name or email, **reset password** (shows a one-time temporary password), make admins, **disable** an account, and remove someone from a team. |
 | **Tracks & directory** | Track counts and gaps, shared contacts and suppliers. Import tracks, export all as JSON, or re-apply the bundled list. |
-| **Pick-lists** | Track conditions, car behaviour, contact roles, supplier categories and race classes. Add, remove, reorder, paste, or restore the default. |
+| **Pick-lists** | Track conditions, car behaviour, contact roles, supplier categories and race classes (also the list a car’s Class picks from). Add, remove, reorder, paste, or restore the default. |
 | **AI assistant** | Turn AI on, choose the models, set the monthly allowance per team and the token prices, test the connection, and see spend per team. |
 | **Settings** | App name, support email, invite link lifetime, default plan and seats for new teams, and an **announcement banner** with an optional end date. |
 | **System & activity** | Version, uptime, database and uploads, migrations, record counts, re-check base forms, and the full admin audit log. |
