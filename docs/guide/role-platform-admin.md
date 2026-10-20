@@ -26,6 +26,7 @@ You look after RaceOps for every team on your server.
 - **Shared data.** Track directory, pick-lists and shared tuning guides.
 - **Shared calendars.** Keep the series, track and major-event dates current, and moderate teams' requests. The sidebar and Home show how many are waiting. Ask a team a question before deciding, make a series' or track's own team an **official**, add official iCal **feeds**, **merge** duplicates and restore old versions from **History**. See [Shared calendars](/help/calendar-suggestions).
 - **AI.** Watch spend per team, and change allowances.
+- **Feedback & ideas.** Review problem reports and requests, capture your own ideas, keep the roadmap current, and send work to Claude. The sidebar shows how many are waiting. See [Feedback and ideas](/help/feedback-admin).
 
 See [Platform admin](/help/platform-admin) for every page.
 

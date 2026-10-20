@@ -247,7 +247,7 @@ export function Profile() {
       <div className="grid-2">
         <Section title="Email notifications">
           <label className="check-row"><input type="checkbox" checked={prefs.email_notices !== false} onChange={(e) => setPrefs({ email_notices: e.target.checked })} />
-            Email me about shared-calendar requests and the series and tracks my team follows</label>
+            Email me about shared-calendar requests, the series and tracks my team follows, and my feedback</label>
           <p className="muted small">Only when this server has email set up. Requests go to people who can edit the calendar.</p>
         </Section>
         <Section title="Install on this device">

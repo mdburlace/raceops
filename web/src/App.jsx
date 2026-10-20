@@ -18,6 +18,8 @@ import { Profile, Roles, Team } from './pages/Team.jsx';
 import { AskPage } from './components/Ai.jsx';
 import { Calculators } from './pages/Calculators.jsx';
 import { HelpArticle, HelpHome, HelpPrint } from './pages/Help.jsx';
+import { FeedbackPage } from './pages/Feedback.jsx';
+import { AdminFeedback } from './pages/FeedbackAdmin.jsx';
 import { AnalyticsPage } from './pages/Analytics.jsx';
 import { AdminCalendar, CalendarPage, CalendarPrint, PublicCalendar, PublicShared } from './pages/Calendar.jsx';
 import { CustomerDetail, CustomerList, JobList, JobPrint } from './pages/Shop.jsx';
@@ -125,6 +127,7 @@ function Routed() {
         {/* Platform admin */}
         <Route path="admin" element={<AdminGate><AdminOverview /></AdminGate>} />
         <Route path="admin/calendar" element={<AdminGate><AdminCalendar /></AdminGate>} />
+        <Route path="admin/feedback" element={<AdminGate><AdminFeedback /></AdminGate>} />
         <Route path="admin/teams" element={<AdminGate><AdminTeams /></AdminGate>} />
         <Route path="admin/plans" element={<AdminGate><AdminPlans /></AdminGate>} />
         <Route path="admin/users" element={<AdminGate><AdminUsers /></AdminGate>} />
@@ -136,6 +139,7 @@ function Routed() {
         <Route path="ask" element={<AskPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="help" element={<HelpHome />} />
+        <Route path="feedback" element={<FeedbackPage />} />
         <Route path="help/:id" element={<HelpArticle />} />
         <Route path="calculators" element={<Calculators />} />
         <Route path="*" element={<Navigate to="/" replace />} />

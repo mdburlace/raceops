@@ -47,3 +47,4 @@ Engine shops: also [set rates, tax and terms](/help/shop-settings).
 | See every setting | [All settings and options](/help/all-settings) |
 | Turn AI off | [AI assistant](/help/ai-assistant) |
 | Hand over ownership | Make the new person an Owner under Members, then change your own role |
+| Report a problem, or ask for a feature | [Feedback and the roadmap](/help/feedback) |

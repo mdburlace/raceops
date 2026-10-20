@@ -48,7 +48,7 @@ Output goes to `tests/e2e/out/` (ignored by Git): a log per suite, screenshots p
 - Each suite takes one argument, its screenshot folder, and prints a last line containing `OK` when it passes.
   `run.sh` stops at the first suite that doesn't.
 - The test server runs with `AI_PROVIDER=mock`, `WEATHER_PROVIDER=mock`, `CALENDAR_FETCH_PRIVATE=1`
-  (so calendar import can read the server's own iCal feed), `CALENDAR_FEED_HOURS=0`, `MAIL_TRANSPORT=file`,
+  (so calendar import can read the server's own iCal feed), `CALENDAR_FEED_HOURS=0`, `GITHUB_PROVIDER=mock` (fake GitHub issues), `MAIL_TRANSPORT=file`,
   and `APP_URL` equal to `RACEOPS_URL`.
 - Files the suites upload are in `fixtures/` (a dyno spreadsheet, a CSV sheet, a tiny PDF and PNG for the mocked
   AI, and part of the Australian/NZ track list for the directory re-import test).
@@ -86,5 +86,6 @@ Output goes to `tests/e2e/out/` (ignored by Git): a log per suite, screenshots p
 | `e2e27` | Requests to the shared calendars: send series, tracks and dates, change requests, moderation, single source of truth, outcome |
 | `e2e28` | Officials, follow and updates (with email), questions, results, clashes, merge, history and restore, feeds, public pages |
 | `e2e29` | Series entries: choosing rounds for a partial series |
+| `e2e30` | Feedback & roadmap: bug reports with pictures, requests, similar items and votes, admin review (edit, areas, questions, approve, duplicate, decline), send to Claude (mock GitHub issue and brief), done, emails |
 
 When you add a suite, name it `e2eNN.py` with the next number, add a row here, and make it print `… OK` as its last line.

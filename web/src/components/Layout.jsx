@@ -41,6 +41,7 @@ export const I = {
   help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.9M12 17h.01',
   calc: 'M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM8 6h8v3H8zM8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01',
   palette: 'M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.1-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10zM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01M17 11h.01',
+  idea: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3',
   spark: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 15l.6 1.4L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.6z',
 };
 export const Icon = ({ d, size = 20 }) => (
@@ -59,6 +60,7 @@ export const ADMIN_LINKS = [
   { to: '/admin/users', label: 'Users', icon: I.user },
   { to: '/admin/directory', label: 'Tracks & directory', icon: I.globe },
   { to: '/admin/calendar', label: 'Shared calendars', icon: I.calendar },
+  { to: '/admin/feedback', label: 'Feedback & ideas', icon: I.idea },
   { to: '/admin/lists', label: 'Pick-lists', icon: I.list },
   { to: '/admin/ai', label: 'AI assistant', icon: I.spark },
   { to: '/admin/settings', label: 'Settings', icon: I.sliders },
@@ -111,7 +113,7 @@ export function useNav() {
       canModule('reports') && { to: '/team/stats', label: 'Crew Chief stats', icon: I.star },
       canModule('reviews') && { to: '/team/reviews', label: 'Performance reviews', icon: I.user },
     ] },
-    { area: 'admin', label: 'Platform admin', icon: I.admin, show: !!user?.is_platform_admin, links: ADMIN_LINKS.map((l) => (l.to === '/admin/calendar' ? { ...l, badge: notices?.calendar_requests || 0 } : l)) },
+    { area: 'admin', label: 'Platform admin', icon: I.admin, show: !!user?.is_platform_admin, links: ADMIN_LINKS.map((l) => (l.to === '/admin/calendar' ? { ...l, badge: notices?.calendar_requests || 0 } : l.to === '/admin/feedback' ? { ...l, badge: notices?.feedback_new || 0 } : l)) },
   ].map((g) => ({ ...g, links: g.links.filter(Boolean) }));
   return groups.filter((g) => g.show && g.links.length);
 }
@@ -165,7 +167,7 @@ function Suspended() {
 export const inGroup = (g, path) => path.startsWith(AREA_PATH[g.area]) || g.links.some((l) => path === l.to || path.startsWith(`${l.to}/`));
 
 export default function Layout() {
-  const { user, memberships, membership, switchTenant, platform, licence, canModule, prefs, setPrefs } = useSession();
+  const { user, memberships, membership, switchTenant, platform, licence, canModule, prefs, setPrefs, notices } = useSession();
   const [drawer, setDrawer] = useState(false);
   const loc = useLocation();
   const groups = useNav();
@@ -233,6 +235,7 @@ export default function Layout() {
           <div className="nav-sep" />
           {link({ to: '/profile', label: 'Profile & device', icon: I.user })}
           {link({ to: '/help', label: 'Help & guide', icon: I.help })}
+          {link({ to: `/feedback${loc.pathname.startsWith('/feedback') ? '' : `?from=${encodeURIComponent(loc.pathname)}`}`, label: 'Feedback & roadmap', icon: I.idea, badge: notices?.feedback_updates || 0 })}
         </nav>
         <div className="sidebar-foot"><span className="muted small">{user?.name} · {membership?.role.name}</span></div>
       </aside>

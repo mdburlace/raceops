@@ -21,6 +21,7 @@ Platform admins run the RaceOps server for every team. The first account created
 | **Shared calendars** | The series, track and major-event calendars every team uses. Add, edit and delete dates and series, import published calendars, moderate teams' requests, appoint officials, add official feeds, merge duplicates and restore old versions. See [Shared calendars](/help/calendar-suggestions). |
 | **Pick-lists** | Track conditions, car behaviour, contact roles, supplier categories, sanctioning bodies (for series, events and calendar dates) and race classes (also the list a car’s Class picks from). Add, remove, reorder, paste, or restore the default. |
 | **AI assistant** | Turn AI on, choose the models, set the monthly allowance per team and the token prices, test the connection, and see spend per team. |
+| **Feedback & ideas** | Problem reports and requests from users, and your own ideas. Review them into **Now**, **Next** or **Later**, publish the roadmap, and send work to Claude. See [Feedback and ideas](/help/feedback-admin). |
 | **Settings** | App name, support email, invite link lifetime, default plan and seats for new teams, and an **announcement banner** with an optional end date. **Email notifications** shows whether email is set up, with **Send me a test email**. |
 | **System & activity** | Version, uptime, database and uploads, migrations, record counts, re-check base forms, and the full admin audit log. |
 

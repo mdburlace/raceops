@@ -42,3 +42,4 @@ related: shop-jobs, engine-builds, handover-pack, share-engine-page, link-owner-
 | Work out compression or dynamic compression | [Calculators](/help/calculators) |
 | Compare two builds | [Engine build sheets](/help/engine-builds) |
 | Change the labour rate or terms | [Shop settings](/help/shop-settings) |
+| Report a problem, or ask for a feature | [Feedback and the roadmap](/help/feedback) |

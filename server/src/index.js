@@ -27,6 +27,7 @@ import { fetchCalendar, mountCalendar, mountPublicCalendar } from './calendar.js
 import { mountCalendarPlus, mountPublicShared, startFeedChecks } from './calendarPlus.js';
 import { mountJobs } from './jobs.js';
 import { convertLegacySuggestions, mountCalendarRequests, pendingRequests } from './calendarRequests.js';
+import { feedbackNotices, mountFeedback } from './feedback.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -370,7 +371,7 @@ app.use('/api', requireAuth);
 
 app.get('/api/me', h(async (req, res) => {
   // platform admins: how many shared-calendar requests are waiting for them
-  const notices = req.user.is_platform_admin ? { calendar_requests: await pendingRequests() } : {};
+  const notices = { ...(req.user.is_platform_admin ? { calendar_requests: await pendingRequests() } : {}), ...(await feedbackNotices(req.user)) };
   res.json({ user: req.user, memberships: await membershipsFor(req.user.id), platform: publicSettings(), notices });
 }));
 
@@ -399,6 +400,7 @@ app.patch('/api/me', h(async (req, res) => {
 }));
 
 mountAdmin(app, { createTenant, importTracks, ensureBaseForms, ensureGlobalTracks, UPLOAD_DIR, WEB_DIR });
+mountFeedback(app, { UPLOAD_DIR }); // bug reports, requests, roadmap and votes (any signed-in user)
 
 // ---------- tenant scoped ----------
 const T = express.Router({ mergeParams: true });

@@ -437,6 +437,22 @@ Each plan has an optional **Shared engines** limit (Platform admin → Plans): h
 | `MAIL_TRANSPORT` | unset | `file` writes emails as JSON to `MAIL_OUTBOX` instead of sending them. For automated tests only. |
 | `CALENDAR_FETCH_PRIVATE` | unset | Set to `1` only on a test server to let calendar import open links on private addresses (tests import the server's own iCal feed). |
 
+### Feedback, ideas and the roadmap
+
+- **Everyone** can send a bug report, an enhancement or a new feature from **Feedback & roadmap** (`/feedback`), follow its status under **My submissions**, answer the admin's questions, and vote on the public **Roadmap**.
+- **Platform admins** review everything under **Platform admin → Feedback & ideas** (`/admin/feedback`): capture their own ideas, link items to functionality areas, approve into **Now** (action straight away), **Next** or **Later** (roadmap), decline, merge duplicates, and mark items done with a release.
+- **Send to Claude** builds a brief: the details, the areas and their code files, the guide articles to update, and the rules in `CLAUDE.md`. It is then either created as a **GitHub issue** that mentions `@claude`, so the Claude Code GitHub Action does the work and opens a pull request, or copied into a Claude Code session by hand. For the Action, install the Claude GitHub app on the repository (`/install-github-app` in Claude Code).
+- Data is in migration 014 (`feedback_items`, `feedback_votes`, `feedback_comments`, `feedback_files`); pictures are stored under `uploads/feedback/`. Code: `server/src/feedback.js`, `shared/feedback.js`, `web/src/pages/Feedback.jsx`, `web/src/pages/FeedbackAdmin.jsx`.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `GITHUB_TOKEN` | unset | Fine-grained GitHub token for the repository with **Issues: Read and write**. Without it (and `GITHUB_REPO`), briefs are copied by hand. |
+| `GITHUB_REPO` | unset | Repository for issues, e.g. `mdburlace/raceops`. |
+| `GITHUB_ISSUE_LABELS` | `raceops-feedback` | Labels on new issues (comma-separated). |
+| `CLAUDE_MENTION` | `@claude` | How the issue asks Claude to act. |
+| `GITHUB_API_URL` | `https://api.github.com` | Only for GitHub Enterprise or a proxy. |
+| `GITHUB_PROVIDER` | unset | `mock` for automated tests only. |
+
 ### Help & guide
 
 **Help & guide** (sidebar, under Profile & device) is the user guide, built into the app and available offline. It covers:

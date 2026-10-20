@@ -1,4 +1,4 @@
-// Email notifications (shared-calendar requests, decisions, questions and followed series/tracks).
+// Email notifications (shared-calendar requests, decisions, questions and followed series/tracks; feedback and roadmap).
 // Set SMTP_HOST (and SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE) in the Portainer stack to
 // turn them on; APP_URL makes links in emails point at the app. Without SMTP_HOST nothing is sent.
 // MAIL_TRANSPORT=file writes each email as JSON into MAIL_OUTBOX instead (automated tests only).
@@ -64,4 +64,11 @@ export async function mailTeam(tid, subject, text, appPath, extraUserIds = []) {
       JOIN users u ON u.id=m.user_id JOIN roles r ON r.id=m.role_id WHERE m.tenant_id=$1`, [tid]);
   const to = rows.filter((u) => wants(u) && (u.is_owner || (u.permissions || []).includes('calendar.edit') || extraUserIds.includes(u.id))).map((u) => u.email);
   await sendMail({ to, subject, text, path: appPath });
+}
+
+/** One person (if they haven't turned these emails off). */
+export async function mailUser(userId, subject, text, appPath) {
+  if (!mailConfigured() || !userId) return;
+  const { rows } = await q(`SELECT email, prefs, disabled FROM users WHERE id=$1`, [userId]);
+  await sendMail({ to: rows.filter(wants).map((u) => u.email), subject, text, path: appPath });
 }

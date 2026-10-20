@@ -13,6 +13,7 @@ import * as limiter from './ratelimit.js';
 import { mountAiAdmin } from './ai.js';
 import { mountCalendarAdmin } from './calendar.js';
 import { mountCalendarRequestsAdmin, syncEvents, updateRecord } from './calendarRequests.js';
+import { mountFeedbackAdmin } from './feedback.js';
 import { mountCalendarPlusAdmin } from './calendarPlus.js';
 import { fetchCalendar } from './calendar.js';
 import { TEAM_TYPES } from '../../shared/shop.js';
@@ -274,6 +275,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
   mountCalendarAdmin(A);
   mountCalendarRequestsAdmin(A);
   mountCalendarPlusAdmin(A, { fetchCalendar, syncEvents, updateRecord });
+  mountFeedbackAdmin(A, { UPLOAD_DIR });
 
   // ---------- sign-in lockouts ----------
   A.get('/lockouts', h(async (_req, res) => {

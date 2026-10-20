@@ -140,6 +140,21 @@ call('/admin/calendar/fixtures/new', T, 'PUT', {'values': {'name': 'Summer Serie
 call('/admin/calendar/fixtures/new', T, 'PUT', {'values': {'name': 'Valley Midweek Special', 'date': up(16), 'venue': gtrack['id'], 'classes': ['410 Sprint'], 'status': 'Scheduled'}})
 call(f'/admin/calendar/fixtures/{gfx[3]["id"]}', T, 'PUT', {'values': {**gfx[3]['data']['values'], 'date': up(38)}})
 
+# feedback & roadmap: a problem report, two requests on the roadmap (one with votes), and an idea in the pipeline
+fb_bug = call('/feedback', T, 'POST', {'kind': 'bug', 'title': 'Stagger resets after saving a setup sheet', 'description': 'After pressing Save the stagger goes back to blank.',
+              'steps': '1. Open a setup sheet\n2. Type 4.5 in stagger\n3. Save', 'expected': 'Stagger stays 4.5', 'page': '/setups', 'tenant_id': TID})[1]['item']
+fb_feat = call('/feedback', T, 'POST', {'kind': 'feature', 'title': 'Log tyre pressures for every session', 'description': 'See how pressures build over a night.'})[1]['item']
+fb_enh = call('/feedback', T, 'POST', {'kind': 'enhancement', 'title': 'Show the weather on the event list', 'description': 'Handy when picking a night.'})[1]['item']
+call(f'/admin/feedback/{fb_feat["id"]}', T, 'PATCH', {'public_summary': 'Record tyre pressures per session and see the trend'})
+call(f'/admin/feedback/{fb_feat["id"]}/decide', T, 'POST', {'action': 'approve', 'lane': 'next'})
+call(f'/feedback/{fb_feat["id"]}/vote', T, 'POST', {})
+call(f'/admin/feedback/{fb_enh["id"]}/decide', T, 'POST', {'action': 'approve', 'lane': 'now'})
+call(f'/admin/feedback/{fb_bug["id"]}', T, 'PATCH', {'priority': 'high', 'areas': ['module:setups', 'system:sync'], 'acceptance': '- Stagger saves on desktop and phone'})
+call(f'/admin/feedback/{fb_bug["id"]}/decide', T, 'POST', {'action': 'approve', 'lane': 'now'})
+fb_idea = call('/admin/feedback', T, 'POST', {'title': 'Bulk-edit pressures across a night’s sheets', 'kind': 'feature', 'description': 'Change one value on several setup sheets at once.',
+               'areas': ['module:setups'], 'public': True, 'public_summary': 'Change a value on several setup sheets at once'})[1]['item']
+call(f'/admin/feedback/{fb_idea["id"]}/decide', T, 'POST', {'action': 'approve', 'lane': 'later'})
+
 SHOTS = []
 shot = lambda name: (ONLY is None or name in ONLY) and SHOTS.append(name) is None
 
@@ -231,6 +246,19 @@ with sync_playwright() as pw:
         page.goto(B + f'/calendar?tab=shared&show=series:{gser["id"]}'); settle(page)
         page.get_by_role('button', name='Results', exact=True).first.click(); settle(page)
         save('calendar-results', page.screenshot())
+    if shot('feedback-send'):
+        page.goto(B + '/feedback?from=/setups'); settle(page)
+        page.click('button[role="radio"]:has-text("Something isn’t working")')
+        page.get_by_label('Title').fill('Stagger resets after saving a setup sheet')
+        page.get_by_label('Details').fill('After pressing Save the stagger goes back to blank.')
+        save('feedback-send', page.screenshot())
+    if shot('feedback-roadmap'):
+        page.goto(B + '/feedback?tab=roadmap'); settle(page)
+        save('feedback-roadmap', page.screenshot())
+    if shot('feedback-admin'):
+        page.goto(B + '/admin/feedback?view=pipeline'); settle(page)
+        page.click('[data-testid="fb-row"]:has-text("Stagger resets")'); settle(page)
+        save('feedback-admin', page.screenshot())
     if shot('calendar-public'):
         pub = call(f'/t/{TID}/calendar/publish', T, 'PUT', {'on': True, 'show_cars': True, 'show_tentative': True, 'show_results': True})[1]['calendar_publish']
         m = page_for(390, 844, mobile=True)

@@ -42,3 +42,4 @@ Add new shocks with their **position** and **adjustable type**, so they show at 
 | Reset a schedule after a rebuild | [Checklists and schedules](/help/maintenance) |
 | Load a dyno file | [Shock and bar dyno](/help/dyno) |
 | Work out a torsion bar rate | [Calculators](/help/calculators) |
+| Report a problem, or ask for a feature | [Feedback and the roadmap](/help/feedback) |
