@@ -46,16 +46,24 @@ async function push(tid) {
   }
 }
 
+// Bumped by fullResync. A pull that started before a reset stops without saving its records or its
+// cursor, so it can't overwrite the reset (which would leave the device "Synced" but missing data).
+const resets = new Map();
+
 async function pull(tid) {
+  const gen = resets.get(tid) || 0;
+  const stale = () => (resets.get(tid) || 0) !== gen;
   let since = await getMeta(`since:${tid}`, 0);
   for (;;) {
     const res = await api(`/t/${tid}/sync?since=${since}`);
+    if (stale()) return;
     await db.transaction('rw', db.records, async () => {
       const locals = await db.records.bulkGet(res.records.map((r) => r.id));
       const puts = res.records.filter((r, i) => !(locals[i]?.dirty && locals[i].client_updated_at > new Date(r.client_updated_at).toISOString()))
         .map((r) => fromServer(tid, r));
-      if (puts.length) await db.records.bulkPut(puts);
+      if (puts.length && !stale()) await db.records.bulkPut(puts);
     });
+    if (stale()) return;
     since = res.since;
     await setMeta(`since:${tid}`, since);
     if (!res.more) break;
@@ -90,8 +98,11 @@ export async function syncNow() {
 
 /** Drop the tenant's cached (already synced) data and pull everything again. */
 export async function fullResync(tid) {
+  resets.set(tid, (resets.get(tid) || 0) + 1);
   await db.records.where('[tenant_id+dirty]').equals([tid, 0]).delete();
   await setMeta(`since:${tid}`, 0);
+  // a sync already running (now stale) is followed by a fresh one from the start
+  if (running) { again = true; return running; }
   return syncNow();
 }
 

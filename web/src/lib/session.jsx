@@ -52,7 +52,7 @@ export function SessionProvider({ children }) {
       update(next);
       const m = me.memberships.find((x) => x.tenant_id === next.tenantId);
       if (m) {
-        const sig = JSON.stringify([m.role.is_owner, [...m.role.permissions].sort(), m.plan, m.features]);
+        const sig = JSON.stringify([m.role.is_owner, [...m.role.permissions].sort(), m.plan, m.features, [...(m.entitlements || [])].sort()]);
         const old = await getMeta(`perm:${m.tenant_id}`);
         await setMeta(`perm:${m.tenant_id}`, sig);
         if (old && old !== sig) fullResync(m.tenant_id);

@@ -477,6 +477,17 @@ cd server && npm install && DATABASE_URL=postgres://raceops:raceops@localhost:54
 cd web && npm install && npm run dev                                                                    # :5173, proxies /api
 ```
 
+### End-to-end tests
+
+The Playwright suites are in `tests/e2e/`. With Postgres running and the web app built (`cd web && npm run build`):
+
+```bash
+pip install -r tests/e2e/requirements.txt && python3 -m playwright install chromium
+tests/e2e/run.sh          # fresh test database and server, then every suite in order
+```
+
+See `tests/e2e/README.md` for settings and what each suite covers.
+
 ### Layout
 
 ```

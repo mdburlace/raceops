@@ -46,4 +46,5 @@ module or record type isn't documented. New environment variables also go in `do
 ## Also update
 
 - `README.md` for deployment or admin-facing changes.
-- Tests: Playwright end-to-end scripts are kept outside the repo; add one per feature.
+- Tests: Playwright end-to-end suites are in `tests/e2e/` (see its README). Add one per feature (`e2eNN.py`, next
+  number, a row in the README's table) and run `tests/e2e/run.sh` before pushing; all suites must pass.

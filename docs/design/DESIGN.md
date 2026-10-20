@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `013_calendar_plus.sql` |
-| Last updated | October 2026 (series round picker) |
+| Last updated | October 2026 (e2e tests in the repo; re-download race fix) |
 
 ---
 
@@ -118,7 +118,7 @@ Key design choices:
 | Build | Vite 5, `@vitejs/plugin-react`, `vite-plugin-pwa` 0.21 (Workbox) | |
 | Markdown | `marked` 14 (user guide) | |
 | Spreadsheets | `read-excel-file` 5 (import from Excel/CSV on device) | |
-| Tests | Python 3 + Playwright (Chromium), kept outside the repo | |
+| Tests | Python 3 + Playwright (Chromium), in `tests/e2e/` | |
 | Hosting | Docker + Portainer stack, pfSense HAProxy + ACME | |
 
 Both packages are ES modules (`"type": "module"`). There is no TypeScript and no CSS framework; styles are one hand-written `web/src/styles.css` with CSS custom properties for theming.
@@ -163,6 +163,8 @@ shared/                   code used by server AND web
   engineChecks.js, enginePack.js, shop.js, setupLayout.js, themes.js, calendar.js
   guide.js, guideData.js, guideChecklist.js   user guide parser, generated tables, first-run checklist
   seed/tracks.json, track_updates.json, guides.json   seed data for the shared directory
+tests/
+  e2e/                    Playwright suites e2e.py … e2eNN.py, fixtures/, server.sh (fresh test server), run.sh, README
 tools/
   check-guide.mjs         guide coverage check (runs in the build)
   check-design.mjs        design document coverage check (runs in the build)
@@ -371,6 +373,7 @@ Returns up to 2000 records with `seq > since` for that team **plus all global re
 
 - Sync runs on start, on each local change, when the connection returns, when the app comes back to the foreground, and every 30 seconds. The header badge shows **Synced / Syncing / Waiting to sync / Offline**.
 - Attachments are online-only (`/api/t/:tid/attachments`), and need the record to have synced first.
+- A change to the user's role, the team's plan, feature overrides or entitlements triggers a **full re-download** (`fullResync`: clean local records dropped, cursor reset to 0). A pull already running when it starts is discarded (a reset generation counter), so it can't save its old cursor over the reset.
 - Old installed apps keep running until reopened (service worker `autoUpdate`), so **the server must keep accepting older clients' payloads** (see §21).
 
 ---
@@ -591,7 +594,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 | Guide coverage | `node tools/check-guide.mjs` | in `npm run build` (and so in `docker build`) |
 | Design document coverage | `node tools/check-design.mjs` | in `npm run build` |
 | Web build | `cd web && npm run build` | Vite production build |
-| End-to-end tests | Python Playwright suites `e2e.py` … `e2e29.py` | against a test server started with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=…`, fresh database, first user `owner@test.com` created through `/api/setup`; suites run in order and build on each other |
+| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e29.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=…`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
 | Dependency audit | `npm audit` (server and web) | before each release |
 
 Local development: Postgres on `localhost:5432` (db/user `raceops`), `cd server && npm i && node src/index.js`, `cd web && npm i && npm run dev` (Vite proxies `/api` to `:8080`).
@@ -671,7 +674,6 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 - **Forward-only migrations.** Rollback means restoring a dump unless the migration was additive. Write migrations "expand first, contract later" (see `ROLLOUT.md`).
 - **Conflict resolution is last-write-wins per record**, on device clocks; a device with a wrong clock can win or lose unexpectedly. History keeps every attempt.
 - **Version number** in `server/package.json` is not bumped per release yet; release tags are recommended in `ROLLOUT.md`.
-- **End-to-end tests live outside the repository.** They are the acceptance tests for a rebuild, so keep them versioned and backed up (a private repo or `tests/e2e/`).
 - **JWT revocation** is coarse (disable user or rotate the secret).
 
 ---

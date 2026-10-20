@@ -11,7 +11,7 @@
 | Environments | Production only (Portainer stack on the home Docker host). Testing happens in a throw-away container. | Every change is first exercised by real teams in production. |
 | Build | Portainer builds the image from the Git repo on the production host (`build: .`). | What runs is whatever `main` was when someone pressed redeploy. No record of which commit is live, no quick rollback. |
 | Versioning | `server/package.json` stays at `1.0.0`; no tags. | You can't tell what's deployed or go back to a known version. |
-| Tests | 29 Playwright suites, kept outside the repo and run by hand. | They aren't versioned or run automatically, and they would be lost with the session. |
+| Tests | 29 Playwright suites in `tests/e2e/`, run by hand with `tests/e2e/run.sh`. | They don't run automatically on every change yet. |
 | Database changes | Migrations run on container start. No backup step before a deploy. | A bad migration can only be undone from whatever backup exists. |
 | Backups | Two Docker volumes, backed up by hand. | No tested restore. |
 
@@ -68,7 +68,7 @@ Production secrets never go into staging. Staging has its own `JWT_SECRET`, data
   - MAJOR for a change that needs action from admins, such as a new required environment variable or a contract migration.
 - **Bump `server/package.json`** (and `web/package.json`) to the release version in the release commit. **Platform admin → System & activity** then shows what's running. Inject the Git commit too (build argument `GIT_SHA` → environment variable), so the System page shows the exact commit.
 - **Release notes:** `docs/guide/whats-new.md` already serves as user-facing notes. Add a short `CHANGELOG.md` entry for admin-facing changes (new environment variables, migrations, manual steps).
-- **Tests in version control.** Move the Playwright suites into the repo (`tests/e2e/`) or a private companion repo (`raceops-e2e`), with the `reset.sh`/`runfrom.sh` helpers. CI can't run them otherwise, and they are the acceptance tests for a rebuild (DESIGN.md §19).
+- **Tests in version control.** The Playwright suites are in `tests/e2e/`, with `server.sh` (fresh test server) and `run.sh`. They're what CI runs, and the acceptance tests for a rebuild (DESIGN.md §19).
 
 ## 5. Build and deployment pipeline
 
@@ -108,6 +108,11 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_HOST_AUTH_METHOD: trust }
+        ports: ['5432:5432']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -116,10 +121,12 @@ jobs:
       - run: cd web && npm ci && npm run build          # runs check-guide and check-design first
       - run: docker build -t raceops:ci --build-arg GIT_SHA=${{ github.sha }} .
       - name: e2e
-        run: |
-          docker compose -f docker-compose.yml -f deploy/ci.override.yml up -d   # image raceops:ci, mock providers
-          pip install playwright && playwright install --with-deps chromium
-          ./tests/e2e/run.sh                                                    # e2e … e2e29 in order
+        run: |   # server.sh recreates the test DB and starts the server with mock AI/weather and file email
+          pip install -r tests/e2e/requirements.txt && python3 -m playwright install --with-deps chromium
+          PGADMIN_URL=postgresql://postgres@localhost:5432/postgres tests/e2e/run.sh
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: e2e-output, path: tests/e2e/out }
       - if: github.ref == 'refs/heads/main' && success()
         name: push image
         run: |
@@ -138,7 +145,6 @@ jobs:
             ghcr.io/mdburlace/raceops:sha-${GITHUB_SHA::7}
 ```
 
-`deploy/ci.override.yml` sets the CI environment (`AI_PROVIDER=mock`, `WEATHER_PROVIDER=mock`, `CALENDAR_FETCH_PRIVATE=1`, `MAIL_TRANSPORT=file`, a throw-away `JWT_SECRET` and database password).
 
 ### 5.3 Deploying to staging and production (pull-based GitOps)
 
@@ -281,7 +287,7 @@ When that time comes, the steps in order are:
 
 | Step | What | Effort | Benefit |
 |---|---|---|---|
-| 1 | Put the e2e suites in version control; add `CHANGELOG.md`; start version tags and bump versions | small | Tests are safe and runnable by CI; you know what's deployed |
+| 1 | ~~Put the e2e suites in version control~~ (done: `tests/e2e/`); add `CHANGELOG.md`; start version tags and bump versions | small | Tests are safe and runnable by CI; you know what's deployed |
 | 2 | GitHub Actions CI: checks, build, e2e, push to GHCR (`sha-…`, `edge`) | medium | Every change is tested the same way; images are built once |
 | 3 | `image: ${RACEOPS_IMAGE}` in compose; production pinned to a version tag; manual re-pull in Portainer | small | No more building on production; one-click rollback |
 | 4 | Automated nightly backups (database + uploads) to NAS and offsite, with an alert on failure | small | Recoverable from host loss |
