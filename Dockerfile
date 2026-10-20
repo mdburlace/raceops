@@ -5,10 +5,13 @@ COPY shared ./shared
 COPY web/package.json web/package-lock.json ./web/
 RUN cd web && npm ci
 COPY web ./web
-# the user guide is bundled into the app, and the build checks it covers every page and setting
+# the user guide is bundled into the app, and the build checks it covers every page and setting;
+# it also checks the design document covers every migration, environment variable and module
 COPY docs ./docs
 COPY tools ./tools
 COPY server/src ./server/src
+COPY server/migrations ./server/migrations
+COPY docker-compose.yml ./
 RUN cd web && npm run build
 
 # ---- runtime: API + static web app ----

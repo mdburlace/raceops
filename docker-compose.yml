@@ -42,6 +42,17 @@ services:
       OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
       # Proxies whose X-Forwarded-For is trusted (pfSense HAProxy on a private network is covered)
       TRUST_PROXY: ${TRUST_PROXY:-loopback, linklocal, uniquelocal}
+      # Email notifications (optional): nothing is sent until SMTP_HOST is set
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      # The app's public address, used for links in emails (e.g. https://raceops.yourdomain.com)
+      APP_URL: ${APP_URL:-}
+      # How often official iCal feeds for shared series/tracks are checked (hours; 0 = off)
+      CALENDAR_FEED_HOURS: ${CALENDAR_FEED_HOURS:-12}
     volumes:
       - raceops_uploads:/data/uploads
     ports:

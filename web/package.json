@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "build": "node ../tools/check-guide.mjs && vite build",
+    "build": "node ../tools/check-guide.mjs && node ../tools/check-design.mjs && vite build",
     "check:guide": "node ../tools/check-guide.mjs",
+    "check:design": "node ../tools/check-design.mjs",
     "preview": "vite preview"
   },
   "keywords": [],

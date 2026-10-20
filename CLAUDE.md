@@ -34,6 +34,15 @@ Tables of roles, permissions, plans, settings, calculators, themes and shock adj
 
 Writing style: plain Australian English, short sentences, bold for things on screen, "you" for the reader.
 
+## Design document — every release must keep it current
+
+`docs/design/DESIGN.md` describes the system well enough to rebuild it if the repo or server is lost;
+`docs/design/ROLLOUT.md` covers environments, releases and deployment. Update them **in the same change**:
+new migrations, environment variables, server modules, routes, record types, in-memory state, integrations,
+build/deploy or backup changes (the checklist is DESIGN.md §20). Set *Last updated* in its header.
+`node tools/check-design.mjs` runs in `npm run build` and fails if a migration, environment variable, server
+module or record type isn't documented. New environment variables also go in `docker-compose.yml` and `README.md`.
+
 ## Also update
 
 - `README.md` for deployment or admin-facing changes.

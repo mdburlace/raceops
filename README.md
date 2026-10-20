@@ -15,6 +15,8 @@ The landing page shows the four areas with live status and each area's "Coming n
 
 ---
 
+> **Design and operations:** [docs/design/DESIGN.md](docs/design/DESIGN.md) describes the whole system (data model, sync, security, backup and disaster recovery). [docs/design/ROLLOUT.md](docs/design/ROLLOUT.md) covers development, staging and production environments and how releases are deployed.
+
 ## 1. Deploy with Portainer
 
 1. Copy this folder to the Docker host, or push it to a Git repo that Portainer can reach.
