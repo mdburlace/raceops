@@ -18,10 +18,10 @@ Platform admins run the RaceOps server for every team. The first account created
 | **Plans & allocation** | What each plan includes, seats per team, licences to allocate, a price note, and the **Shared engines** limit for engine shops. Add plans, remove unused ones, or restore a built-in plan. |
 | **Users** | Every account, its teams and last sign-in. Edit name or email, **reset password** (shows a one-time temporary password), make admins, **disable** an account, and remove someone from a team. |
 | **Tracks & directory** | Track counts and gaps, shared contacts and suppliers. Import tracks, export all as JSON, or re-apply the bundled list. |
-| **Shared calendars** | The series, track and major-event calendars every team uses. Add, edit and delete dates and series, import published calendars, and approve or reject teams' suggestions. See [Shared calendars](/help/calendar-suggestions). |
+| **Shared calendars** | The series, track and major-event calendars every team uses. Add, edit and delete dates and series, import published calendars, moderate teams' requests, appoint officials, add official feeds, merge duplicates and restore old versions. See [Shared calendars](/help/calendar-suggestions). |
 | **Pick-lists** | Track conditions, car behaviour, contact roles, supplier categories, sanctioning bodies (for series, events and calendar dates) and race classes (also the list a car’s Class picks from). Add, remove, reorder, paste, or restore the default. |
 | **AI assistant** | Turn AI on, choose the models, set the monthly allowance per team and the token prices, test the connection, and see spend per team. |
-| **Settings** | App name, support email, invite link lifetime, default plan and seats for new teams, and an **announcement banner** with an optional end date. |
+| **Settings** | App name, support email, invite link lifetime, default plan and seats for new teams, and an **announcement banner** with an optional end date. **Email notifications** shows whether email is set up, with **Send me a test email**. |
 | **System & activity** | Version, uptime, database and uploads, migrations, record counts, re-check base forms, and the full admin audit log. |
 
 ## Plans and features

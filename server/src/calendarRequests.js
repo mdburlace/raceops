@@ -14,13 +14,19 @@ import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { canType } from '../../shared/catalog.js';
 import { audit } from './settings.js';
+import { notifyFollowers, officialFor, sendAfter } from './calendarPlus.js';
+import { mailAdmins, mailTeam } from './mail.js';
 
 const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg); };
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const lc = (s) => String(s ?? '').trim().toLowerCase();
-const pick = (v, keys) => Object.fromEntries(keys.map((k) => [k, v?.[k]]).filter(([, x]) => x !== undefined && x !== null && x !== '' && !(Array.isArray(x) && !x.length)));
+// results rows with no car number or driver are blank template rows
+const tidy = (k, x) => (k === 'results' && Array.isArray(x) ? x.filter((r) => r && (String(r.number || '').trim() || String(r.driver || '').trim())) : x);
+const pick = (v, keys) => Object.fromEntries(keys.map((k) => [k, tidy(k, v?.[k])]).filter(([, x]) => x !== undefined && x !== null && x !== '' && !(Array.isArray(x) && !x.length)));
+export { pick as pickValues };
 
-export const FIXTURE_KEYS = ['name', 'date', 'end_date', 'series', 'round', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes'];
+export const FIXTURE_KEYS = ['name', 'date', 'end_date', 'series', 'round', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes',
+  'entries', 'results', 'results_note'];
 export const SERIES_KEYS = ['name', 'season', 'class', 'sanctioning', 'start_date', 'end_date', 'website', 'points'];
 export const TRACK_KEYS = ['name', 'address', 'city', 'region', 'country', 'status', 'length', 'surface', 'dirt_type', 'radius', 'banking', 'cushion',
   'typical', 'lat', 'lon', 'website', 'phone', 'classes'];
@@ -274,10 +280,12 @@ async function decide(c, r, body, userId) {
     for (const k of KEYS[type]) if (!(k in values)) delete merged[k];
     await updateRecord(c, g.id, type, null, { ...g.data, values: merged }, userId);
     const synced = type === 'fixture' ? await syncEvents(c, g.id, merged, userId) : 0;
-    return { status: 'approved', decision: { reason, change: { id: g.id, synced } } };
+    const mails = type === 'fixture' ? await notifyFollowers(c, { after: merged, before: g.data.values || {} }) : [];
+    return { status: 'approved', decision: { reason, change: { id: g.id, synced } }, mails };
   }
 
   const dec = { reason, items: [] };
+  const mails = [];
   // the series / track itself: share it as new, or link to the one already shared
   const root = async (kind) => {
     const part = p[kind];
@@ -313,7 +321,7 @@ async function decide(c, r, body, userId) {
       need(g, 400, `Pick the shared date to link “${it.values.name}” to.`);
       gid = g.id;
     } else {
-      const v = pick({ ...it.values, ...(choice.values || {}) }, [...FIXTURE_KEYS, 'source']);
+      const v = pick({ ...it.values, ...(choice.values || {}) }, [...FIXTURE_KEYS, 'source', 'feed_uid']);
       // the series and track on the shared date must be shared ones
       if (v.series) {
         if (p.series && v.series === p.series.id) v.series = gSeries;
@@ -332,6 +340,7 @@ async function decide(c, r, body, userId) {
       if (!v.status) v.status = 'Scheduled';
       v.source = v.source || `Sent by a team (${r.team || 'team'})`;
       gid = await insertGlobal(c, 'fixture', { form_id: 'base-fixture', values: v }, userId);
+      mails.push(...await notifyFollowers(c, { after: v }));
     }
     added++;
     dec.items.push({ key: it.key, action: choice.action === 'link' ? 'link' : 'add', id: gid, name: it.values.name, date: it.values.date });
@@ -360,6 +369,7 @@ async function decide(c, r, body, userId) {
     for (const f of loose) {
       const fv = { ...f.data.values, venue: gTrack }; delete fv.track;
       await updateRecord(c, f.id, 'fixture', null, { ...f.data, values: fv }, userId);
+      mails.push(...await notifyFollowers(c, { after: fv }));
       await syncEvents(c, f.id, fv, userId);
     }
   }
@@ -370,13 +380,56 @@ async function decide(c, r, body, userId) {
   }
   const total = (p.items || []).length;
   const status = total && !added && !gSeries && !gTrack ? 'rejected' : refused ? 'partly_approved' : 'approved';
-  return { status, decision: dec };
+  return { status, decision: dec, mails };
 }
 
 // ---------------------------------------------------------------- routes
-const COLS = `cr.id, cr.tenant_id, cr.kind, cr.subject_type, cr.subject_id, cr.title, cr.payload, cr.note, cr.status, cr.decision,
-  cr.decided_at, cr.seen, cr.created_at, cr.updated_at, t.name AS team, u.name AS by_name, d.name AS decided_by_name`;
-const FROM = `FROM calendar_requests cr JOIN tenants t ON t.id=cr.tenant_id LEFT JOIN users u ON u.id=cr.user_id LEFT JOIN users d ON d.id=cr.decided_by`;
+const COLS = `cr.id, cr.tenant_id, cr.kind, cr.subject_type, cr.subject_id, cr.title, cr.payload, cr.note, cr.status, cr.decision, cr.source,
+  cr.decided_at, cr.seen, cr.created_at, cr.updated_at, coalesce(t.name, 'Official feed') AS team, u.name AS by_name, d.name AS decided_by_name,
+  (SELECT coalesce(json_agg(json_build_object('from_admin', m.from_admin, 'body', m.body, 'at', m.created_at, 'by', mu.name) ORDER BY m.created_at), '[]'::json)
+     FROM calendar_request_messages m LEFT JOIN users mu ON mu.id=m.user_id WHERE m.request_id=cr.id) AS messages`;
+const FROM = `FROM calendar_requests cr LEFT JOIN tenants t ON t.id=cr.tenant_id LEFT JOIN users u ON u.id=cr.user_id LEFT JOIN users d ON d.id=cr.decided_by`;
+
+/**
+ * A team that looks after a shared series or track (an "official", with auto-approve on) has its
+ * requests for it approved at once — duplicates are linked, and anything that clashes waits for the admin.
+ */
+async function autoApprove(id, tid, userId) {
+  const off = await officialFor(tid);
+  const ours = [...off.values()].filter((o) => o.auto_approve).map((o) => o.entity_id);
+  if (!ours.length) return null;
+  const { rows: [r] } = await q(`SELECT * FROM calendar_requests WHERE id=$1`, [id]);
+  const p = r.payload || {};
+  let covered = false;
+  if (r.kind === 'change') {
+    if (['series', 'track'].includes(r.subject_type)) covered = ours.includes(r.subject_id);
+    else {
+      const { rows: [f] } = await q(`SELECT data FROM records WHERE id=$1`, [r.subject_id]);
+      const cur = f?.data?.values || {};
+      const touches = [cur.series, cur.venue, p.values?.series, p.values?.venue].filter(Boolean);
+      covered = touches.some((x) => ours.includes(x)) && [p.values?.series, p.values?.venue].filter(Boolean).every((x) => ours.includes(x) || x === cur.series || x === cur.venue);
+    }
+  } else if (r.subject_type === 'dates' && (p.items || []).length) {
+    covered = p.items.every((it) => ours.includes(it.values?.series) || ours.includes(it.values?.venue));
+  }
+  if (!covered) return null;
+  const checks = checksFor(r, await loadGlobals());
+  const all = r.kind === 'change' ? checks.change || [] : Object.values(checks.items || {}).flat();
+  if (all.some((x) => x.type === 'conflict') || (r.kind === 'change' && all.length)) return null;
+  const items = Object.fromEntries((p.items || []).map((it) => {
+    const dup = (checks.items?.[it.key] || []).find((x) => x.type === 'duplicate');
+    return [it.key, dup ? { action: 'link', id: dup.id } : { action: 'add' }];
+  }));
+  const out = await tx(async (c) => {
+    const { rows: [row] } = await c.query(`SELECT cr.*, t.name AS team FROM calendar_requests cr LEFT JOIN tenants t ON t.id=cr.tenant_id WHERE cr.id=$1 FOR UPDATE OF cr`, [id]);
+    const d = await decide(c, row, { action: 'approve', items, reason: 'Approved automatically — your team looks after this on the shared calendars.' }, userId);
+    await c.query(`UPDATE calendar_requests SET status=$2, decision=$3, decided_by=$4, decided_at=now(), updated_at=now(), source='official' WHERE id=$1`,
+      [id, d.status, JSON.stringify(d.decision), userId]);
+    return d;
+  });
+  sendAfter(out.mails);
+  return out;
+}
 
 export function mountCalendarRequests(T) {
   const canSend = (req) => canType(req.role, req.ent, 'fixture', 'edit') || req.user.is_platform_admin;
@@ -391,12 +444,15 @@ export function mountCalendarRequests(T) {
     const r = await buildRequest(req, req.body || {});
     const { rows: [row] } = await q(`INSERT INTO calendar_requests(tenant_id,user_id,kind,subject_type,subject_id,title,payload,note)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, [req.tid, req.user.id, r.kind, r.subject_type, r.subject_id, r.title, JSON.stringify(r.payload), r.note]);
-    res.json({ id: row.id, title: r.title, items: r.payload.items?.length || 0 });
+    // the team looks after this series/track: approve it straight away (unless something clashes)
+    const auto = await autoApprove(row.id, req.tid, req.user.id).catch((e) => { console.error('Auto-approve failed:', e.message); return null; });
+    if (!auto) mailAdmins(`New request: ${r.title}`, `${req.user.name || 'A team member'} sent “${r.title}” to the shared calendars.${r.note ? `\n\nNote: ${r.note}` : ''}`, '/admin/calendar?tab=requests').catch(() => {});
+    res.json({ id: row.id, title: r.title, items: r.payload.items?.length || 0, auto: auto?.status || null });
   }));
 
   T.post('/calendar/requests/:id/withdraw', h(async (req, res) => {
     need(canSend(req), 403, 'Your role can’t change requests.');
-    const { rowCount } = await q(`UPDATE calendar_requests SET status='withdrawn', updated_at=now() WHERE id=$1 AND tenant_id=$2 AND status='pending'`, [req.params.id, req.tid]);
+    const { rowCount } = await q(`UPDATE calendar_requests SET status='withdrawn', updated_at=now() WHERE id=$1 AND tenant_id=$2 AND status IN ('pending','question')`, [req.params.id, req.tid]);
     need(rowCount, 400, 'Only a request that’s still waiting can be withdrawn.');
     res.json({ ok: true });
   }));
@@ -410,8 +466,9 @@ export function mountCalendarRequests(T) {
 
 export function mountCalendarRequestsAdmin(A) {
   A.get('/calendar/requests', h(async (req, res) => {
-    const pending = req.query.status !== 'all';
-    const { rows } = await q(`SELECT ${COLS} ${FROM} ${pending ? `WHERE cr.status='pending'` : ''} ORDER BY ${pending ? 'cr.created_at' : 'cr.updated_at DESC'} LIMIT 300`);
+    const st = ['pending', 'question'].includes(req.query.status) ? req.query.status : req.query.status === 'all' ? 'all' : 'pending';
+    const { rows } = await q(`SELECT ${COLS} ${FROM} ${st !== 'all' ? `WHERE cr.status='${st}'` : ''} ORDER BY ${st !== 'all' ? 'cr.created_at' : 'cr.updated_at DESC'} LIMIT 300`);
+    const { rows: [counts] } = await q(`SELECT count(*) FILTER (WHERE status='pending')::int AS pending, count(*) FILTER (WHERE status='question')::int AS question FROM calendar_requests`);
     const g = await loadGlobals();
     // names for every record a request points at
     const ids = new Set();
@@ -422,22 +479,31 @@ export function mountCalendarRequestsAdmin(A) {
     }
     const { rows: refs } = ids.size ? await q(`SELECT id, type, tenant_id, data FROM records WHERE id = ANY($1::uuid[])`, [[...ids]]) : { rows: [] };
     res.json({
-      requests: rows.map((r) => ({ ...r, checks: r.status === 'pending' ? checksFor(r, g) : null })),
+      counts,
+      requests: rows.map((r) => ({ ...r, checks: ['pending', 'question'].includes(r.status) ? checksFor(r, g) : null })),
       refs: Object.fromEntries(refs.map((r) => [r.id, { id: r.id, type: r.type, global: r.tenant_id === null, name: r.data?.values?.name || '', season: r.data?.values?.season || '', date: r.data?.values?.date || '' }])),
     });
   }));
 
   A.post('/calendar/requests/:id/decide', h(async (req, res) => {
     const out = await tx(async (c) => {
-      const { rows: [r] } = await c.query(`SELECT cr.*, t.name AS team FROM calendar_requests cr JOIN tenants t ON t.id=cr.tenant_id WHERE cr.id=$1 FOR UPDATE OF cr`, [req.params.id]);
-      need(r && r.status === 'pending', 404, 'That request has already been dealt with.');
+      const { rows: [r] } = await c.query(`SELECT cr.*, t.name AS team FROM calendar_requests cr LEFT JOIN tenants t ON t.id=cr.tenant_id WHERE cr.id=$1 FOR UPDATE OF cr`, [req.params.id]);
+      need(r && ['pending', 'question'].includes(r.status), 404, 'That request has already been dealt with.');
       const d = await decide(c, r, req.body || {}, req.user.id);
       await c.query(`UPDATE calendar_requests SET status=$2, decision=$3, decided_by=$4, decided_at=now(), updated_at=now(), seen=false WHERE id=$1`,
         [r.id, d.status, JSON.stringify(d.decision), req.user.id]);
-      return d;
+      return { ...d, request: r };
     });
+    sendAfter(out.mails);
+    const r = out.request;
+    if (r.tenant_id) {
+      const words = { approved: 'approved', partly_approved: 'partly approved', rejected: 'not approved' };
+      mailTeam(r.tenant_id, `“${r.title}” was ${words[out.status] || out.status}`,
+        `Your request “${r.title}” to the shared calendars was ${words[out.status] || out.status}.${out.decision?.reason ? `\n\nAdmin: ${out.decision.reason}` : ''}${(out.decision?.items || []).filter((i) => i.action === 'refuse').map((i) => `\n• Refused: ${i.name}${i.reason ? ` — ${i.reason}` : ''}`).join('')}`,
+        '/calendar?tab=requests', [r.user_id]).catch(() => {});
+    }
     await audit(req.user.id, `calendar.request.${out.status}`, req.params.id).catch(() => {});
-    res.json(out);
+    res.json({ status: out.status, decision: out.decision });
   }));
 }
 

@@ -131,6 +131,14 @@ push(mud, mud_ev)
 call(f'/t/{TID}/calendar/requests', T, 'POST', {'kind': 'change', 'subject_type': 'fixture', 'subject_id': gfx[2]['id'],
      'values': {**gfx[2]['data']['values'], 'date': up(22), 'end_date': up(23)}, 'note': 'Moved forward a day — series Facebook page'})
 call(f'/t/{TID}/calendar/requests', T, 'POST', {'kind': 'share', 'subject_type': 'track', 'subject_id': mud['id'], 'events': [mud_ev['id']], 'note': 'Club track, 2026-27 fixture list'})
+# follow the series, then (as platform admin) add a round that has run, with results, a clashing club night, and move round 3
+push(rec('follow', {'entity_type': 'series', 'entity': gser['id']}, form_id=form('follow')))
+call('/admin/calendar/fixtures/new', T, 'PUT', {'values': {'name': 'Summer Series Opener', 'date': up(-5), 'venue': gtrack['id'], 'series': gser['id'], 'round': 0,
+     'classes': ['410 Sprint'], 'status': 'Scheduled', 'entries': 24, 'results_note': 'Track dried out for the feature.',
+     'results': [{'pos': '1', 'number': '17', 'driver': 'Sam Hart', 'team': 'Hart Racing'}, {'pos': '2', 'number': '5', 'driver': 'Jo Reid', 'team': 'Reid Motorsport'},
+                 {'pos': '3', 'number': '88', 'driver': 'Alex Moore', 'team': 'Demo Racing'}]}})
+call('/admin/calendar/fixtures/new', T, 'PUT', {'values': {'name': 'Valley Midweek Special', 'date': up(16), 'venue': gtrack['id'], 'classes': ['410 Sprint'], 'status': 'Scheduled'}})
+call(f'/admin/calendar/fixtures/{gfx[3]["id"]}', T, 'PUT', {'values': {**gfx[3]['data']['values'], 'date': up(38)}})
 
 SHOTS = []
 shot = lambda name: (ONLY is None or name in ONLY) and SHOTS.append(name) is None
@@ -213,6 +221,16 @@ with sync_playwright() as pw:
     if shot('calendar-requests'):
         page.goto(B + '/calendar?tab=requests'); settle(page)
         save('calendar-requests', page.screenshot())
+    if shot('calendar-updates'):
+        page.goto(B + '/calendar?tab=updates'); settle(page)
+        save('calendar-updates', page.screenshot())
+    if shot('calendar-clashes'):
+        page.goto(B + '/calendar?tab=shared&show=clashes'); settle(page)
+        save('calendar-clashes', page.screenshot())
+    if shot('calendar-results'):
+        page.goto(B + f'/calendar?tab=shared&show=series:{gser["id"]}'); settle(page)
+        page.get_by_role('button', name='Results', exact=True).first.click(); settle(page)
+        save('calendar-results', page.screenshot())
     if shot('calendar-public'):
         pub = call(f'/t/{TID}/calendar/publish', T, 'PUT', {'on': True, 'show_cars': True, 'show_tentative': True, 'show_results': True})[1]['calendar_publish']
         m = page_for(390, 844, mobile=True)

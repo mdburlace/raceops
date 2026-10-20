@@ -13,7 +13,8 @@ import { audit } from './settings.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
 import { applyUpgrades } from '../../shared/baseForms2.js';
 import { backgroundable } from './jobs.js';
-import { pendingRequests, syncEvents } from './calendarRequests.js';
+import { FIXTURE_KEYS as SHARED_FIXTURE_KEYS, pendingRequests, pickValues, syncEvents } from './calendarRequests.js';
+import { notifyFollowers, sendAfter } from './calendarPlus.js';
 
 const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg); };
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -28,7 +29,7 @@ const privateIp = (ip) => {
   return x === '::1' || x === '::' || x.startsWith('fc') || x.startsWith('fd') || x.startsWith('fe80') || x.startsWith('::ffff:127.') || x.startsWith('::ffff:10.') || x.startsWith('::ffff:192.168.');
 };
 
-async function fetchCalendar(raw) {
+export async function fetchCalendar(raw) {
   let url;
   try { url = new URL(String(raw).trim().replace(/^webcal:/i, 'https:')); } catch { throw new HttpError(400, 'That link isn’t a web address.'); }
   need(['http:', 'https:'].includes(url.protocol), 400, 'Use a web (http or https) link.');
@@ -197,7 +198,6 @@ async function updateRecord(c, id, type, tenantId, data, userId, deleted = false
 }
 
 const lc = (s) => String(s ?? '').trim().toLowerCase();
-const FIXTURE_KEYS = ['name', 'date', 'end_date', 'series', 'round', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes'];
 
 /** The standard form for a record type, upgraded — for admin pages that edit shared records outside a team. */
 function baseForm(target) {
@@ -219,28 +219,38 @@ export function mountCalendarAdmin(A) {
 
   // Add or change a shared date (id "new" adds one).
   A.put('/calendar/fixtures/:id', h(async (req, res) => {
-    const v = pick(req.body?.values, FIXTURE_KEYS);
+    const v = pickValues(req.body?.values, SHARED_FIXTURE_KEYS);
     need(v.name && /^\d{4}-\d{2}-\d{2}$/.test(v.date || ''), 400, 'A shared date needs a name and a date.');
     need(v.venue || v.track, 400, 'Pick a track or type its name.');
     if (req.body?.values?.source) v.source = String(req.body.values.source).slice(0, 300);
+    let mails = [];
     const id = await tx(async (c) => {
-      if (req.params.id === 'new') return insertGlobal(c, 'fixture', { form_id: 'base-fixture', values: v }, req.user.id);
+      if (req.params.id === 'new') {
+        const nid = await insertGlobal(c, 'fixture', { form_id: 'base-fixture', values: v }, req.user.id);
+        mails = await notifyFollowers(c, { after: v });
+        return nid;
+      }
       const { rows: [g] } = await c.query(`SELECT * FROM records WHERE id=$1 AND type='fixture' AND tenant_id IS NULL AND NOT deleted FOR UPDATE`, [req.params.id]);
       need(g, 404, 'That shared date no longer exists.');
-      await updateRecord(c, g.id, 'fixture', null, { ...g.data, values: { ...v, ...(g.data.values?.source && !v.source ? { source: g.data.values.source } : {}) } }, req.user.id);
+      const keep = Object.fromEntries(['source', 'feed_uid'].filter((k) => g.data.values?.[k] && !v[k]).map((k) => [k, g.data.values[k]]));
+      await updateRecord(c, g.id, 'fixture', null, { ...g.data, values: { ...v, ...keep } }, req.user.id);
       await syncEvents(c, g.id, v, req.user.id); // teams' entries follow the shared date
+      mails = await notifyFollowers(c, { after: v, before: g.data.values || {} });
       return g.id;
     });
+    sendAfter(mails);
     await audit(req.user.id, req.params.id === 'new' ? 'calendar.add' : 'calendar.edit', id, { name: v.name, date: v.date }).catch(() => {});
     res.json({ id });
   }));
 
   A.delete('/calendar/fixtures/:id', h(async (req, res) => {
-    await tx(async (c) => {
+    const mails = await tx(async (c) => {
       const { rows: [g] } = await c.query(`SELECT * FROM records WHERE id=$1 AND type='fixture' AND tenant_id IS NULL AND NOT deleted FOR UPDATE`, [req.params.id]);
       need(g, 404, 'That shared date no longer exists.');
       await updateRecord(c, g.id, 'fixture', null, g.data, req.user.id, true);
+      return notifyFollowers(c, { before: g.data.values || {}, removed: true });
     });
+    sendAfter(mails);
     await audit(req.user.id, 'calendar.delete', req.params.id).catch(() => {});
     res.json({ ok: true });
   }));

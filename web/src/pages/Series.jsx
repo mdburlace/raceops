@@ -5,7 +5,7 @@ import { eventTrack, fmtDate, num, titleOf, today, useTeamData, v } from '../lib
 import { useSession } from '../lib/session.jsx';
 import { dateRange, eventDays } from './Events.jsx';
 import { useState } from 'react';
-import { RequestChange, TeamNotes } from '../components/SharedRequests.jsx';
+import { FollowButton, RequestChange, TeamNotes } from '../components/SharedRequests.jsx';
 
 const roundsOf = (data, id) => data.list('event').filter((e) => v(e, 'series') === id || (v(e, 'series') && v(data.byId[v(e, 'series')], 'shared_as') === id))
   .sort((a, b) => (num(v(a, 'round')) ?? 999) - (num(v(b, 'round')) ?? 999) || (v(a, 'date') || '').localeCompare(v(b, 'date') || ''));
@@ -79,6 +79,8 @@ export function SeriesDetail() {
       </PageHeader>
       <div className="event-meta">
         {shared ? <span className="chip static">Shared series — kept by the RaceOps admin</span> : <span className="chip static">Our own series</span>}
+        {shared && <FollowButton data={data} entityType="series" entity={s.id} />}
+        {shared && <a className="chip" href={`/cal/series/${s.id}`} target="_blank" rel="noreferrer">Public page & subscribe</a>}
       </div>
       {sentMsg && <div className="notice info small">{sentMsg}</div>}
       {changing && <RequestChange data={data} type="series" rec={s} onDone={(x) => { setChanging(false); if (x) setSentMsg('Change sent — a RaceOps admin will check it. See Calendar → Requests.'); }} />}

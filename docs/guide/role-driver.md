@@ -31,4 +31,6 @@ Your feedback drives the setup advisor, so it matters that it's recorded.
 | I want to… | Go to |
 |---|---|
 | See where we’re racing this year | [Calendar](/help/calendar) |
+| See who won a round, and the results | [Calendar](/help/calendar) — **Results** |
+| Add a series' dates to my phone's calendar | [Calendar](/help/calendar) — **Subscribe** |
 | See my results and best tracks | [Analytics](/help/analytics) |

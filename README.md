@@ -406,6 +406,16 @@ Each plan has an optional **Shared engines** limit (Platform admin → Plans): h
   - **Changes:** a changed shared date (by request or admin edit) updates every team's events from it.
   - **Badges:** admins see the waiting count (`/api/me` `notices`) and teams see unseen decisions (`calendar_notices` on the membership) in the sidebar and on Home.
   - **Old suggestions:** suggestions made before requests existed are turned into requests at start-up.
+- **Extras (migration 013, `server/src/calendarPlus.js`):**
+  - **Questions:** admins can ask the team about a request (`question` status). The team answers from **Calendar → Requests**. The thread is in `calendar_request_messages`.
+  - **Officials** (`calendar_officials`): teams that look after a shared series or track. With auto-approve, their requests go live straight away unless they hit a duplicate or clash (`source = 'official'`).
+  - **Follow and updates:** `follow` records. Changes to a followed series or track (dates added, moved, cancelled, results) become `team_notices`, shown under **Calendar → Updates**.
+  - **Results:** shared dates carry `entries`, `results` and `results_note`. Teams send them as change requests.
+  - **Official feeds** (`calendar_feeds`): an iCal link per shared series or track, checked every `CALENDAR_FEED_HOURS`. New and changed dates arrive as requests with `source = 'feed'` and no team.
+  - **Merge and history:** `/api/admin/calendar/duplicates`, `/merge` (repoints every team's records, then retires the old one) and `/history/:id` with restore.
+  - **Public pages:** `/cal/series/<id>` and `/cal/track/<id>` in the app, backed by `/api/public/shared/<type>/<id>` and `.ics`. No login. These paths must reach the app through your reverse proxy.
+  - **Clashes:** a view in the app only, worked out from the shared dates.
+- **Email** (`server/src/mail.js`, `nodemailer`): platform admins get new requests and answers. Team owners and people with `calendar.edit` get decisions, questions, official appointments and followed changes. Each person can turn emails off in **Profile & device**. Nothing is sent unless `SMTP_HOST` is set. **Platform admin → Settings** shows the status and sends a test.
 - **Team calendar:** each entry is an `event` with the shared date it came from, **Going?** (Planned / Tentative / Not going) and **What happened** (raced the feature, missed the feature, withdrew with a reason, didn't attend, cancelled). Adding a date picks the car whose class is running, and asks when more than one fits.
 - **Series entries** (`season_plan`): series, racing year, car, class, full or partial. A full series adds every round.
 - **Import:** a web page, an iCal/webcal link, a PDF, photo or screenshot, or pasted text. iCal is read directly. Everything else goes to the AI assistant, so it needs the AI add-on. Dates are always shown for review first. Facebook and Instagram links are refused with a request for a screenshot, because they need a login. The server fetches links itself and won't open private network addresses.
@@ -415,6 +425,14 @@ Each plan has an optional **Shared engines** limit (Platform admin → Plans): h
 
 | Variable | Default | What it does |
 |---|---|---|
+| `SMTP_HOST` | unset | Mail server. Unset means no emails are sent. |
+| `SMTP_PORT` | `587` | `465` uses TLS from the start. |
+| `SMTP_SECURE` | by port | `true` or `false` to override. |
+| `SMTP_USER` / `SMTP_PASS` | unset | Mail login. Keep the password in the Portainer stack. |
+| `SMTP_FROM` | `SMTP_USER` | The sender, e.g. `RaceOps <raceops@example.com>`. |
+| `APP_URL` | unset | The app's public address, e.g. `https://raceops.example.com`, so emails link back to it. |
+| `CALENDAR_FEED_HOURS` | `12` | How often official iCal feeds are checked. `0` turns the checks off. |
+| `MAIL_TRANSPORT` | unset | `file` writes emails as JSON to `MAIL_OUTBOX` instead of sending them. For automated tests only. |
 | `CALENDAR_FETCH_PRIVATE` | unset | Set to `1` only on a test server to let calendar import open links on private addresses (tests import the server's own iCal feed). |
 
 ### Help & guide

@@ -187,7 +187,18 @@ const localNoteForm = {
   ],
 };
 
-export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm, fixtureForm, seasonPlanForm, localNoteForm, ...SHOP_FORMS];
+// A team following a shared series or track: told when its dates are added, moved or cancelled.
+const followForm = {
+  target: 'follow', name: 'Follow', is_default: true,
+  sections: [
+    { id: 'follow', title: 'Follow', fields: [
+      { key: 'entity_type', label: 'Following a', type: 'select', core: true, options: [{ value: 'series', label: 'Series' }, { value: 'track', label: 'Track' }] },
+      { key: 'entity', label: 'Series or track', type: 'entityref', typeKey: 'entity_type', core: true },
+    ] },
+  ],
+};
+
+export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm, fixtureForm, seasonPlanForm, localNoteForm, followForm, ...SHOP_FORMS];
 
 // Optional chassis numbers on the setup sheet, so the advisor can learn from weight, wing and rod changes.
 export const SETUP_CHASSIS_SECTION = {
@@ -339,5 +350,12 @@ export const PHASE3_UPGRADES = [
     help: 'A title or big one-off meeting, e.g. the Australian Sprintcar Title.' } },
   { target: 'event', section: 'event', after: 'major', field: { key: 'major_name', label: 'Major event name', type: 'text', suggest: true, showIf: 'major=true',
     placeholder: 'e.g. Australian Sprintcar Title' } },
+  // results and entries on shared dates (entered by the admin, or sent by teams for approval)
+  { target: 'fixture', before: '__end', insertSection: { id: 'results', title: 'Results', fields: [
+    { key: 'entries', label: 'Entries', type: 'number', help: 'How many cars entered.' },
+    { key: 'results', label: 'Feature result', type: 'table', columns: [{ key: 'pos', label: 'Pos' }, { key: 'number', label: 'Car #' }, { key: 'driver', label: 'Driver' }, { key: 'team', label: 'Team / note' }],
+      defaultRows: [1, 2, 3, 4, 5].map((p) => ({ pos: String(p) })) },
+    { key: 'results_note', label: 'Results notes', type: 'textarea', placeholder: 'e.g. Heat winners, fastest qualifier, source' },
+  ] } },
   ...SHOP_UPGRADES,
 ];

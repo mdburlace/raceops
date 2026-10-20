@@ -6,8 +6,8 @@ order: 5
 summary: Pull series, track and major-event dates into your calendar, pick the car, enter a full or part series, record what happened, share your own series and tracks, and print or publish it.
 for: module:calendar
 team: race
-pages: /calendar, /print/calendar, /c/:token
-covers: type:fixture, type:season_plan, type:local_note, module:calendar, setting:calendar_publish, setting:calendar_season_start, setting:calendar_view
+pages: /calendar, /print/calendar, /c/:token, /cal/:type/:id
+covers: type:fixture, type:season_plan, type:local_note, type:follow, module:calendar, setting:email_notices, setting:calendar_publish, setting:calendar_season_start, setting:calendar_view
 related: events-sessions, tracks, calendar-suggestions
 ---
 The **Calendar** is your team's racing year in one place: every meeting you plan to race, which car is going, and what happened. It's under **Team Management → Calendar**. Anyone whose role can see the calendar finds it there, including drivers and crew who don't otherwise use Team Management.
@@ -37,6 +37,7 @@ Choose a view at the top:
 | **Tracks** | Each track with dates this year. Tap a track for its race nights. |
 | **Major events** | Titles, championships and classics, wherever they're held. |
 | **All dates** | Everything for the year. |
+| **Clashes** | Days with more than one meeting in the same region. See [Clashes](#clashes). |
 
 Major events are marked **★ Major event** wherever they appear, including on your own calendar. The track and series pages link to their calendars too.
 
@@ -54,6 +55,45 @@ Dates on your calendar show **On our calendar — #12**. Use **Add another car**
 When a shared date changes (a round moves, the track or name changes), your entry changes with it automatically. Your car, plan, result and notes stay as they are. A cancelled date shows **Cancelled**.
 
 If you edited your own entry's date while offline, the entry shows **The shared calendar changed** with the old and new details. Press **Update ours** to bring it back into line.
+
+### Follow a series or track
+
+Press **Follow** on a shared series or track (in **Shared calendars**, or on its page under **Series** or **Tracks**). It changes to **✓ Following**. Press it again to stop.
+
+**Calendar → Updates** then lists every change to what you follow, newest first:
+
+![Updates from a followed series](img/calendar-updates.webp)
+
+- a date **added**;
+- a date **moved**, with the old and new date;
+- a date **cancelled** or removed;
+- **Results are in** for a date.
+
+New updates are marked **New**, and **Calendar** in the sidebar shows how many until someone opens **Updates**. If your server has email set up, the people who look after your calendar get an email too (see [Emails](#emails)).
+
+### Clashes
+
+The **Clashes** view lists days where two or more meetings are on in the same region, so you can see where a choice has to be made. **Same class** marks days where more than one meeting runs a class you race. Tick **Only where our classes run** to hide the rest.
+
+![Two meetings in the same region on the same day](img/calendar-clashes.webp)
+
+### Results
+
+After a shared date has run, it can show the results for every team:
+
+- **🏁 Won by #17 …** shows on the date, and on your own entry for it.
+- **Results** opens the finishing order (position, number, driver and team), the number of entries and any note.
+
+![A shared date's results](img/calendar-results.webp)
+
+To add them, press **Report results** on the date, fill in the finishers you know, and press send. Results go to the platform admin for approval like any other change. If your team looks after that series or track (see [Officials](#officials)), the button is **Add results** and they may go live straight away.
+
+### Public page and subscribe
+
+Every shared series and track has a public page anyone can open, without signing in. In **Shared calendars**, open a series or track and press **Public page**, or use **Public page & subscribe** on its page under **Series** or **Tracks**.
+
+- **Public page** lists the year's dates, with winners for the ones that have run.
+- **Subscribe** gives an iCal link. Add it to Google, Apple or Outlook calendar and it keeps itself up to date.
 
 ## Enter a series
 
@@ -151,9 +191,28 @@ Once approved, the change shows for every team, and entries that came from a cha
 | **Approved** | Live for every team. Each date shows **Added**, or **Already shared — linked** if it matched one that was already there. |
 | **Partly approved** | Some dates were refused. Each refused date shows **Refused** and the reason. |
 | **Not approved** | Nothing was added. The admin's note says why. |
+| **Question for you** | The admin has asked something before deciding. Read the question under the request, type your answer and press **Send answer**. It goes back to **Waiting for approval**. |
 | **Withdrawn** | You took it back. |
 
 When a request is decided, **Calendar** in the sidebar shows a number, and Home shows a note, until someone who can edit the calendar opens **Requests**.
+
+Requests and answers form a thread under each request, so you can see what was asked and said.
+
+### Officials
+
+A platform admin can make your team an **official** for a series or track, for example because you run the series or the track. You'll see **Your team looks after this** on it, and **We look after this** in the lists.
+
+- If the admin turned on **Auto-approve**, your changes, new dates and results go live straight away. Your request shows **Official — automatic**. Anything that looks like a duplicate or a clash still goes to the admin.
+- Otherwise your requests are checked as usual, but the admin knows they come from the series or track itself.
+
+### Emails
+
+If your server has email set up, RaceOps emails:
+
+- **the platform admins** when a request arrives or a team answers a question;
+- **your team** when a request is decided (with any refused dates and why), when the admin asks a question, when you're made an official, and when something you follow changes.
+
+Team emails go to the owner and anyone who can edit the calendar. To stop them for yourself, open **Profile & device** and untick **Email notifications**. Updates still show in the app.
 
 ### Import a published calendar
 
@@ -200,6 +259,9 @@ Only events you're going to are shown, and never setups or notes. Choose whether
 | See the calendar | Anyone with **Calendars → view** (no Team Management access needed) |
 | Add dates to your calendar, record results | **Events → edit** |
 | Enter a series | **Calendars → edit** |
-| Send series, tracks and dates; suggest changes; import; keep team notes | **Calendars → edit** |
+| Send series, tracks and dates; suggest changes; report results; answer questions; import; keep team notes | **Calendars → edit** |
+| Follow a series or track | **Calendars → edit** |
+| See updates, clashes and results | Anyone with **Calendars → view** |
+| Turn off your own emails | Everyone, in **Profile & device** |
 | Publish, set when the racing year starts | Owner, or **Edit team settings** |
-| Approve or refuse requests, edit shared records | Platform admins |
+| Approve or refuse requests, edit shared records, appoint officials, set up feeds, merge and restore | Platform admins |

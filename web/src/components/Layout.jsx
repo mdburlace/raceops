@@ -100,7 +100,7 @@ export function useNav() {
     ] },
     // the Calendar is open to anyone with Calendars → view, so the group shows for them too (with just that link)
     { area: 'team', label: 'Team Management', icon: I.team, show: teamFull || (racing && canModule('calendar')), path: teamFull ? null : '/calendar', links: [
-      racing && canModule('calendar') && { to: '/calendar', label: 'Calendar', icon: I.calendar, badge: canModule('calendar', 'edit') ? membership?.calendar_notices || 0 : 0 },
+      racing && canModule('calendar') && { to: '/calendar', label: 'Calendar', icon: I.calendar, badge: (canModule('calendar', 'edit') ? membership?.calendar_notices || 0 : 0) + (membership?.calendar_updates || 0) },
       teamFull && racing && canModule('cars') && { to: '/cars', label: 'Cars', icon: I.car },
       teamFull && canModule('contacts') && { to: '/contacts', label: 'Contacts', icon: I.book },
       teamFull && canModule('contacts') && { to: '/suppliers', label: 'Suppliers', icon: I.truck },

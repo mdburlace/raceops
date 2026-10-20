@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { classMatches } from '@shared/tracks.js';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { TrackDates } from './Calendar.jsx';
-import { RequestChange, TeamNotes } from '../components/SharedRequests.jsx';
+import { FollowButton, RequestChange, TeamNotes } from '../components/SharedRequests.jsx';
 import { Empty, PageHeader, Pill, Section, useOnline } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { fmtDate, titleOf, useTeamData, v, platformList } from '../lib/data.js';
@@ -242,6 +242,8 @@ export function TrackDetail() {
         {isGlobal(t) ? <span className="chip static">Shared directory</span> : <span className="chip static">Team-only track</span>}
         {linked && <span className="chip static">{v(link, 'link') === 'Linked' ? 'Linked to team' : racedHere ? `Raced here (${racedHere} event${racedHere === 1 ? '' : 's'})` : 'Our team track'}</span>}
         {matched.length > 0 && <span className="chip static">Runs our class: {matched.join(', ')}</span>}
+        {isGlobal(t) && <FollowButton data={data} entityType="track" entity={t.id} />}
+        {isGlobal(t) && <a className="chip" href={`/cal/track/${t.id}`} target="_blank" rel="noreferrer">Public page & subscribe</a>}
         {v(link, 'link') === 'Hidden' && <span className="chip static">Hidden from our tracks</span>}
       </div>
       <div className="grid-2">

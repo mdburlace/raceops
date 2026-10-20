@@ -225,7 +225,7 @@ export function Roles() {
 }
 
 export function Profile() {
-  const { user, logout, tid, refresh } = useSession();
+  const { user, logout, tid, refresh, prefs, setPrefs } = useSession();
   const sync = useSyncExternalStore(subscribeSync, getSyncStatus);
   const online = useOnline();
   const [name, setName] = useState(user?.name || '');
@@ -245,6 +245,11 @@ export function Profile() {
       <PageHeader title="Profile & device" />
       {msg && <div className="notice info">{msg}</div>}
       <div className="grid-2">
+        <Section title="Email notifications">
+          <label className="check-row"><input type="checkbox" checked={prefs.email_notices !== false} onChange={(e) => setPrefs({ email_notices: e.target.checked })} />
+            Email me about shared-calendar requests and the series and tracks my team follows</label>
+          <p className="muted small">Only when this server has email set up. Requests go to people who can edit the calendar.</p>
+        </Section>
         <Section title="Install on this device">
           {standalone ? <p>Installed — RaceOps opens full screen and works offline.</p> : installEvt ? (
             <button type="button" className="btn primary" onClick={async () => { installEvt.prompt(); await installEvt.userChoice; setInstallEvt(null); }}>Install app</button>

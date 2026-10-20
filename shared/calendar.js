@@ -184,7 +184,7 @@ export function parseICS(text) {
         let end = cur._end || null;
         if (end && allDay) end = addDays(end, -1); // all-day DTEND is the day after
         out.push({ name: cur.name || 'Event', date: cur.date, end_date: end && end > cur.date ? end : '', location: cur.location || '',
-          notes: cur.notes || '', website: cur.website || '', status: cur.status || '' });
+          notes: cur.notes || '', website: cur.website || '', status: cur.status || '', uid: cur.uid || '' });
       }
       cur = null; continue;
     }
@@ -194,6 +194,7 @@ export function parseICS(text) {
     const head = line.slice(0, i).toUpperCase(); const val = line.slice(i + 1);
     const key = head.split(';')[0];
     if (key === 'SUMMARY') cur.name = unescapeICS(val).trim();
+    else if (key === 'UID') cur.uid = val.trim().slice(0, 300);
     else if (key === 'DTSTART') { cur.date = icsDay(val); cur._allDay = /VALUE=DATE(?!-)/.test(head) || /^\d{8}$/.test(val.trim()); }
     else if (key === 'DTEND') cur._end = icsDay(val);
     else if (key === 'LOCATION') cur.location = unescapeICS(val).trim();

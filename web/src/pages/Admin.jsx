@@ -1,5 +1,6 @@
 // Platform (global) administration: licences, plans, users, shared directory, pick-lists, settings and system.
 import { useMemo, useState } from 'react';
+import { MailStatus } from '../components/SharedRequests.jsx';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AREAS, FEATURES } from '@shared/catalog.js';
 import { AI_FEATURES, ANNOUNCE_LEVELS, TEAM_STATUS } from '@shared/platform.js';
@@ -700,6 +701,7 @@ export function AdminSettings() {
     <div>
       <PageHeader title="Settings" sub="Name, defaults for new teams and the announcement banner" />
       {!res.data ? <p className="muted">{res.err || 'Loading…'}</p> : <SettingsForm g={res.data[0].general} plans={res.data[1].plans} />}
+      <MailStatus />
     </div>
   );
 }

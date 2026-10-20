@@ -369,6 +369,9 @@ export const FIELD_INFO = {
     major_name: ['The major event’s name, e.g. “Australian Sprintcar Title” — the event name can then be the night (e.g. “Night 2”).'],
     major: ['Tick for a title or big one-off meeting (e.g. the Australian Sprintcar Title or a classic). It’s listed under Major events as well as on its track’s and series’ calendars.'],
     status: ['Scheduled, Postponed or Cancelled. Teams with the date on their calendar see the change.'],
+    entries: ['How many cars entered the meeting.'],
+    results: ['The feature’s finishing order — position, car number, driver and team. Shown on the shared calendar, the public page and each team’s entry.'],
+    results_note: ['Anything else about the results: heat winners, fastest qualifier, where the results came from.'],
     start_time: ['Gate and racing times, if published.'],
     website: ['Where the date was published — the series or track web page.'],
   },
@@ -376,6 +379,10 @@ export const FIELD_INFO = {
     entity_type: ['What the note is about: a shared series, track or calendar date.'],
     entity: ['The shared series, track or date.'],
     notes: ['Your team’s own notes — only your team sees them. The shared record itself is kept by the RaceOps admin.'],
+  },
+  follow: {
+    entity_type: ['Whether you’re following a shared series or a track.'],
+    entity: ['The shared series or track you’re following.'],
   },
   season_plan: {
     series: ['The series you’re entering.'],

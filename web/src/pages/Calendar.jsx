@@ -4,7 +4,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
-import { AdminRequests, RequestsTab, TeamNotes, sendRequest, useCalendarRequests } from '../components/SharedRequests.jsx';
+import {
+  AdminRequests, DuplicatesPanel, FeedPanel, FollowButton, HistoryPanel, MergeInto, OfficialsPanel, ReportResults, RequestsTab, ResultsTable, TeamNotes,
+  UpdatesTab, sendRequest, useCalendarRequests, useOfficials, winnerText,
+} from '../components/SharedRequests.jsx';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { api, apiJob } from '../lib/api.js';
 import { fileToPart } from '../lib/ai.js';
@@ -13,7 +16,7 @@ import { useSession } from '../lib/session.jsx';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { syncNow } from '../lib/sync.js';
 import {
-  INTENTS, MONTHS, OUTCOMES, WITHDREW, WITHDRAW_REASONS, carsForFixture, entryStatus, eventFromFixture, fixtureChanges,
+  addDays, INTENTS, MONTHS, OUTCOMES, WITHDREW, WITHDRAW_REASONS, carsForFixture, entryStatus, eventFromFixture, fixtureChanges,
   fixtureClasses, inSeason, majorLabel, matchTrack, sanctioningOf, sameFixture, seasonLabel, seasonMatches, seasonOf, seasonStart, seasonSummary,
 } from '@shared/calendar.js';
 
@@ -77,6 +80,7 @@ export function CalendarPage() {
   const requests = useCalendarRequests();
   if (!data) return null;
   const unseen = membership?.calendar_notices || 0;
+  const updates = membership?.calendar_updates || 0;
   const published = !!membership?.settings?.calendar_publish?.token;
   return (
     <div>
@@ -89,8 +93,8 @@ export function CalendarPage() {
               <button type="button" className="icon-btn" aria-label="Next year" onClick={() => setYear(year + 1)}>›</button>
             </div>
             <div className="tabs">
-              {[['ours', 'Our calendar'], ['shared', 'Shared calendars'], ['entries', 'Series entries'], ['requests', 'Requests']].map(([k, l]) => (
-                <button key={k} type="button" className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{l}{k === 'requests' && unseen ? <span className="nav-badge">{unseen}</span> : null}</button>
+              {[['ours', 'Our calendar'], ['shared', 'Shared calendars'], ['entries', 'Series entries'], ['updates', 'Updates'], ['requests', 'Requests']].map(([k, l]) => (
+                <button key={k} type="button" className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{l}{k === 'requests' && unseen ? <span className="nav-badge">{unseen}</span> : null}{k === 'updates' && updates ? <span className="nav-badge">{updates}</span> : null}</button>
               ))}
             </div>
           </div>
@@ -103,6 +107,7 @@ export function CalendarPage() {
       {tab === 'ours' && <OurCalendar data={data} year={year} sm={sm} label={label} goShared={() => setTab('shared')} />}
       {tab === 'shared' && <SharedCalendars data={data} year={year} sm={sm} label={label} requests={requests} />}
       {tab === 'requests' && <RequestsTab data={data} requests={requests} />}
+      {tab === 'updates' && <UpdatesTab data={data} />}
       {tab === 'entries' && <SeriesEntries data={data} year={year} sm={sm} label={label} />}
     </div>
   );
@@ -160,6 +165,7 @@ function CalendarRow({ i, data, past }) {
         <Link className="row-title" to={`/events/${i.id}`}>{i.name}</Link>
         <span className="row-sub">{[i.track, i.series && `${i.series}${i.round ? ` · Rd ${i.round}` : ''}`, i.sanctioning, i.car, i.end_date && i.end_date !== i.date && `to ${fmtDate(i.end_date)}`].filter(Boolean).join(' · ')}</span>
         {i.major && <span className="pill pill-info">★ {i.major}</span>}
+        {winnerText(vals(i.fx)) && <span className="small winner">🏁 {winnerText(vals(i.fx))}</span>}
         {i.cancelled && <span className="pill pill-over">Cancelled</span>}
         {i.changes.filter((c) => c.key !== 'status').length > 0 && <FixtureMoved ev={i.rec} fx={i.fx} changes={i.changes} data={data} />}
       </span>
@@ -317,7 +323,7 @@ function MonthGrid({ items, year, sm }) {
 }
 
 // ======================================================================= shared calendars
-const VIEWS = [['ours', 'Matching us'], ['series', 'Series'], ['tracks', 'Tracks'], ['major', 'Major events'], ['all', 'All dates']];
+const VIEWS = [['ours', 'Matching us'], ['series', 'Series'], ['tracks', 'Tracks'], ['major', 'Major events'], ['clashes', 'Clashes'], ['all', 'All dates']];
 const nextDate = (list) => list.map(vals).filter((x) => (x.end_date || x.date) >= today()).sort((a, b) => a.date.localeCompare(b.date))[0];
 
 /**
@@ -353,6 +359,12 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
   const dates = all;
   const pending = waiting.length;
   const [noting, setNoting] = useState(null);
+  const [panel, setPanel] = useState(null);
+  const [msg, setMsg] = useState(''); // { id, what: 'results' | 'report' | 'history' } on a date, or tools on a series/track
+  const [tool, setTool] = useState('');
+  const [dupes, setDupes] = useState(false);
+  const officials = useOfficials();
+  const rowPanel = (fid, what) => setPanel(panel?.id === fid && panel.what === what ? null : { id: fid, what });
   const sent = () => { requests?.reload(); };
   const pick = kind === 'series' && id ? id : '';
   const views = VIEWS.filter(([k]) => team || k !== 'ours');
@@ -370,7 +382,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
     .map((tid2) => ({ id: tid2, rec: data.byId[tid2], dates: dates.filter((f) => vals(f).venue === tid2) }))
     .sort((a, b) => trackName(data, { venue: a.id }).localeCompare(trackName(data, { venue: b.id })));
 
-  const list = dates.filter((f) => (kind === 'all' ? true : kind === 'major' ? !!vals(f).major
+  const list = dates.filter((f) => (kind === 'all' || kind === 'clashes' ? true : kind === 'major' ? !!vals(f).major
     : kind === 'series' ? canon(data, vals(f).series) === id : kind === 'track' ? vals(f).venue === id : ours(f)));
   const saveFixture = adminApi?.saveFixture;
 
@@ -388,7 +400,9 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
           return (
             <button key={x.id} type="button" className="list-row cal-index-row" data-cal={x.id} onClick={() => setFilter(`${kindKey === 'series' ? 'series' : 'track'}:${x.id}`)}>
               <span className="grow">
-                <span className="row-title">{kindKey === 'series' ? seriesName(data, x.id) : trackName(data, { venue: x.id })}{entered && <span className="pill pill-ok">Entered</span>}</span>
+                <span className="row-title">{kindKey === 'series' ? seriesName(data, x.id) : trackName(data, { venue: x.id })}{entered && <span className="pill pill-ok">Entered</span>}
+                  {team && data.list('follow').some((f) => vals(f).entity === x.id) && <span className="pill pill-info">Following</span>}
+                  {team && officials.has(x.id) && <span className="pill pill-warn">We look after this</span>}</span>
                 <span className="row-sub">{[sub(x), `${x.dates.length} date${x.dates.length === 1 ? '' : 's'}`, nx && `next ${fmtDate(nx.date)}${kindKey === 'tracks' ? ` — ${nx.name}` : ''}`].filter(Boolean).join(' · ')}</span>
               </span>
               <span className="muted">›</span>
@@ -410,6 +424,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
         {canSuggest && <button type="button" className="btn ghost" onClick={() => { setImporting(!importing); setEditing(null); }}>Import a calendar</button>}
         {canSuggest && <button type="button" className="btn ghost" onClick={() => { setEditing({ initial: { series: pick, venue: kind === 'track' ? id : '', major: kind === 'major' } }); setImporting(false); }}>{admin ? 'Add a date' : 'Suggest a date'}</button>}
         {!team && kind === 'series' && !id && <button type="button" className="btn ghost" onClick={() => setSeriesEdit({})}>New series</button>}
+        {!team && (kind === 'series' || kind === 'tracks') && !id && <button type="button" className="btn ghost" aria-pressed={dupes} onClick={() => setDupes(!dupes)}>Find duplicates</button>}
       </div>
       {id && (
         <div className="cal-crumb">
@@ -418,10 +433,23 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
           {kind === 'series' && <span className="muted small">{[vals(data.byId[id]).season, vals(data.byId[id]).class, vals(data.byId[id]).sanctioning].filter(Boolean).join(' · ')}</span>}
           {kind === 'track' && <span className="muted small">{[vals(data.byId[id]).city, vals(data.byId[id]).region].filter(Boolean).join(', ')}</span>}
           <span className="grow" />
+          {team && officials.has(id) && <span className="pill pill-warn" data-testid="official-pill">Your team looks after this{officials.get(id).auto_approve ? ' — changes go live straight away' : ''}</span>}
+          {team && <FollowButton data={data} entityType={kind === 'series' ? 'series' : 'track'} entity={id} />}
+          <a className="btn ghost small" href={`/cal/${kind === 'series' ? 'series' : 'track'}/${id}`} target="_blank" rel="noreferrer">Public page</a>
+          <a className="btn ghost small" href={`webcal://${window.location.host}/api/public/shared/${kind === 'series' ? 'series' : 'track'}/${id}.ics`}>Subscribe</a>
           {team && pick && canType('season_plan', 'edit') && <button type="button" className="btn primary" onClick={() => setEntering(id)}>Enter this series</button>}
           {!team && pick && <button type="button" className="btn ghost small" onClick={() => setSeriesEdit({ rec: data.byId[id] })}>Edit series</button>}
+          {!team && ['officials', 'feed', 'history', 'merge'].map((t) => (
+            <button key={t} type="button" className={`btn small ${tool === t ? '' : 'ghost'}`} aria-pressed={tool === t} onClick={() => setTool(tool === t ? '' : t)}>{{ officials: 'Officials', feed: 'Feed', history: 'History', merge: 'Merge…' }[t]}</button>
+          ))}
         </div>
       )}
+      {!team && id && tool === 'officials' && <OfficialsPanel entity={id} />}
+      {!team && id && tool === 'feed' && <FeedPanel entity={id} />}
+      {!team && id && tool === 'history' && <HistoryPanel id={id} data={data} onRestored={adminApi?.reload} />}
+      {!team && id && tool === 'merge' && <MergeInto data={data} type={kind === 'series' ? 'series' : 'track'} from={id} onMerged={(into) => { setTool(''); adminApi?.reload(); setFilter(`${kind}:${into}`); }} />}
+      {!team && dupes && !id && <DuplicatesPanel type={kind === 'series' ? 'series' : 'track'} onMerged={adminApi?.reload} />}
+      {msg && <div className="notice info small" data-testid="shared-msg">{msg}</div>}
       {team && pending > 0 && <div className="notice info small" data-testid="waiting-notice">{pending === 1 ? 'One request from your team is' : `${pending} requests from your team are`} waiting for a RaceOps admin. <Link to="/calendar?tab=requests">See requests</Link></div>}
       {importing && <ImportPanel data={data} year={year} sm={sm} seriesId={pick} trackId={kind === 'track' ? id : ''} saveRows={adminApi?.saveRows} onDone={(x) => { setImporting(false); if (x) sent(); }} />}
       {editing && !editing.rec && <FixtureEditor data={data} initial={editing.initial} onSave={saveFixture} onDone={(x) => { setEditing(null); if (x) sent(); }} />}
@@ -429,6 +457,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
       {entering && <EntryEditor data={data} year={year} sm={sm} initial={{ series: entering }} onDone={() => setEntering(null)} />}
       {kind === 'series' && !id ? index(seriesIndex(), 'series', (x) => [vals(x.rec).class, vals(x.rec).sanctioning].filter(Boolean).join(' · '))
         : kind === 'tracks' ? index(trackIndex(), 'tracks', (x) => [vals(x.rec).city, vals(x.rec).region].filter(Boolean).join(', '))
+          : kind === 'clashes' ? <Clashes data={data} dates={dates} ourClasses={ourClasses} team={team} />
           : list.length === 0 ? (
             <Empty>{kind === 'ours'
               ? <>No shared dates in {label} match your cars’ classes or series yet. <button type="button" className="link" onClick={() => setFilter('all')}>Show all dates</button>{canSuggest && ', import a published calendar or suggest a date.'}</>
@@ -450,6 +479,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                     <span className="grow">
                       <span className="row-title">{fv.name}{fv.end_date && fv.end_date !== fv.date ? <span className="muted small"> · to {fmtDate(fv.end_date)}</span> : null}</span>
                       <span className="row-sub">{[trackName(data, fv), series && `${vals(series).name}${fv.round ? ` · Rd ${fv.round}` : ''}`, sanctioningOf(fv, vals(series)), classes.join(', '), fv.start_time].filter(Boolean).join(' · ')}</span>
+                      {winnerText(fv) && <span className="small winner">🏁 {winnerText(fv)}{fv.entries ? ` · ${fv.entries} entries` : ''}</span>}
                       <span className="fx-flags">
                         {fv.major && <Pill level="info">{majorLabel(fv)}</Pill>}
                         {fv.status && fv.status !== 'Scheduled' && <Pill level={fv.status === 'Cancelled' ? 'over' : 'warn'}>{fv.status}</Pill>}
@@ -462,6 +492,9 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                       {team && canType('event', 'edit') && fv.status !== 'Cancelled' && (evs.length === 0
                         ? <button type="button" className="btn small primary" onClick={() => setAdding(f)}>Add to our calendar</button>
                         : cars.length > evs.length && <button type="button" className="btn small ghost" onClick={() => setAdding(f)}>Add another car</button>)}
+                      {(winnerText(fv) || fv.entries || fv.results_note) && <button type="button" className="btn small ghost" aria-expanded={panel?.id === f.id && panel.what === 'results'} onClick={() => rowPanel(f.id, 'results')}>Results</button>}
+                      {team && canSuggest && (fv.end_date || fv.date) <= today() && <button type="button" className="btn small ghost" onClick={() => rowPanel(f.id, 'report')}>{officials.has(fv.series) || officials.has(fv.venue) ? 'Add results' : 'Report results'}</button>}
+                      {!team && <button type="button" className="btn small ghost" aria-expanded={panel?.id === f.id && panel.what === 'history'} onClick={() => rowPanel(f.id, 'history')}>History</button>}
                       {team && <button type="button" className="btn small ghost" aria-expanded={noting === f.id} onClick={() => setNoting(noting === f.id ? null : f.id)}>Notes</button>}
                       {canSuggest && !change && <button type="button" className="btn small ghost" onClick={() => setEditing({ rec: f })}>{admin ? 'Edit' : 'Suggest a change'}</button>}
                       {!team && <button type="button" className="btn small ghost danger" onClick={() => remove(f)}>Delete</button>}
@@ -469,6 +502,9 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                     {adding?.id === f.id && <AddToCalendar data={data} fx={f} onDone={() => setAdding(null)} />}
                     {editing?.rec?.id === f.id && <FixtureEditor data={data} rec={editing.rec} onSave={saveFixture} onDone={(x) => { setEditing(null); if (x) sent(); }} inline />}
                     {noting === f.id && <div className="inline-editor"><TeamNotes data={data} entityType="fixture" entity={f.id} compact /></div>}
+                    {panel?.id === f.id && panel.what === 'results' && <div className="inline-editor"><ResultsTable v={fv} /></div>}
+                    {panel?.id === f.id && panel.what === 'report' && <ReportResults data={data} rec={f} onDone={(m) => { setPanel(null); if (m) { setMsg(m); sent(); } }} />}
+                    {panel?.id === f.id && panel.what === 'history' && <div className="inline-editor"><HistoryPanel id={f.id} data={data} onRestored={adminApi?.reload} /></div>}
                   </div>
                 );
               })}
@@ -497,6 +533,45 @@ function SeriesEditor({ data, rec, year, sm, onSave, onDone }) {
         <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
       </div>
     </div>
+  );
+}
+
+/** Days where two or more shared meetings fall in the same region — to help clubs avoid clashes. */
+function Clashes({ data, dates, ourClasses, team }) {
+  const [ours, setOurs] = useState(false);
+  const region = (f) => { const t = data.byId[vals(f).venue]; return vals(t).region || vals(t).country || 'Region not set'; };
+  const days = new Map();
+  for (const f of dates) {
+    const v = vals(f);
+    if (v.status === 'Cancelled' || !v.date) continue;
+    for (let d = v.date; d <= (v.end_date || v.date); d = addDays(d, 1)) {
+      const k = `${d}|${region(f)}`;
+      (days.get(k) || days.set(k, []).get(k)).push(f);
+    }
+  }
+  const classesOf = (f) => fixtureClasses(vals(f), vals(data.byId[vals(f).series]));
+  let rows = [...days.entries()].filter(([, l]) => new Set(l.map((f) => f.id)).size > 1)
+    .map(([k, l]) => { const [date, reg] = k.split('|'); const shared = [...new Set(l.flatMap(classesOf))].filter((c) => l.filter((f) => classesOf(f).includes(c)).length > 1); return { date, reg, list: [...new Map(l.map((f) => [f.id, f])).values()], shared }; });
+  if (ours) rows = rows.filter((r) => r.list.some((f) => classesOf(f).some((c) => ourClasses.has(lc(c)))));
+  rows.sort((a, b) => a.date.localeCompare(b.date));
+  return (
+    <>
+      <p className="muted small">Days where two or more meetings run in the same state or region. A clash in the same class means drivers have to choose.</p>
+      {team && <label className="check-row"><input type="checkbox" checked={ours} onChange={(e) => setOurs(e.target.checked)} /> Only where our classes run</label>}
+      {rows.length === 0 ? <Empty>No clashes this year.</Empty> : (
+        <div className="list" data-testid="clashes">
+          {rows.map((r) => (
+            <div key={`${r.date}${r.reg}`} className="list-row clash-row">
+              <span className="date-block"><b>{Number(r.date.slice(8))}</b><small>{new Date(`${r.date}T00:00:00`).toLocaleString(undefined, { month: 'short' })} {dow(r.date)}</small></span>
+              <span className="grow">
+                <span className="row-title">{r.list.length} meetings · {r.reg}{r.shared.length > 0 && <span className="pill pill-over">Same class: {r.shared.join(', ')}</span>}</span>
+                {r.list.map((f) => <span key={f.id} className="row-sub">{vals(f).name} — {trackName(data, vals(f))}{classesOf(f).length ? ` · ${classesOf(f).join(', ')}` : ''}</span>)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -584,7 +659,8 @@ function FixtureEditor({ data, rec, initial = {}, onSave = null, onDone, inline 
   return (
     <div className={`card fx-editor${inline ? ' inline-editor' : ''}`} data-testid="fx-editor">
       <h3>{rec ? (admin ? 'Edit calendar date' : 'Suggest a change') : admin ? 'Add a calendar date' : 'Suggest a calendar date'}</h3>
-      <FormRenderer form={form} values={values} onChange={(k, x) => setValues((s) => ({ ...s, [k]: x }))} data={data} recordType="fixture" errors={errors} />
+      <FormRenderer form={form} values={values} onChange={(k, x) => setValues((s) => ({ ...s, [k]: x }))} data={data} recordType="fixture" errors={errors}
+        hideKeys={(values.end_date || values.date || '9') > today() || !admin ? ['entries', 'results', 'results_note'] : []} />
       {!admin && !rec && values.series && data.byId[values.series] && !isGlobal(data.byId[values.series]) && (
         <div className="notice info small">{vals(data.byId[values.series]).name} is your team’s own series, so it goes to the admin with this date — once approved it’s shared and your events use it.</div>
       )}
@@ -1008,6 +1084,36 @@ export function PublicCalendar() {
   );
 }
 
+/** No-login page for a shared series or track calendar (/cal/series/:id, /cal/track/:id). */
+export function PublicShared() {
+  const { type, id } = useParams();
+  const [cal, setCal] = useState(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    fetch(`/api/public/shared/${type}/${id}`).then(async (r) => {
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'This calendar isn’t available.');
+      setCal(j);
+    }).catch((e) => setErr(e.message));
+  }, [type, id]);
+  useEffect(() => { if (cal) document.title = `${cal.name} — race calendar`; }, [cal]);
+  if (err) return <div className="auth-wrap"><div className="auth-card card"><h1>Calendar not available</h1><p className="muted">{err}</p></div></div>;
+  if (!cal) return <p className="pad muted">Loading…</p>;
+  const ics = `${window.location.origin}/api/public/shared/${type}/${id}.ics`;
+  const next = cal.items.find((i) => (i.end_date || i.date) >= today() && !i.cancelled);
+  return (
+    <div className="print-page public-cal">
+      <div className="print-tools no-print">
+        <a className="btn" href={ics.replace(/^https?:/, 'webcal:')}>Subscribe</a>
+        <a className="btn ghost" href={ics} download="race-calendar.ics">Download .ics</a>
+        <button type="button" className="btn primary" onClick={() => window.print()}>Print / save as PDF</button>
+      </div>
+      <CalendarSheet title={`${cal.name} — race calendar`} sub={[cal.sub, next && `Next: ${next.name}${next.track && type === 'series' ? ` at ${next.track}` : ''}, ${dateRangeOf(next)}`].filter(Boolean).join(' · ')}
+        items={cal.items} showCar={false} showResult />
+    </div>
+  );
+}
+
 // ======================================================================= platform admin
 /** Platform admin → Shared calendars: the series, track and major-event calendars, and teams' suggestions. */
 export function AdminCalendar() {
@@ -1031,6 +1137,7 @@ export function AdminCalendar() {
     deleteFixture: async (rec) => { await api(`/admin/calendar/fixtures/${rec.id}`, { method: 'DELETE' }); await load(); },
     saveSeries: async (values, rec) => { await api(`/admin/calendar/series/${rec?.id || 'new'}`, { method: 'PUT', body: { values } }); await load(); },
     saveRows: async (rows) => { for (const values of rows) await api('/admin/calendar/fixtures/new', { method: 'PUT', body: { values } }); await load(); },
+    reload: () => load(),
   };
   return (
     <div>

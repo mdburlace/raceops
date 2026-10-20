@@ -8,13 +8,13 @@ import { Empty, Pill, Section } from './ui.jsx';
 import { api } from '../lib/api.js';
 import { fmtDate, formFor, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
-import { saveRecord } from '../lib/store.js';
+import { deleteRecord, saveRecord } from '../lib/store.js';
 
 const isGlobal = (r) => !!(r?.global || r?.data?.scope === 'global');
 const vals = (r) => r?.data?.values || {};
 const fmtWhen = (t) => (t ? new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
 export const STATUS = {
-  pending: ['Waiting for approval', 'info'], approved: ['Approved', 'ok'], partly_approved: ['Partly approved', 'warn'],
+  pending: ['Waiting for approval', 'info'], question: ['Question for you', 'warn'], approved: ['Approved', 'ok'], partly_approved: ['Partly approved', 'warn'],
   rejected: ['Not approved', 'over'], withdrawn: ['Withdrawn', 'muted'],
 };
 const KIND_LABEL = { series: 'Series', track: 'Track', dates: 'Dates', fixture: 'Date' };
@@ -248,8 +248,9 @@ export function RequestsTab({ data, requests }) {
                 {r.note && <span className="small">Your note: {r.note}</span>}
                 {r.decision?.reason && <span className="small"><b>Admin:</b> {r.decision.reason}</span>}
                 <RequestItems r={r} />
+                <RequestThread r={r} side="team" onSent={reload} />
               </span>
-              {r.status === 'pending' && canSend && <span className="row-actions"><button type="button" className="btn small ghost" onClick={() => withdraw(r)}>Withdraw</button></span>}
+              {['pending', 'question'].includes(r.status) && canSend && <span className="row-actions"><button type="button" className="btn small ghost" onClick={() => withdraw(r)}>Withdraw</button></span>}
             </div>
           );
         })}
@@ -305,8 +306,9 @@ function ReviewRequest({ r, refs, onDone }) {
   return (
     <Section title={r.title} className="cal-sugg req-review">
       <div data-request={r.id}>
-        <p className="muted small">From {r.team}{r.by_name ? ` (${r.by_name})` : ''} · {fmtWhen(r.created_at)}</p>
+        <p className="muted small">From {r.team}{r.by_name ? ` (${r.by_name})` : ''} · {fmtWhen(r.created_at)}{r.status === 'question' ? ' · waiting on the team’s answer' : ''}</p>
         {r.note && <p className="small"><b>Note:</b> {r.note}</p>}
+        <RequestThread r={r} side="admin" onSent={onDone} />
         {r.kind === 'change' ? (
           <>
             <table className="table compact">
@@ -369,6 +371,7 @@ export function AdminRequests({ onChange }) {
   const { refresh } = useSession();
   const [show, setShow] = useState('pending');
   const [d, setD] = useState(null);
+  const counts = d?.counts || {};
   const [err, setErr] = useState('');
   const load = useCallback(() => api(`/admin/calendar/requests?status=${show}`).then(setD).catch((e) => setErr(e.message)), [show]);
   useEffect(() => { load(); }, [load]);
@@ -378,19 +381,19 @@ export function AdminRequests({ onChange }) {
     <div data-testid="cal-requests">
       <div className="toolbar">
         <div className="seg" role="group" aria-label="Requests to show">
-          {[['pending', 'Waiting'], ['all', 'All']].map(([k, l]) => <button key={k} type="button" className={show === k ? 'active' : ''} onClick={() => setShow(k)}>{l}</button>)}
+          {[['pending', `Waiting${counts.pending ? ` (${counts.pending})` : ''}`], ['question', `Asked the team${counts.question ? ` (${counts.question})` : ''}`], ['all', 'All']].map(([k, l]) => <button key={k} type="button" className={show === k ? 'active' : ''} onClick={() => setShow(k)}>{l}</button>)}
         </div>
       </div>
       <p className="muted small">Teams’ requests to add their series, tracks and dates to the shared calendars, or to change shared ones. Each is checked for duplicates and clashes. Approving makes the shared record the one every team uses — the team’s own copies are replaced and its events linked.</p>
       {err && <div className="notice error">{err}</div>}
-      {d && list.length === 0 && <Empty>{show === 'pending' ? 'Nothing waiting for review.' : 'No requests yet.'}</Empty>}
+      {d && list.length === 0 && <Empty>{show === 'pending' ? 'Nothing waiting for review.' : show === 'question' ? 'No questions waiting on teams.' : 'No requests yet.'}</Empty>}
       <div className="cards">
-        {list.map((r) => (r.status === 'pending'
+        {list.map((r) => (['pending', 'question'].includes(r.status)
           ? <ReviewRequest key={r.id} r={r} refs={d.refs || {}} onDone={after} />
           : (
             <div key={r.id} className="list-row req-row">
               <span className="grow">
-                <span className="row-title">{r.title} <Pill level={(STATUS[r.status] || [])[1] || 'muted'}>{(STATUS[r.status] || [r.status])[0]}</Pill></span>
+                <span className="row-title">{r.title} <Pill level={(STATUS[r.status] || [])[1] || 'muted'}>{(STATUS[r.status] || [r.status])[0]}</Pill>{r.source === 'official' && <Pill level="muted">Official — automatic</Pill>}{r.source === 'feed' && <Pill level="muted">Feed</Pill>}</span>
                 <span className="row-sub">{r.team}{r.by_name ? ` (${r.by_name})` : ''} · {fmtWhen(r.created_at)}{r.decided_by_name ? ` · decided by ${r.decided_by_name} ${fmtWhen(r.decided_at)}` : ''}</span>
                 {r.decision?.reason && <span className="small">Note: {r.decision.reason}</span>}
                 <RequestItems r={r} />
@@ -406,13 +409,317 @@ export function AdminRequests({ onChange }) {
 export function RequestNotice() {
   const { membership, canModule, notices, user } = useSession();
   const n = canModule('calendar', 'edit') ? membership?.calendar_notices || 0 : 0;
+  const u = canModule('calendar') ? membership?.calendar_updates || 0 : 0;
   const a = user?.is_platform_admin ? notices?.calendar_requests || 0 : 0;
-  if (!n && !a) return null;
+  if (!n && !a && !u) return null;
   return (
     <div className="notice info req-notice" data-testid="request-notice">
       {n > 0 && <span>{n === 1 ? 'A request' : `${n} requests`} your team sent to the shared calendars {n === 1 ? 'has' : 'have'} been reviewed. <Link to="/calendar?tab=requests">See the outcome</Link></span>}
+      {u > 0 && <span>{u === 1 ? 'There’s an update' : `There are ${u} updates`} to series or tracks you follow. <Link to="/calendar?tab=updates">See updates</Link></span>}
       {a > 0 && <span>{a === 1 ? 'One shared-calendar request is' : `${a} shared-calendar requests are`} waiting for you. <Link to="/admin/calendar?tab=requests">Review</Link></span>}
     </div>
   );
 }
 
+
+// ======================================================================= follow, officials, updates
+/** Shared series/tracks this team looks after (officials). */
+export function useOfficials() {
+  const { tid } = useSession();
+  const [list, setList] = useState([]);
+  useEffect(() => { if (tid && navigator.onLine) api(`/t/${tid}/calendar/officials`).then((r) => setList(r.officials)).catch(() => {}); }, [tid]);
+  return useMemo(() => new Map(list.map((o) => [o.entity_id, o])), [list]);
+}
+
+/** Follow / unfollow a shared series or track: the team is told when its dates change. */
+export function FollowButton({ data, entityType, entity, small = true }) {
+  const { tid, user, canType } = useSession();
+  const f = data.list('follow').find((x) => vals(x).entity === entity);
+  if (!canType('follow', 'edit')) return f ? <span className="pill pill-info">Following</span> : null;
+  const form = formFor(data, 'follow');
+  const toggle = () => (f ? deleteRecord(f.id) : saveRecord(tid, 'follow', null, { form_id: form?.id, values: { entity_type: entityType, entity } }, user.id));
+  return <button type="button" className={`btn ${small ? 'small ' : ''}${f ? 'ghost' : ''}`} aria-pressed={!!f} onClick={toggle}>{f ? '✓ Following' : 'Follow'}</button>;
+}
+
+/** Calendar → Updates: changes to the series and tracks the team follows. */
+export function UpdatesTab({ data }) {
+  const { tid, refresh, membership } = useSession();
+  const [list, setList] = useState(null);
+  useEffect(() => {
+    api(`/t/${tid}/notices`).then((r) => setList(r.notices)).catch(() => setList([]));
+    if (membership?.calendar_updates) api(`/t/${tid}/notices/seen`, { method: 'POST' }).then(refresh).catch(() => {});
+  }, [tid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const follows = data.list('follow');
+  return (
+    <>
+      <p className="muted small">Follow a shared series or track (press <b>Follow</b> on it) and you’re told here when its dates are added, moved, cancelled or get results — by email too, if your server has email set up.</p>
+      {follows.length > 0 && (
+        <div className="chips follow-chips" data-testid="following">
+          <span className="muted small">Following:</span>
+          {follows.map((f) => {
+            const r = data.byId[vals(f).entity];
+            return r ? <Link key={f.id} className="chip" to={`/calendar?tab=shared&show=${vals(f).entity_type === 'series' ? 'series' : 'track'}:${r.id}`}>{titleOf(r)}</Link> : null;
+          })}
+        </div>
+      )}
+      {list && list.length === 0 && <Empty>No updates yet.{follows.length ? '' : ' Follow a series or track to hear when its dates change.'}</Empty>}
+      <div className="list" data-testid="updates">
+        {(list || []).map((n) => (
+          <div key={n.id} className={`list-row upd-row${n.seen ? '' : ' unseen'}`}>
+            <span className="grow">
+              <span className="row-title">{n.link ? <Link to={n.link}>{n.title}</Link> : n.title}{!n.seen && <span className="pill pill-info">New</span>}</span>
+              <span className="row-sub">{fmtWhen(n.created_at)}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ======================================================================= results
+const winnerOf = (v) => (Array.isArray(v?.results) ? v.results.find((r) => String(r.pos) === '1' && (r.number || r.driver)) : null);
+export const winnerText = (v) => { const w = winnerOf(v); return w ? `Won by ${[w.number && `#${w.number}`, w.driver].filter(Boolean).join(' ')}` : ''; };
+
+export function ResultsTable({ v }) {
+  const rows = (Array.isArray(v?.results) ? v.results : []).filter((r) => r.number || r.driver);
+  if (!rows.length && !v?.entries && !v?.results_note) return <p className="muted small">No results yet.</p>;
+  return (
+    <div className="results-box" data-testid="results">
+      {v.entries ? <p className="small">{v.entries} entries</p> : null}
+      {rows.length > 0 && (
+        <table className="table compact"><thead><tr><th>Pos</th><th>Car</th><th>Driver</th><th>Team / note</th></tr></thead>
+          <tbody>{rows.map((r, i) => <tr key={i}><td>{r.pos}</td><td>{r.number ? `#${r.number}` : ''}</td><td>{r.driver}</td><td className="muted">{r.team}</td></tr>)}</tbody></table>
+      )}
+      {v.results_note && <p className="small pre">{v.results_note}</p>}
+    </div>
+  );
+}
+
+const RESULT_KEYS = ['entries', 'results', 'results_note'];
+/** Send the results of a shared date (feature finishing order, entries) for approval. */
+export function ReportResults({ data, rec, onDone }) {
+  const { tid } = useSession();
+  const form = formFor(data, 'fixture');
+  const [values, setValues] = useState(() => ({ ...vals(rec) }));
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const hide = (form?.data.sections || []).flatMap((s) => s.fields.map((f) => f.key)).filter((k) => !RESULT_KEYS.includes(k));
+  const send = async () => {
+    setBusy(true); setErr('');
+    try {
+      const out = await sendRequest(tid, { kind: 'change', subject_type: 'fixture', subject_id: rec.id, values, note: 'Results' });
+      onDone(out.auto ? 'Results added.' : 'Results sent — a RaceOps admin will check them.');
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  return (
+    <div className="card inline-editor" data-testid="report-results">
+      <h3>Results for {vals(rec).name}</h3>
+      <FormRenderer form={form} values={values} onChange={(k, x) => setValues((s) => ({ ...s, [k]: x }))} data={data} recordType="fixture" hideKeys={hide} />
+      {err && <div className="notice error">{err}</div>}
+      <div className="row-actions">
+        <button type="button" className="btn primary" disabled={busy} onClick={send}>Send results</button>
+        <button type="button" className="btn ghost" onClick={() => onDone('')}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ======================================================================= questions on a request
+export function RequestThread({ r, side, onSent }) {
+  const { tid } = useSession();
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const msgs = r.messages || [];
+  const open = ['pending', 'question'].includes(r.status);
+  const canWrite = open && (side === 'admin' ? !!r.tenant_id : r.status === 'question');
+  const send = async () => {
+    setBusy(true); setErr('');
+    try {
+      if (side === 'admin') await api(`/admin/calendar/requests/${r.id}/ask`, { method: 'POST', body: { body: text } });
+      else await api(`/t/${tid}/calendar/requests/${r.id}/reply`, { method: 'POST', body: { body: text } });
+      setText(''); onSent?.();
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  if (!msgs.length && !canWrite) return null;
+  return (
+    <div className="req-thread" data-testid="thread">
+      {msgs.map((m, i) => (
+        <div key={i} className={`req-msg${m.from_admin ? ' admin' : ''}`}>
+          <b className="small">{m.from_admin ? 'RaceOps admin' : m.by || 'Team'}</b> <span className="muted small">{fmtWhen(m.at)}</span>
+          <p className="pre">{m.body}</p>
+        </div>
+      ))}
+      {canWrite && (
+        <div className="req-reply">
+          <input aria-label={side === 'admin' ? 'Question for the team' : 'Your answer'} value={text} onChange={(e) => setText(e.target.value)}
+            placeholder={side === 'admin' ? 'Ask the team something instead of rejecting — e.g. “Is round 4 on Saturday or Sunday?”' : 'Answer the admin’s question'} />
+          <button type="button" className="btn small" disabled={busy || !text.trim()} onClick={send}>{side === 'admin' ? 'Ask the team' : 'Send answer'}</button>
+        </div>
+      )}
+      {err && <div className="notice error small">{err}</div>}
+    </div>
+  );
+}
+
+// ======================================================================= platform admin tools
+/** Teams that look after a shared series or track. */
+export function OfficialsPanel({ entity }) {
+  const [list, setList] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [pick, setPick] = useState('');
+  const [auto, setAuto] = useState(true);
+  const load = useCallback(() => api(`/admin/calendar/officials?entity=${entity}`).then((r) => setList(r.officials)).catch(() => setList([])), [entity]);
+  useEffect(() => { load(); api('/admin/tenants').then(setTeams).catch(() => {}); }, [load]);
+  const add = async () => { await api('/admin/calendar/officials', { method: 'POST', body: { tenant_id: pick, entity_id: entity, auto_approve: auto } }); setPick(''); load(); };
+  const remove = async (id) => { await api(`/admin/calendar/officials/${id}`, { method: 'DELETE' }); load(); };
+  return (
+    <div className="card admin-tool" data-testid="officials">
+      <b>Officials</b>
+      <p className="muted small">Teams that look after this calendar (a club or promoter). With auto-approve, their requests for it go live straight away unless they clash.</p>
+      {(list || []).map((o) => (
+        <div key={o.id} className="inline-row"><span>{o.team}</span>{o.auto_approve ? <Pill level="ok">Auto-approve</Pill> : <Pill level="muted">Checked by you</Pill>}
+          <button type="button" className="btn small ghost danger" onClick={() => remove(o.id)}>Remove</button></div>
+      ))}
+      <div className="inline-row wrap">
+        <select aria-label="Team to make an official" value={pick} onChange={(e) => setPick(e.target.value)}>
+          <option value="">Choose a team…</option>
+          {teams.filter((t) => !(list || []).some((o) => o.tenant_id === t.id)).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <label className="check-row"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Auto-approve</label>
+        <button type="button" className="btn small" disabled={!pick} onClick={add}>Add official</button>
+      </div>
+    </div>
+  );
+}
+
+/** The official iCal feed for a shared series or track. */
+export function FeedPanel({ entity }) {
+  const [feed, setFeed] = useState(null);
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const load = useCallback(() => api('/admin/calendar/feeds').then((r) => { const f = r.feeds.find((x) => x.entity_id === entity) || null; setFeed(f); setUrl(f?.url || ''); }).catch(() => {}), [entity]);
+  useEffect(() => { load(); }, [load]);
+  const run = async (fn) => { setBusy(true); setMsg(''); try { const r = await fn(); if (r?.status) setMsg(r.status); await load(); } catch (e) { setMsg(e.message); } finally { setBusy(false); } };
+  return (
+    <div className="card admin-tool" data-testid="feed">
+      <b>Official feed</b>
+      <p className="muted small">The series’ or track’s own iCal link. It’s checked regularly; new and changed dates arrive as requests for you to approve.</p>
+      <div className="inline-row wrap">
+        <input aria-label="Feed link" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://… or webcal://… (.ics)" />
+        <button type="button" className="btn small" disabled={busy || !url} onClick={() => run(() => api(`/admin/calendar/feeds/${entity}`, { method: 'PUT', body: { url } }))}>{feed ? 'Save' : 'Add feed'}</button>
+        {feed && <button type="button" className="btn small ghost" disabled={busy} onClick={() => run(() => api(`/admin/calendar/feeds/${entity}/check`, { method: 'POST' }))}>Check now</button>}
+        {feed && <button type="button" className="btn small ghost danger" disabled={busy} onClick={() => run(() => api(`/admin/calendar/feeds/${entity}`, { method: 'DELETE' }))}>Remove</button>}
+      </div>
+      {(msg || feed?.last_status) && <p className="small" data-testid="feed-status">{msg || feed.last_status}{feed?.last_checked ? <span className="muted"> · checked {fmtWhen(feed.last_checked)}</span> : ''}</p>}
+    </div>
+  );
+}
+
+/** Past versions of a shared record, with restore. */
+export function HistoryPanel({ id, onRestored, data = null }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState('');
+  const load = useCallback(() => api(`/admin/calendar/history/${id}`).then(setD).catch((e) => setErr(e.message)), [id]);
+  useEffect(() => { load(); }, [load]);
+  const restore = async (h) => {
+    if (!window.confirm('Restore this version? Teams’ entries follow it.')) return;
+    try { await api(`/admin/calendar/history/${id}/restore`, { method: 'POST', body: { history_id: h.id } }); await load(); onRestored?.(); } catch (e) { setErr(e.message); }
+  };
+  const list = d?.history || [];
+  const show = (x, k) => (x === undefined || x === null ? '' : Array.isArray(x) ? (typeof x[0] === 'object' ? `${x.filter((r) => r.number || r.driver).length} rows` : x.join(', '))
+    : x === true ? 'Yes' : ['series', 'venue'].includes(k) && data?.byId[x] ? titleOf(data.byId[x]) : ['date', 'end_date', 'start_date'].includes(k) ? fmtDate(x) : String(x));
+  return (
+    <div className="card admin-tool history-panel" data-testid="history">
+      <b>History</b>
+      {err && <div className="notice error small">{err}</div>}
+      {list.map((h, i) => {
+        const prev = list[i + 1]?.data?.values || {};
+        const cur = h.data?.values || {};
+        const changed = [...new Set([...Object.keys(prev), ...Object.keys(cur)])].filter((k) => JSON.stringify(prev[k] ?? '') !== JSON.stringify(cur[k] ?? ''));
+        return (
+          <div key={h.id} className="hist-row">
+            <span className="small"><b>{h.data?._deleted ? 'Deleted' : h.op === 'create' ? 'Created' : 'Changed'}</b> {fmtWhen(h.created_at)}{h.user_name ? ` by ${h.user_name}` : ''}</span>
+            {!h.data?._deleted && h.op !== 'create' && changed.length > 0 && <span className="muted small">{changed.map((k) => `${k.replace(/_/g, ' ')}: ${show(cur[k], k) || '(blank)'}`).join(' · ')}</span>}
+            {i > 0 && !h.data?._deleted && <button type="button" className="btn small ghost" onClick={() => restore(h)}>Restore this version</button>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Merge one shared series/track into another: every team's records move across. */
+export function MergeInto({ data, type, from, onMerged }) {
+  const [into, setInto] = useState('');
+  const [msg, setMsg] = useState('');
+  const others = data.list(type).filter((x) => x.id !== from && isGlobal(x)).sort((a, b) => titleOf(a).localeCompare(titleOf(b)));
+  const merge = async () => {
+    const target = data.byId[into];
+    if (!window.confirm(`Merge “${titleOf(data.byId[from])}” into “${titleOf(target)}”? Every team’s events, notes and links move to “${titleOf(target)}”, and this one is removed.`)) return;
+    try { const r = await api('/admin/calendar/merge', { method: 'POST', body: { type, from, into } }); setMsg(`Merged — ${r.updated} records in ${r.teams} team${r.teams === 1 ? '' : 's'} moved.`); onMerged?.(into); } catch (e) { setMsg(e.message); }
+  };
+  return (
+    <div className="card admin-tool" data-testid="merge">
+      <b>Merge into another {type}</b>
+      <p className="muted small">For duplicates: everything that uses this {type} — in every team — moves to the one you pick, and this one is removed.</p>
+      <div className="inline-row wrap">
+        <select aria-label={`Merge into ${type}`} value={into} onChange={(e) => setInto(e.target.value)}>
+          <option value="">Choose…</option>
+          {others.map((x) => <option key={x.id} value={x.id}>{titleOf(x)}{vals(x).city ? ` (${vals(x).city})` : ''}</option>)}
+        </select>
+        <button type="button" className="btn small danger" disabled={!into} onClick={merge}>Merge</button>
+      </div>
+      {msg && <p className="small">{msg}</p>}
+    </div>
+  );
+}
+
+/** Likely duplicates among shared series (same season) or tracks. */
+export function DuplicatesPanel({ type, onMerged }) {
+  const [d, setD] = useState(null);
+  const [msg, setMsg] = useState('');
+  const load = useCallback(() => api(`/admin/calendar/duplicates?type=${type}`).then(setD).catch((e) => setMsg(e.message)), [type]);
+  useEffect(() => { load(); }, [load]);
+  const merge = async (from, into) => {
+    if (!window.confirm(`Merge “${from.name}” into “${into.name}”? Every team’s records move across.`)) return;
+    try { const r = await api('/admin/calendar/merge', { method: 'POST', body: { type, from: from.id, into: into.id } }); setMsg(`Merged ${from.name} into ${into.name} (${r.updated} records).`); load(); onMerged?.(); } catch (e) { setMsg(e.message); }
+  };
+  return (
+    <div className="card admin-tool" data-testid="duplicates">
+      <b>Possible duplicate {type === 'series' ? 'series' : 'tracks'}</b>
+      {msg && <p className="small">{msg}</p>}
+      {d && d.pairs.length === 0 && <p className="muted small">None found.</p>}
+      {(d?.pairs || []).map((p) => (
+        <div key={`${p.a.id}${p.b.id}`} className="dup-row">
+          <span className="small"><b>{p.a.name}</b>{p.a.extra ? ` (${p.a.extra})` : ''} ↔ <b>{p.b.name}</b>{p.b.extra ? ` (${p.b.extra})` : ''}</span>
+          <span className="row-actions">
+            <button type="button" className="btn small ghost" onClick={() => merge(p.a, p.b)}>Keep the second</button>
+            <button type="button" className="btn small ghost" onClick={() => merge(p.b, p.a)}>Keep the first</button>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Platform admin → Settings: is email set up, and a test. */
+export function MailStatus() {
+  const [d, setD] = useState(null);
+  const [msg, setMsg] = useState('');
+  useEffect(() => { api('/admin/mail').then(setD).catch(() => {}); }, []);
+  const test = async () => { setMsg(''); try { const r = await api('/admin/mail/test', { method: 'POST' }); setMsg(`Sent to ${r.to}.`); } catch (e) { setMsg(e.message); } };
+  if (!d) return null;
+  return (
+    <Section title="Email notifications">
+      <div data-testid="mail-status">
+        {d.configured ? <p>Email is on. Messages come from <b>{d.from}</b>.{d.app_url ? <> Links point to {d.app_url}.</> : <> Set <code>APP_URL</code> so emails link to the app.</>}</p>
+          : <p className="muted">Email is off. Set <code>SMTP_HOST</code> (and <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>SMTP_FROM</code>) in the Portainer stack to send shared-calendar notifications.</p>}
+        {d.configured && <button type="button" className="btn small" onClick={test}>Send me a test email</button>}
+        {msg && <p className="small">{msg}</p>}
+      </div>
+    </Section>
+  );
+}

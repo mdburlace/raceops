@@ -3,7 +3,7 @@ id: calendar-suggestions
 title: Shared calendars (platform admin)
 section: admin
 order: 25
-summary: Keep the series, track and major-event calendars up to date for every team — add, edit and delete dates and series, import published calendars, and moderate teams' requests.
+summary: Keep the series, track and major-event calendars up to date for every team — add, edit and delete dates and series, import published calendars and official feeds, moderate teams' requests, appoint officials, merge duplicates and undo changes.
 for: platform
 pages: /admin/calendar
 covers: option:calendar-suggestions
@@ -32,6 +32,28 @@ Choose a view:
 - **New series** (in the Series view): adds a series every team can use. Name and season are required.
 - **Import a calendar**: read the dates from a link, iCal feed, PDF, photo, screenshot or pasted text, check them, then save. The AI reading counts against the team you're signed in to, so that team needs the AI add-on (iCal doesn't).
 
+### Tools for a series or track
+
+Open a series or track and these buttons show beside its name:
+
+- **Officials**: teams that look after it, such as the series organiser or the track. Pick a team and press **Add official**. Tick **Auto-approve** to let its changes, new dates and results go live without you, unless they look like a duplicate or clash. Those still come to you. **Remove** takes it away. The team is told when it's made an official.
+- **Feed**: the series' or track's own iCal link (`https://…` or `webcal://…`). Press **Add feed**. It's checked every 12 hours, and **Check now** checks it straight away. New dates arrive as one request (**Feed: … — N new dates**). Changed dates arrive as change requests. Both are marked **Feed** in **Requests**. The last check's result shows under the link.
+- **History**: every saved version of the series or track, newest first, with who changed it and what changed. **Restore this version** puts an older one back. Each date has its own **History** too. Teams' entries follow a restored date.
+- **Merge…**: move everything from this series or track into another one, then retire this one. See [Merge duplicates](#merge-duplicates).
+
+**Public page** and **Subscribe** show the same public page and iCal link teams see.
+
+### Merge duplicates
+
+**Find duplicates** (in the **Series** and **Tracks** views) lists pairs with the same or similar names. Press **Keep the first** or **Keep the second**. Or use **Merge…** on a series or track and pick the one to keep.
+
+Merging:
+
+- moves every shared date onto the one you keep;
+- repoints every team's events, series entries, track links, notes and follows, and removes any doubled-up copies;
+- moves officials, feeds and requests across;
+- retires the other one. It stays in **History**.
+
 ## Requests
 
 Teams send their own series, tracks, dates and major events, and ask for changes to shared ones. The **Requests** tab shows how many are waiting. So does the number beside **Shared calendars** in the sidebar, and a note on Home.
@@ -52,6 +74,10 @@ Each request shows the team and person who sent it, when, and any note. Before y
 
 Press **Approve** (or **Approve the rest** when you've refused some dates). To turn the whole request down, type a **Note to the team** and press **Reject all**.
 
+Not sure? Type a question and press **Ask the team**. The request moves to **Asked the team**, and the team sees **Question for you**. When they press **Send answer**, it comes back to **Waiting** with their answer in the thread. You can still decide while you wait.
+
+Requests marked **Feed** came from an official feed, and **Official — automatic** ones were approved for an official team. They're listed so you can see what changed.
+
 ### What approving does
 
 - **Shared records become the single source of truth.** The series, track and dates are added (or matched to existing ones).
@@ -60,7 +86,17 @@ Press **Approve** (or **Approve the rest** when you've refused some dates). To t
 - **Teams follow changes.** When a shared date changes, through a change request or your own edit, every team's entry from that date follows it. Their car, plan, result and notes are kept.
 - **The team is told.** It sees the outcome under **Calendar → Requests**, with every refused date and its reason.
 
-**All** shows past requests and who decided them.
+The filters are **Waiting**, **Asked the team** and **All**. **All** shows past requests and who decided them.
+
+## Results
+
+When a shared date has run, its results (finishing order, entries and a note) can be entered by you with **Edit**, or reported by a team with **Report results**. Reported results come in as change requests. Approved results show on the date for every team, on public pages, and as an update for teams following the series or track.
+
+## Email notifications
+
+To send emails, set `SMTP_HOST` (plus `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM`) and `APP_URL` in the server's settings (the Portainer stack). **Platform admin → Settings → Email notifications** shows whether email is on. Press **Send me a test email** to check it.
+
+With email on, platform admins get an email for each new request and each answer. Teams get an email when a request is decided, when you ask a question, when they're made an official, and when something they follow changes. Anyone can turn these off under **Profile & device**.
 
 ## From a team's calendar
 

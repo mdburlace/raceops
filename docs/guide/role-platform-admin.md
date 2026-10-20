@@ -24,7 +24,7 @@ You look after RaceOps for every team on your server.
 - **Support a team.** **Join & open** from Teams & licences.
 - **Announcements.** Planned downtime or new features. Use the banner under **Settings**.
 - **Shared data.** Track directory, pick-lists and shared tuning guides.
-- **Shared calendars.** Keep the series, track and major-event dates current, and moderate teams' requests. The sidebar and Home show how many are waiting. See [Shared calendars](/help/calendar-suggestions).
+- **Shared calendars.** Keep the series, track and major-event dates current, and moderate teams' requests. The sidebar and Home show how many are waiting. Ask a team a question before deciding, make a series' or track's own team an **official**, add official iCal **feeds**, **merge** duplicates and restore old versions from **History**. See [Shared calendars](/help/calendar-suggestions).
 - **AI.** Watch spend per team, and change allowances.
 
 See [Platform admin](/help/platform-admin) for every page.
@@ -33,4 +33,5 @@ See [Platform admin](/help/platform-admin) for every page.
 
 - Back up both volumes: the database and uploads.
 - Keep secrets (API keys) in the Portainer stack's environment, never in files.
+- Set up email (`SMTP_HOST` and friends, and `APP_URL`) so admins and teams hear about requests. Check it under **Settings → Email notifications**.
 - **System & activity** shows the version, migrations and the admin audit log.
