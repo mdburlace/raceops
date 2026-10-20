@@ -70,15 +70,22 @@ eng = rec('asset', {'name': '410 #3', 'category': 'Engine', 'status': 'In Servic
 shocks = {c: rec('asset', {'name': f'{c} {n}', 'category': 'Shock', 'status': 'In Service', 'position': c, 'adjust_type': t, 'car': car['id']}, form_id=AF)
           for c, n, t in [('LF', 'Penske 7500', 'Two-way'), ('RF', 'Penske 7500', 'Two-way'), ('LR', 'QA1 fixed', 'Non-adjustable'), ('RR', 'Penske 8760', 'Three-way')]}
 spare = rec('asset', {'name': 'Spare Penske', 'category': 'Shock', 'status': 'In Service', 'adjust_type': 'Two-way'}, form_id=AF)
+top_wing = rec('asset', {'name': 'Top wing — 25 sq ft', 'category': 'Wing', 'status': 'In Service', 'position': 'Top', 'car': car['id'], 'spec': '4" sideboards'}, form_id=AF)
+front_wing = rec('asset', {'name': 'Front wing — 6 sq ft', 'category': 'Wing', 'status': 'In Service', 'position': 'Front', 'car': car['id']}, form_id=AF)
+TIF = form('tire')
+tyres = {c: rec('tire', {'name': n, 'brand': 'Hoosier', 'compound': cp, 'circumference': ci, 'position': c, 'status': 'Mounted', 'available_for': [car['id']]}, form_id=TIF)
+         for c, n, cp, ci in [('LF', 'LF-04', 'Medium', '84'), ('RF', 'RF-02', 'Medium', '88'), ('LR', 'LR-07', 'Medium', '93'), ('RR', 'RR-12', 'Hard', '105.5')]}
 ev_old = rec('event', {'name': 'Valley Speedway — June', 'date': d(120), 'track': 'Valley Speedway', 'car': car['id']})
 ev = rec('event', {'name': 'Valley Speedway — Club night', 'date': d(0), 'track': 'Valley Speedway', 'car': car['id']})
 S = lambda **v: {'car': car['id'], 'engine': {'asset': eng['id']}, 'shocks': {c: {'asset': s['id']} for c, s in shocks.items()}, **v}
 old = rec('setup', S(event=ev_old['id'], session='Feature', laps='30', fuel_start='9', fuel_finish='2.7', finish='3'), form_id=SF)
 heat = rec('setup', S(event=ev['id'], session='Heat 1', order=10, laps='10', fuel_start='5', fuel_finish='3', finish='2', temp='68', baro='29.82',
-                      pressure_cold={'LF': '12', 'RF': '14', 'LR': '10', 'RR': '16'}, wing_angle='13', shock_adjust={'LF': 'Comp 4 · Reb 6', 'RF': 'Comp 6 · Reb 8', 'RR': 'LS comp 3 · HS comp 2 · Reb 9'}), form_id=SF)
+                      pressure_cold={'LF': '12', 'RF': '14', 'LR': '10', 'RR': '16'}, wing_angle='13', top_wing={'asset': top_wing['id']}, front_wing={'asset': front_wing['id']}, wicker='1"', front_wicker='1/2"', nose_wing='8', wing_position='2', tires={c: {'asset': t['id']} for c, t in tyres.items()}, tire_spec={'LF': 'H-12', 'RF': 'H-12', 'LR': 'Medium', 'RR': 'Hard'}, shock_adjust={'LF': 'Comp 4 · Reb 6', 'RF': 'Comp 6 · Reb 8', 'RR': 'LS comp 3 · HS comp 2 · Reb 9'}), form_id=SF)
 feat = rec('setup', S(event=ev['id'], session='Feature', order=20, planned_laps='30', temp='64', baro='29.85', copied_from=heat['id'],
                       pressure_cold={'LF': '12', 'RF': '14.5', 'LR': '10', 'RR': '16.5'}, wing_angle='14', tire_spec={'LF': 'H-12', 'RF': 'H-12', 'LR': 'Medium', 'RR': 'Hard'},
                       shock_adjust={'LF': 'Comp 5 · Reb 6', 'RF': 'Comp 6 · Reb 9', 'RR': 'LS comp 3 · HS comp 2 · Reb 9'},
+                      top_wing={'asset': top_wing['id']}, front_wing={'asset': front_wing['id']}, wicker='1"', front_wicker='1/2"', nose_wing='8', wing_position='2',
+                      tires={c: {'asset': t['id']} for c, t in tyres.items()},
                       bump_type={'LF': 'Penske', 'RF': 'Penske'}, bump_spec={'LF': '70A', 'RF': '80A'}, bump_height={'LF': '1.25', 'RF': '1.25'},
                       bump_packers={'LF': '1', 'RF': '2'}, bump_gap={'LF': '0.75', 'RF': '0.6'}), form_id=SF)
 # a season of earlier nights so Analytics has something to show
@@ -97,7 +104,7 @@ for n in range(8):
                                      fuel_start='5' if k == 0 else '9', fuel_finish='3' if k == 0 else str(round(3 - n * 0.05, 2)),
                                      tach_high=str(8600 - n * 12), track_conditions=[['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
                                      driver_feel=['Loose exit'] if k == 0 and n % 2 == 0 else []), form_id=SF))
-push(car, eng, *shocks.values(), spare, ev_old, ev, old, heat, feat, *season)
+push(car, eng, *shocks.values(), spare, top_wing, front_wing, *tyres.values(), ev_old, ev, old, heat, feat, *season)
 
 # calendars: the racing year starts with the first demo round; a shared series and track dates
 # (shared with every team on this server — another reason to use a test server)
@@ -189,7 +196,7 @@ with sync_playwright() as pw:
     if shot('help-home'):
         page.goto(B + '/help'); settle(page)
         save('help-home', page.screenshot())
-    want = [shot('setup-shocks'), shot('fuel-planner')]
+    want = [shot('setup-shocks'), shot('fuel-planner'), shot('setup-wing'), shot('setup-tires')]
     if any(want):
         page.goto(f"{B}/r/setup/{feat['id']}"); settle(page)
         # close-ups of one section: let the sticky title and save bar scroll away so they don't cover it
@@ -199,6 +206,11 @@ with sync_playwright() as pw:
             sec = page.locator('#sec-shocks')
             sec.scroll_into_view_if_needed(); settle(page)
             save('setup-shocks', sec.screenshot())
+        for name, sid in [('setup-wing', 'wing'), ('setup-tires', 'tires')]:
+            if name in SHOTS:
+                sec = page.locator(f'#sec-{sid}')
+                sec.scroll_into_view_if_needed(); settle(page)
+                save(name, sec.screenshot())
         if 'fuel-planner' in SHOTS:
             sec = page.locator('section.form-section:has([data-testid="fuel-planner"])')
             sec.scroll_into_view_if_needed(); settle(page)

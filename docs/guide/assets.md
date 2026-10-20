@@ -25,6 +25,8 @@ An asset is any part you want to track: shocks, torsion bars, engines, gears, re
 Two shock settings change what setup sheets show:
 
 - **Position** (LF, RF, LR, RR). The shock appears first in that corner's list. With no position, it's offered at every corner.
+
+The same goes for **torsion bars** and **wheels** on the setup sheet. For a **wing**, set the position to **Top** or **Front**, so it's offered for the top or front wing. See [Shocks, bars, tyres, wheels and wings on the setup sheet](/help/shocks-on-setup).
 - **Shock adjustable.** Non-adjustable, single, two-, three- or four-way. This decides which adjuster boxes show on the sheet.
 
 {{adjusters}}

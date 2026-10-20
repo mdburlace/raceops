@@ -6,6 +6,7 @@ import { speedKey } from '@shared/dyno.js';
 import { FieldCalc } from './Calculator.jsx';
 import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
+import { saveRecord } from '../lib/store.js';
 import { SpeedTables, SweepField, TableField } from './TableFields.jsx';
 
 /** ⓘ beside a field label: shows on hover or keyboard focus, toggles on tap; Esc closes. */
@@ -54,24 +55,66 @@ function Opt({ o }) {
   return <option value={value}>{label}</option>;
 }
 
+const PLACE = { Top: 'the top wing', Front: 'the front wing' };
+const POSITIONS = ['LF', 'RF', 'LR', 'RR', 'Front', 'Rear', 'Top'];
+const RETIRED = ['Retired', 'Worn out'];
+
+/** Short details shown beside an inventory item in a picker. */
+function invDetail(a) {
+  if (a.type === 'tire') {
+    const c = v(a, 'circumference');
+    return [[v(a, 'brand'), v(a, 'compound'), v(a, 'size')].filter(Boolean).join(' '), c && `${c}"`].filter(Boolean).join(', ');
+  }
+  return v(a, 'spec') || '';
+}
+
 /**
- * scope (corner pickers on setup sheets): { corner, car } — by default only assets for that
- * position (or with no position) and that car (or no car) are listed; "Show all" lists the rest.
+ * Pick an item from inventory — assets of a category, or tyres (field.ref = 'tire') — or enter it by hand.
+ * scope (setup sheets): { corner, car } — the items meant for that corner (or wing position) and car are listed
+ * first; "Show all" lists the rest. A typed value can be saved to inventory in one tap.
  */
 function AssetPicker({ field, value, onChange, data, compact, scope }) {
-  const assets = useMemo(() => data.list('asset')
-    .filter((a) => !field.category || v(a, 'category') === field.category)
-    .filter((a) => v(a, 'status') !== 'Retired' || a.id === assetRefId(value))
-    .sort((a, b) => titleOf(a).localeCompare(titleOf(b))), [data, field.category, value]);
+  const { tid, user, canType } = useSession();
+  const src = field.ref || 'asset';
+  const thing = src === 'tire' ? 'tire' : String(field.category || 'asset').toLowerCase();
+  const assets = useMemo(() => data.list(src)
+    .filter((a) => src !== 'asset' || !field.category || v(a, 'category') === field.category)
+    .filter((a) => !RETIRED.includes(v(a, 'status')) || a.id === assetRefId(value))
+    .sort((a, b) => titleOf(a).localeCompare(titleOf(b))), [data, src, field.category, value]);
   const id = assetRefId(value);
   const [textMode, setTextMode] = useState(!id && !!value);
   const [all, setAll] = useState(false);
-  const fits = (a) => !scope || ((!v(a, 'position') || ['N/A', 'Any'].includes(v(a, 'position')) || v(a, 'position') === scope.corner)
-    && (!scope.car || !v(a, 'car') || v(a, 'car') === scope.car));
+  const [saving, setSaving] = useState(false);
+  const carOk = (a) => {
+    if (!scope?.car) return true;
+    if (a.type === 'tire') { const av = v(a, 'available_for'); return !Array.isArray(av) || !av.filter((x) => x !== '__none__').length || av.includes(scope.car); }
+    return !v(a, 'car') || v(a, 'car') === scope.car;
+  };
+  const fits = (a) => !scope || ((!v(a, 'position') || ['N/A', 'Any'].includes(v(a, 'position')) || v(a, 'position') === scope.corner) && carOk(a));
   const main = assets.filter((a) => fits(a) || a.id === id);
   const others = scope ? assets.filter((a) => !main.includes(a)) : [];
-  const label = (a) => `${titleOf(a)}${v(a, 'spec') ? ` (${v(a, 'spec')})` : ''}${scope && v(a, 'position') && v(a, 'position') !== scope.corner ? ` — ${v(a, 'position')}` : ''}`;
+  const label = (a) => {
+    const d = invDetail(a);
+    return `${titleOf(a)}${d ? ` (${d})` : ''}${scope && v(a, 'position') && !['N/A', 'Any'].includes(v(a, 'position')) && v(a, 'position') !== scope.corner ? ` — ${v(a, 'position')}` : ''}`;
+  };
   const sel = id || (textMode ? '__text' : '');
+  const canSave = textMode && typeof value === 'string' && value.trim() && canType?.(src, 'edit') && tid;
+  // a typed value becomes a new inventory item for this corner and car, and the sheet points at it
+  const saveToInventory = async () => {
+    setSaving(true);
+    try {
+      const form = data.list('form').find((f) => f.data?.target === src && f.data?.is_default) || data.list('form').find((f) => f.data?.target === src);
+      const name = value.trim();
+      const corner = scope?.corner;
+      const values = src === 'tire'
+        ? { name, position: ['LF', 'RF', 'LR', 'RR'].includes(corner) ? corner : 'Any', status: 'Mounted', ...(scope?.car ? { available_for: [scope.car] } : {}) }
+        : { name, category: field.category, status: 'In Service', spec: name, ...(POSITIONS.includes(corner) ? { position: corner } : {}), ...(scope?.car ? { car: scope.car } : {}) };
+      const rec = await saveRecord(tid, src, null, { form_id: form?.id, values }, user.id);
+      setTextMode(false);
+      onChange({ asset: rec.id });
+    } finally { setSaving(false); }
+  };
+  const place = scope ? PLACE[scope.corner] || scope.corner : '';
   return (
     <div className={`asset-picker${compact ? ' compact' : ''}`}>
       <select id={`f-${field.key}`} value={sel} onChange={(e) => {
@@ -81,13 +124,19 @@ function AssetPicker({ field, value, onChange, data, compact, scope }) {
         else { setTextMode(false); onChange(x ? { asset: x } : ''); }
       }}>
         <option value="">—</option>
-        {main.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}
-        {all && others.length > 0 && <optgroup label={`Other ${String(field.category || 'asset').toLowerCase()}s`}>{others.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}</optgroup>}
-        {!all && others.length > 0 && <option value="__all">Show all {String(field.category || 'asset').toLowerCase()}s ({others.length} more)…</option>}
-        <option value="__text">Type a value…</option>
+        {scope && main.length > 0 ? <optgroup label={`For ${place}`}>{main.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}</optgroup>
+          : main.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}
+        {all && others.length > 0 && <optgroup label={`Other ${thing}s`}>{others.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}</optgroup>}
+        {!all && others.length > 0 && <option value="__all">Show all {thing}s ({others.length} more)…</option>}
+        <option value="__text">Enter manually…</option>
       </select>
       {sel === '__text' && (
-        <input value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} placeholder={field.placeholder || 'Value'} autoFocus />
+        <input value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.target.value)} placeholder={field.placeholder || 'As it’s on the car'}
+          aria-label={`${field.label || thing}${scope?.corner && !PLACE[scope.corner] ? ` ${scope.corner}` : ''} entered manually`} autoFocus />
+      )}
+      {canSave && (
+        <button type="button" className="link-btn small" disabled={saving} onClick={saveToInventory} title={`Add “${value.trim()}” to your ${thing}s${place ? ` for ${place}` : ''}`}>
+          + Save to inventory</button>
       )}
     </div>
   );
@@ -236,7 +285,8 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
       );
     }
     case 'asset':
-      return <AssetPicker field={field} value={value} onChange={onChange} data={data} compact={compact} scope={scope} />;
+      return <AssetPicker field={field} value={value} onChange={onChange} data={data} compact={compact}
+        scope={scope || (field.scopePosition ? { corner: field.scopePosition, car: values?.car } : undefined)} />;
     case 'text':
     default:
       return (

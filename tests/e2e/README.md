@@ -87,5 +87,6 @@ Output goes to `tests/e2e/out/` (ignored by Git): a log per suite, screenshots p
 | `e2e28` | Officials, follow and updates (with email), questions, results, clashes, merge, history and restore, feeds, public pages |
 | `e2e29` | Series entries: choosing rounds for a partial series |
 | `e2e30` | Feedback & roadmap: bug reports with pictures, requests, similar items and votes, admin review (edit, areas, questions, approve, duplicate, decline), send to Claude (mock GitHub issue and brief), done, emails |
+| `e2e31` | Setup sheet inventory: bars, tyres and wheels by corner and car, manual entry and Save to inventory, top and front wings, front wicker, wing positions in Assets |
 
 When you add a suite, name it `e2eNN.py` with the next number, add a row here, and make it print `… OK` as its last line.

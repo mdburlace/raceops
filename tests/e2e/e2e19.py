@@ -27,7 +27,7 @@ fdef = next(r for r in recs if r['type'] == 'form' and r['data']['target'] == 's
 secs = [s['id'] for s in fdef['sections']]
 assert 'wing' in secs and secs.index('wing') == secs.index('chassis') + 1, secs
 wing = next(s for s in fdef['sections'] if s['id'] == 'wing')
-assert [f['key'] for f in wing['fields']] == ['wing_angle', 'wicker', 'wing_position', 'nose_wing'], wing
+assert [f['key'] for f in wing['fields']] == ['h_top_wing', 'top_wing', 'wing_angle', 'wicker', 'wing_position', 'h_front_wing', 'front_wing', 'nose_wing', 'front_wicker'], wing
 assert next(s for s in fdef['sections'] if s['id'] == 'chassis')['title'] == 'Chassis'
 assert next(s for s in fdef['sections'] if s['id'] == 'weights')['title'] == 'Weights'
 

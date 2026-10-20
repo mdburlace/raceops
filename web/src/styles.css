@@ -1489,3 +1489,6 @@ a.sc-label { color: inherit; font-weight: 600; }
 .fb-col .fb-row.selected { border-color: var(--accent); background: var(--accent-soft); }
 .fb-decide .row-actions input.narrow-input { width: 170px; flex: 0 0 auto; }
 .fb-decide .row-actions { align-items: center; }
+.link-btn { background: none; border: 0; padding: 2px 0; color: var(--accent); font-weight: 600; cursor: pointer; text-align: left; }
+.link-btn.small { font-size: 12px; }
+.link-btn:disabled { opacity: .5; }

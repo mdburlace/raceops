@@ -357,5 +357,25 @@ export const PHASE3_UPGRADES = [
       defaultRows: [1, 2, 3, 4, 5].map((p) => ({ pos: String(p) })) },
     { key: 'results_note', label: 'Results notes', type: 'textarea', placeholder: 'e.g. Heat winners, fastest qualifier, source' },
   ] } },
+  // setup sheets: bars, tyres and wheels picked from inventory for each corner (the ones meant for that corner
+  // and car first), or typed in as they're on the car; top and front wings, each from inventory or typed
+  { target: 'setup', key: 'bars', patch: { filterByCorner: true, placeholder: 'e.g. 1000 lb/in, .875"' } },
+  { target: 'setup', section: 'tires', first: true, field: { key: 'tires', label: 'Tires', type: 'corners', input: 'asset', ref: 'tire', filterByCorner: true,
+    corners: CORNERS, placeholder: 'e.g. Hoosier medium 105"' } },
+  { target: 'setup', section: 'wheels', first: true, field: { key: 'wheels', label: 'Wheels', type: 'corners', input: 'asset', category: 'Wheel', filterByCorner: true,
+    corners: CORNERS, placeholder: 'e.g. 15x15, 5" offset' } },
+  { target: 'setup', section: 'wing', first: true, field: { key: 'h_top_wing', label: 'Top wing', type: 'heading' } },
+  { target: 'setup', section: 'wing', after: 'h_top_wing', field: { key: 'top_wing', label: 'Top wing', type: 'asset', category: 'Wing', scopePosition: 'Top',
+    placeholder: 'e.g. 25 sq ft, 4" sideboards' } },
+  { target: 'setup', key: 'wing_angle', patch: { label: 'Top wing angle' } },
+  { target: 'setup', key: 'wicker', patch: { label: 'Top wing wicker' } },
+  { target: 'setup', key: 'wing_position', patch: { label: 'Top wing position' } },
+  { target: 'setup', section: 'wing', after: 'wing_position', field: { key: 'h_front_wing', label: 'Front wing', type: 'heading' } },
+  { target: 'setup', section: 'wing', after: 'h_front_wing', field: { key: 'front_wing', label: 'Front wing', type: 'asset', category: 'Wing', scopePosition: 'Front',
+    placeholder: 'e.g. 6 sq ft' } },
+  { target: 'setup', key: 'nose_wing', patch: { label: 'Front wing angle' } },
+  { target: 'setup', section: 'wing', after: 'nose_wing', field: { key: 'front_wicker', label: 'Front wing wicker', type: 'text', placeholder: 'e.g. 1/2"' } },
+  // wings in Assets sit on top or at the front
+  { target: 'asset', key: 'position', patch: { options: ['LF', 'RF', 'LR', 'RR', 'Front', 'Rear', 'Top', 'N/A'] } },
   ...SHOP_UPGRADES,
 ];

@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `014_feedback.sql` |
-| Last updated | October 2026 (feedback, ideas and roadmap) |
+| Last updated | October 2026 (setup sheet inventory pickers) |
 
 ---
 
@@ -408,6 +408,8 @@ Most screens are driven by **form definitions** stored as `form` records, render
 
 **Field options:** `core` (can't be removed by teams), `required`, `unit`, `help`, `placeholder`, `default`, `defaultSelf`, `showIf` (`key=A|B`, `key!=A`, empty allowed), `nocopy` (not carried to the next setup sheet), `suggest`, `measure`.
 
+**Inventory pickers** (`asset` fields and `corners` fields with `input: 'asset'`): the value is `{ asset: <record id> }` when picked, or a plain string when entered manually. `category` limits assets to one category; `ref: 'tire'` lists tyre records instead of assets. `filterByCorner` (and every Shock field) lists first the items whose `position` is that corner, or empty/`N/A`/`Any`, and for this car (`car`, or a tyre's `available_for`); `scopePosition` does the same for a single field (`Top`/`Front` wings). Retired assets and worn-out tyres are hidden. **+ Save to inventory** turns a typed value into a new asset (or tyre) for that corner and car. Referenced items count laps through `setupsByAsset()`.
+
 ### 9.2 Base forms and upgrades
 
 - `BASE_FORMS` (from `baseForms.js`, plus phase 2–4 additions) are copied into each new team.
@@ -463,7 +465,7 @@ Each module is a set of record types, base forms, pages and (sometimes) shared c
 | Tracks (`tracks`) | `track`, `team_track` | Global directory (seeded), team links (`team_track`: ours/hidden), classes per track, region for clashes |
 | Events & series (`events`) | `event`, `series` | Event = meeting with venue (track ref) or free-text track, car, series/round, sessions, intent/outcome; series = name, season, class, sanctioning body |
 | Calendar (`calendar`) | `fixture`, `season_plan`, `local_note`, `follow` | See §12 |
-| Setups (`setups`) | `setup`, `tuning_guide` | One sheet per session; new sheets copy from the last session or a baseline (`nocopy` fields excluded); shocks per corner with adjusters from `ADJUSTERS`; feedback tags; advisor (`shared/advisor.js`) ranks past sheets by similar conditions and tuning-guide rules |
+| Setups (`setups`) | `setup`, `tuning_guide` | One sheet per session; new sheets copy from the last session or a baseline (`nocopy` fields excluded); shocks, bars, tyres (`tires`) and wheels per corner from inventory or typed, top and front wings (`top_wing`, `front_wing`, `front_wicker`); shocks with adjusters from `ADJUSTERS`; feedback tags; advisor (`shared/advisor.js`) ranks past sheets by similar conditions and tuning-guide rules |
 | At-track checks (`trackside`) | `track_check` | Between-round checklist per session |
 | Gears & tyres (`gears`) | `gear`, `gear_list`, `tire` | Quick-change gear lists (seeded), owned sets, gear calculator, tyre stock and stagger combinations |
 | Maintenance (`maintenance`) | `maintenance`, `schedule` | Checklists; schedules by races, laps, days or hours |

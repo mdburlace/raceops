@@ -143,7 +143,7 @@ with sync_playwright() as pw:
 
     # ---- team's own description in the form builder ----
     page.goto(B + f'/forms/{setup_form["id"]}')
-    bf = page.locator('.builder-field').filter(has=page.locator('input.bf-label[value="Wicker"]'))
+    bf = page.locator('.builder-field').filter(has=page.locator('input.bf-label[value="Top wing wicker"]'))
     bf.locator('button[aria-label="Field settings"]').click()
     expect(page.locator('#fi-wicker')).to_have_attribute('placeholder', 'Wicker bill (Gurney) height or type on the top wing.')
     page.fill('#fi-wicker', 'Our wicker: 1/2 in for heavy tracks, 1/4 in when slick.')
