@@ -267,7 +267,7 @@ export function TrackDetail() {
         {events.length === 0 ? <p className="muted">No events recorded at this track yet.</p> : (
           <div className="list">{events.map((e) => (
             <Link key={e.id} to={`/events/${e.id}`} className="list-row">
-              <span className="grow"><span className="row-title">{v(e, 'name')}</span><span className="row-sub">{dateRange(e)}{data.byId[v(e, 'series')] ? ` · ${titleOf(data.byId[v(e, 'series')])}` : ''}</span></span>
+              <span className="grow"><span className="row-title">{v(e, 'name')}</span><span className="row-sub">{[dateRange(e), v(e, 'round') && `Rd ${v(e, 'round')}`, data.byId[v(e, 'series')] && titleOf(data.byId[v(e, 'series')])].filter(Boolean).join(' · ')}</span></span>
               <span className="row-meta">{setups.filter((s) => v(s, 'event') === e.id).length} sheets</span>
             </Link>
           ))}</div>

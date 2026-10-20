@@ -27,7 +27,7 @@ Choose a view:
 ### Add or change dates
 
 - **Add a date**: fill in the event name, date (and end date for a multi-day meeting), track, series and round, and the classes running. Tick **Major event** for a title or classic and give it its **Major event name**, and set the **Sanctioning body** if it differs from the series'. Adding from a series, track or the Major events view fills that in for you.
-- **Edit**: change a date. The form opens under that date. Every team's entry that came from it changes too.
+- **Edit**: change a date. The form opens under that date, with **Save** and **Cancel** at the top, so you don't have to scroll past the whole form. Every team's entry that came from it changes too.
 - **Delete**: removes the date from the shared calendar. Teams that already added it keep their own entry. To keep it visible but show it's off, edit it and set **Status** to **Cancelled** instead.
 - **New series** (in the Series view): adds a series every team can use. Name and season are required.
 - **Import a calendar**: read the dates from a link, iCal feed, PDF, photo, screenshot or pasted text, check them, then save. The AI reading counts against the team you're signed in to, so that team needs the AI add-on (iCal doesn't).

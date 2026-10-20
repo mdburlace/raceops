@@ -20,8 +20,10 @@ An **event** is one race meeting for one car. Each **session** (Hot Laps, Heat 1
 2. Pick the **Track** from the directory; your own tracks are listed first. Location, length, surface and banking fill in from it, and you can still change them.
 3. Pick the **Car**. If the team has only one active car, it's chosen for you.
 4. Set the date. For a multi-day meeting, also set the **end date**.
-5. If it's a round of a championship, pick the **Series**.
+5. If it's a round of a championship, pick the **Series** and type the **Round**.
 6. Press **Save**.
+
+**Events** lists upcoming and past meetings. Each shows its round and track first, e.g. *Rd 3 · Valley Speedway*, then the series and the car. Lists elsewhere, such as **At the Track**, **Calendar**, each series and each track, show events the same way.
 
 ## Add sessions
 

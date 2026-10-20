@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `014_feedback.sql` |
-| Last updated | October 2026 (setup sheet inventory pickers) |
+| Last updated | October 2026 (round and track on event lists) |
 
 ---
 

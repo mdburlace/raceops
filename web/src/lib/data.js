@@ -71,6 +71,9 @@ export const num = (x) => {
 };
 
 /** Track display name for an event: linked track, else the typed name. */
+/** “Rd 3 · Valley Speedway”: the round (if any) and the track, as event lists show them. */
+export const roundAndTrack = (round, track) => [round ? `Rd ${round}` : '', track].filter(Boolean).join(' · ');
+
 export const eventTrack = (ev, data) => (ev ? (data?.byId[ev.data?.values?.venue] ? titleOf(data.byId[ev.data.values.venue]) : ev.data?.values?.track || '') : '');
 
 export function titleOf(rec, data) {

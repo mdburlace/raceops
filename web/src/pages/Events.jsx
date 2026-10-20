@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { Empty, PageHeader, Section } from '../components/ui.jsx';
-import { eventTrack, fmtDate, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { eventTrack, fmtDate, roundAndTrack, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
 import { orderForNew, orderSessions } from '../lib/sessions.js';
@@ -32,7 +32,7 @@ export function EventRow({ e, data, n }) {
       </span>
       <span className="grow">
         <span className="row-title">{v(e, 'name')}{eventDays(e) > 1 ? <span className="pill pill-info days-pill">{eventDays(e)} days</span> : null}</span>
-        <span className="row-sub">{[data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')]), eventTrack(e, data), s && `${titleOf(s)}${v(e, 'round') ? ` · Rd ${v(e, 'round')}` : ''}`, !s && v(e, 'event_type')].filter(Boolean).join(' · ')}</span>
+        <span className="row-sub">{[roundAndTrack(v(e, 'round'), eventTrack(e, data)), s && titleOf(s), !s && v(e, 'event_type'), data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')])].filter(Boolean).join(' · ')}</span>
       </span>
       <span className="row-meta">{n ? `${n} sheet${n > 1 ? 's' : ''}` : ''}</span>
     </Link>

@@ -120,7 +120,7 @@ with sync_playwright() as pw:
     shot(page, '26-03-quick-edit')
     qe.locator('button:has-text("Save")').click()
     expect(row.locator('[data-testid="quick-edit"]')).to_have_count(0)
-    expect(row).to_contain_text('Initial Winter Series · Rd 3')
+    expect(row).to_contain_text('Rd 3 · '); expect(row).to_contain_text('Initial Winter Series')
     expect(row).to_contain_text('Speedway Australia')
     expect(row).to_contain_text('★ Winter Warm-up Classic')
     # pulling the major event brings its name and sanctioning body

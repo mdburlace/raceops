@@ -1492,3 +1492,6 @@ a.sc-label { color: inherit; font-weight: 600; }
 .link-btn { background: none; border: 0; padding: 2px 0; color: var(--accent); font-weight: 600; cursor: pointer; text-align: left; }
 .link-btn.small { font-size: 12px; }
 .link-btn:disabled { opacity: .5; }
+.fx-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.fx-editor-head h3 { margin: 0; }
+.fx-editor-head .row-actions { margin: 0; }

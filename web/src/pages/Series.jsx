@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
-import { eventTrack, fmtDate, num, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { eventTrack, fmtDate, roundAndTrack, num, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { dateRange, eventDays } from './Events.jsx';
 import { useState } from 'react';
@@ -41,7 +41,7 @@ export function SeriesList() {
                 <Link key={s.id} to={`/series/${s.id}`} className="list-row">
                   <span className="grow">
                     <span className="row-title">{v(s, 'name')}</span>
-                    <span className="row-sub">{[v(s, 'class'), v(s, 'sanctioning'), `${rounds.length} round${rounds.length === 1 ? '' : 's'}`, next && `next: ${v(next, 'name')} ${fmtDate(v(next, 'date'))}`].filter(Boolean).join(' · ')}</span>
+                    <span className="row-sub">{[v(s, 'class'), v(s, 'sanctioning'), `${rounds.length} round${rounds.length === 1 ? '' : 's'}`, next && `next: ${[v(next, 'name'), roundAndTrack(v(next, 'round'), eventTrack(next, data)), fmtDate(v(next, 'date'))].filter(Boolean).join(' · ')}`].filter(Boolean).join(' · ')}</span>
                   </span>
                 </Link>
               );

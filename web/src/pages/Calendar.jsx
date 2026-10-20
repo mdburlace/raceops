@@ -11,7 +11,7 @@ import {
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { api, apiJob } from '../lib/api.js';
 import { fileToPart } from '../lib/ai.js';
-import { fmtDate, formFor, num, platformList, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { fmtDate, formFor, roundAndTrack, num, platformList, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { syncNow } from '../lib/sync.js';
@@ -163,7 +163,7 @@ function CalendarRow({ i, data, past }) {
       </span>
       <span className="grow">
         <Link className="row-title" to={`/events/${i.id}`}>{i.name}</Link>
-        <span className="row-sub">{[i.track, i.series && `${i.series}${i.round ? ` · Rd ${i.round}` : ''}`, i.sanctioning, i.car, i.end_date && i.end_date !== i.date && `to ${fmtDate(i.end_date)}`].filter(Boolean).join(' · ')}</span>
+        <span className="row-sub">{[roundAndTrack(i.round, i.track), i.series, i.sanctioning, i.car, i.end_date && i.end_date !== i.date && `to ${fmtDate(i.end_date)}`].filter(Boolean).join(' · ')}</span>
         {i.major && <span className="pill pill-info">★ {i.major}</span>}
         {winnerText(vals(i.fx)) && <span className="small winner">🏁 {winnerText(vals(i.fx))}</span>}
         {i.cancelled && <span className="pill pill-over">Cancelled</span>}
@@ -478,7 +478,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                     </span>
                     <span className="grow">
                       <span className="row-title">{fv.name}{fv.end_date && fv.end_date !== fv.date ? <span className="muted small"> · to {fmtDate(fv.end_date)}</span> : null}</span>
-                      <span className="row-sub">{[trackName(data, fv), series && `${vals(series).name}${fv.round ? ` · Rd ${fv.round}` : ''}`, sanctioningOf(fv, vals(series)), classes.join(', '), fv.start_time].filter(Boolean).join(' · ')}</span>
+                      <span className="row-sub">{[roundAndTrack(fv.round, trackName(data, fv)), series && vals(series).name, sanctioningOf(fv, vals(series)), classes.join(', '), fv.start_time].filter(Boolean).join(' · ')}</span>
                       {winnerText(fv) && <span className="small winner">🏁 {winnerText(fv)}{fv.entries ? ` · ${fv.entries} entries` : ''}</span>}
                       <span className="fx-flags">
                         {fv.major && <Pill level="info">{majorLabel(fv)}</Pill>}
@@ -565,7 +565,7 @@ function Clashes({ data, dates, ourClasses, team }) {
               <span className="date-block"><b>{Number(r.date.slice(8))}</b><small>{new Date(`${r.date}T00:00:00`).toLocaleString(undefined, { month: 'short' })} {dow(r.date)}</small></span>
               <span className="grow">
                 <span className="row-title">{r.list.length} meetings · {r.reg}{r.shared.length > 0 && <span className="pill pill-over">Same class: {r.shared.join(', ')}</span>}</span>
-                {r.list.map((f) => <span key={f.id} className="row-sub">{vals(f).name} — {trackName(data, vals(f))}{classesOf(f).length ? ` · ${classesOf(f).join(', ')}` : ''}</span>)}
+                {r.list.map((f) => <span key={f.id} className="row-sub">{vals(f).name} — {roundAndTrack(vals(f).round, trackName(data, vals(f)))}{classesOf(f).length ? ` · ${classesOf(f).join(', ')}` : ''}</span>)}
               </span>
             </div>
           ))}
@@ -658,20 +658,22 @@ function FixtureEditor({ data, rec, initial = {}, onSave = null, onDone, inline 
   };
   return (
     <div className={`card fx-editor${inline ? ' inline-editor' : ''}`} data-testid="fx-editor">
-      <h3>{rec ? (admin ? 'Edit calendar date' : 'Suggest a change') : admin ? 'Add a calendar date' : 'Suggest a calendar date'}</h3>
+      <div className="fx-editor-head">
+        <h3>{rec ? (admin ? 'Edit calendar date' : 'Suggest a change') : admin ? 'Add a calendar date' : 'Suggest a calendar date'}</h3>
+        <div className="row-actions">
+          <button type="button" className="btn primary" onClick={save}>{admin && publish ? 'Save' : 'Send for approval'}</button>
+          <button type="button" className="btn ghost" onClick={() => onDone(false)}>Cancel</button>
+        </div>
+      </div>
+      {err && <div className="notice error">{err}</div>}
+      {admin && !onSave && <label className="check-row"><input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} /> Publish to every team now (platform admin)</label>}
+      {!(admin && publish) && <label className="field"><span className="label">Note for the admin (optional)</span><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Source: series website, posted 3 Oct" /></label>}
       <FormRenderer form={form} values={values} onChange={(k, x) => setValues((s) => ({ ...s, [k]: x }))} data={data} recordType="fixture" errors={errors}
         hideKeys={(values.end_date || values.date || '9') > today() || !admin ? ['entries', 'results', 'results_note'] : []} />
       {!admin && !rec && values.series && data.byId[values.series] && !isGlobal(data.byId[values.series]) && (
         <div className="notice info small">{vals(data.byId[values.series]).name} is your team’s own series, so it goes to the admin with this date — once approved it’s shared and your events use it.</div>
       )}
       {dupes.length > 0 && <div className="notice small">Already listed: {dupes.map((d) => `${vals(d).name} (${fmtDate(vals(d).date)})`).join(', ')}. Change that one instead if it’s wrong.</div>}
-      {err && <div className="notice error">{err}</div>}
-      {!(admin && publish) && <label className="field"><span className="label">Note for the admin (optional)</span><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Source: series website, posted 3 Oct" /></label>}
-      {admin && !onSave && <label className="check-row"><input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} /> Publish to every team now (platform admin)</label>}
-      <div className="row-actions">
-        <button type="button" className="btn primary" onClick={save}>{admin && publish ? 'Save' : 'Send for approval'}</button>
-        <button type="button" className="btn ghost" onClick={() => onDone(false)}>Cancel</button>
-      </div>
     </div>
   );
 }
@@ -1050,7 +1052,7 @@ export function CalendarSheet({ title, sub, items, showCar = true, showResult = 
                 <td>
                   <b>{i.name}</b>{i.tentative && <em className="muted"> (tentative)</em>}{i.cancelled && <b className="cs-cancel"> CANCELLED</b>}
                   {i.major && <div className="small cs-major">★ {i.major}</div>}
-                  <div className="muted small">{[i.track, i.location && i.location !== i.track ? i.location : '', i.series && `${i.series}${i.round ? ` — Rd ${i.round}` : ''}`, i.sanctioning].filter(Boolean).join(' · ')}</div>
+                  <div className="muted small">{[roundAndTrack(i.round, i.track), i.location && i.location !== i.track ? i.location : '', i.series, i.sanctioning].filter(Boolean).join(' · ')}</div>
                   {((showCar && i.car) || (showResult && i.result)) && (
                     <div className="small cs-extra">{showCar && i.car && <span>{i.car}</span>}{showResult && i.result && <b>{i.result}</b>}</div>
                   )}

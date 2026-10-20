@@ -178,7 +178,7 @@ The admin can approve some dates and refuse others, with a reason for each.
 ### Suggest a date or a change
 
 - **Suggest a date** (in **Shared calendars**) adds a missing date. Fill in the event name, date, track, series, round and the classes running. Tick **Major event** for a title or classic and give it its **Major event name**. Add the **Sanctioning body** if it differs from the series. If you pick your team's own series, the series goes with the date.
-- **Suggest a change** on a shared date corrects it, for example a new date or a cancellation. The form opens right under that date, and the date shows **Your change — waiting for approval** until it's decided.
+- **Suggest a change** on a shared date corrects it, for example a new date or a cancellation. The form opens right under that date, with **Send for approval** and **Cancel** at the top. The date then shows **Your change — waiting for approval** until it's decided.
 - **Request a change** on a shared series' page or a shared track's page does the same for the series or track.
 
 Once approved, the change shows for every team, and entries that came from a changed date are updated automatically.

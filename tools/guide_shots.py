@@ -92,7 +92,7 @@ feat = rec('setup', S(event=ev['id'], session='Feature', order=20, planned_laps=
 season = []
 for n in range(8):
     tr = ['Lakeside Raceway', 'Valley Speedway', 'Hilltop Oval'][n % 3]
-    e = rec('event', {'name': f'{tr} — round {n + 1}', 'date': d(112 - n * 14), 'track': tr, 'car': car['id'], 'intent': 'Planned',
+    e = rec('event', {'name': f'{tr} Club Championship', 'round': str(n + 1), 'date': d(112 - n * 14), 'track': tr, 'car': car['id'], 'intent': 'Planned',
                       **({'outcome': 'Withdrew during the event', 'withdraw_reason': 'Engine'} if n == 3 else {'outcome': 'Raced the feature'})})
     season.append(e)
     for k, (sess, order) in enumerate([('Heat 1', 10), ('Feature', 20)]):
