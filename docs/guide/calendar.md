@@ -3,11 +3,11 @@ id: calendar
 title: Calendar — plan your racing year
 section: track
 order: 5
-summary: Pull series, track and major-event dates into your calendar, pick the car, enter a full or part series, record what happened, and print or publish it.
+summary: Pull series, track and major-event dates into your calendar, pick the car, enter a full or part series, record what happened, share your own series and tracks, and print or publish it.
 for: module:calendar
 team: race
 pages: /calendar, /print/calendar, /c/:token
-covers: type:fixture, type:season_plan, module:calendar, setting:calendar_publish, setting:calendar_season_start, setting:calendar_view
+covers: type:fixture, type:season_plan, type:local_note, module:calendar, setting:calendar_publish, setting:calendar_season_start, setting:calendar_view
 related: events-sessions, tracks, calendar-suggestions
 ---
 The **Calendar** is your team's racing year in one place: every meeting you plan to race, which car is going, and what happened. It's under **Team Management → Calendar**. Anyone whose role can see the calendar finds it there, including drivers and crew who don't otherwise use Team Management.
@@ -51,7 +51,9 @@ Dates on your calendar show **On our calendar — #12**. Use **Add another car**
 
 ### When a shared date changes
 
-If a series moves a round or changes the track, your entry shows **The shared calendar changed** with the old and new details. Press **Update ours** to bring your event into line. A cancelled date shows **Cancelled**.
+When a shared date changes (a round moves, the track or name changes), your entry changes with it automatically. Your car, plan, result and notes stay as they are. A cancelled date shows **Cancelled**.
+
+If you edited your own entry's date while offline, the entry shows **The shared calendar changed** with the old and new details. Press **Update ours** to bring it back into line.
 
 ## Enter a series
 
@@ -107,14 +109,51 @@ The boxes at the top add up the year: meetings planned, meetings you ran, featur
 
 **List** shows the year as a list with the controls. **Month** shows each month as a grid with your race days marked. Your choice is remembered for you.
 
-## Suggest or import dates
+## Sharing with every team
 
-Shared dates are kept by the RaceOps platform admin, and teams help keep them right.
+The shared series, tracks and dates are kept by the RaceOps platform admin, so every team sees the same ones. Teams help keep them complete and right. Everything you send is checked by a platform admin before it goes live. See [Shared calendars (platform admin)](/help/calendar-suggestions).
 
-- **Suggest a date** adds a missing date. Fill in the event name, date, track, series, round and the classes running. Tick **Major event** for a title or classic and give it its **Major event name**. Add the **Sanctioning body** if it differs from the series.
-- **Suggest a change** on a date corrects it, for example a new date or a cancellation. The form opens right under that date.
+### Send your own series, track or major events
 
-Your suggestion shows **Waiting for approval** until a platform admin checks it. Once approved it's live for every team. If it isn't approved, it shows the reason. Press **Dismiss** to clear it. See [Shared calendars (platform admin)](/help/calendar-suggestions).
+If your team set up its own series (under **Series**) or track (**Add a missing track**), or has dates and major events on its calendar that aren't shared yet, send them:
+
+1. Open **Calendar → Requests** and press **Send to the shared calendars**. You can also press **Send to shared calendars** on your own series' page or track's page, or in an entry's quick edit.
+2. Choose **A series**, **A track** or **Dates & major events**.
+3. Pick the series or track. Its dates on your calendar are listed and ticked, so untick any you don't want to send. For dates, tick the ones to send. **Major events only** narrows the list.
+4. Add a note for the admin if it helps, such as where the dates came from, then press **Send for approval**.
+
+When the admin approves:
+
+- **The shared series, track and dates become the only copies.** Your own copy of the series or track is retired, and your events, series entries and contacts point at the shared ones instead. You won't have duplicates.
+- **Your own notes move with it.** Notes from your copy are kept as your team's private notes on the shared one.
+- **Duplicates are matched.** If the admin finds the series, track or a date is already shared, your records are linked to the existing one instead of adding another.
+- **Your events follow the shared dates** from then on.
+
+The admin can approve some dates and refuse others, with a reason for each.
+
+### Suggest a date or a change
+
+- **Suggest a date** (in **Shared calendars**) adds a missing date. Fill in the event name, date, track, series, round and the classes running. Tick **Major event** for a title or classic and give it its **Major event name**. Add the **Sanctioning body** if it differs from the series. If you pick your team's own series, the series goes with the date.
+- **Suggest a change** on a shared date corrects it, for example a new date or a cancellation. The form opens right under that date, and the date shows **Your change — waiting for approval** until it's decided.
+- **Request a change** on a shared series' page or a shared track's page does the same for the series or track.
+
+Once approved, the change shows for every team, and entries that came from a changed date are updated automatically.
+
+### Requests and their outcome
+
+![Requests your team has sent to the shared calendars](img/calendar-requests.webp)
+
+**Calendar → Requests** lists everything your team has sent, newest first, with its status:
+
+| Status | Meaning |
+|---|---|
+| **Waiting for approval** | Not decided yet. **Withdraw** takes it back. |
+| **Approved** | Live for every team. Each date shows **Added**, or **Already shared — linked** if it matched one that was already there. |
+| **Partly approved** | Some dates were refused. Each refused date shows **Refused** and the reason. |
+| **Not approved** | Nothing was added. The admin's note says why. |
+| **Withdrawn** | You took it back. |
+
+When a request is decided, **Calendar** in the sidebar shows a number, and Home shows a note, until someone who can edit the calendar opens **Requests**.
 
 ### Import a published calendar
 
@@ -126,10 +165,20 @@ Your suggestion shows **Waiting for approval** until a platform admin checks it.
 
 Facebook pages need a login, so use a screenshot or paste the text.
 
-1. Choose where the dates come from. Pick the **series** they belong to (add the series under **Series** first if it isn't listed). If every date is at one track, pick it.
+1. Choose where the dates come from. Pick the **series** they belong to. If the series is your own, it goes to the admin with the dates. If every date is at one track, pick it.
 2. Press **Read dates**. iCal is read directly. Web pages, PDFs, pictures and pasted text are read by the [AI assistant](/help/ai-assistant), so your plan needs it.
 3. Check every row. Fix the dates, names and rounds, and tick **Major** for titles and classics. Tracks are matched to the directory where possible. Dates already on the shared calendar are marked **already listed** and left unticked.
-4. Press **Send for approval**.
+4. Press **Send for approval**. The dates go as one request.
+
+## Our notes
+
+Your team can keep its own notes on any shared series, track or date. Only your team sees them.
+
+- **Series:** on the series' page, under **Our notes**.
+- **Track:** on the track's page, under **Our notes**.
+- **Shared date:** press **Notes** on it in **Shared calendars**.
+
+Your own events keep their own notes, such as track notes and result notes, as before.
 
 ## Print and publish
 
@@ -151,6 +200,6 @@ Only events you're going to are shown, and never setups or notes. Choose whether
 | See the calendar | Anyone with **Calendars → view** (no Team Management access needed) |
 | Add dates to your calendar, record results | **Events → edit** |
 | Enter a series | **Calendars → edit** |
-| Suggest or import shared dates | **Calendars → edit** |
+| Send series, tracks and dates; suggest changes; import; keep team notes | **Calendars → edit** |
 | Publish, set when the racing year starts | Owner, or **Edit team settings** |
-| Approve shared dates | Platform admins |
+| Approve or refuse requests, edit shared records | Platform admins |

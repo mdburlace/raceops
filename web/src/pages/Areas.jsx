@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AREAS, MODULE } from '@shared/catalog.js';
+import { RequestNotice } from '../components/SharedRequests.jsx';
 import { AREA_ICON, AREA_PATH, Icon, I, useNav } from '../components/Layout.jsx';
 import { LifeBar, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { assetLife, scheduleStatus, setupsByAsset } from '../lib/compute.js';
@@ -87,6 +88,7 @@ export function Landing() {
   return (
     <div>
       <PageHeader title={`G'day, ${user?.name?.split(' ')[0] || ''}`} sub={membership?.tenant_name} />
+      <RequestNotice />
       <SetupChecklist />
       {type !== 'engine_shop' && <AnalyticsKpis />}
       {type !== 'race' && <ShopHome />}

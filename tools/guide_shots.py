@@ -123,8 +123,14 @@ cal = [rec('event', {'name': f['data']['values']['name'], 'date': f['data']['val
                      'intent': 'Tentative' if i == 1 else 'Planned'}, form_id=EF) for i, f in enumerate(gfx[:3])]
 for c in cal: c['data']['values'] = {k: x for k, x in c['data']['values'].items() if x}
 entry = rec('season_plan', {'series': gser['id'], 'season': str(start.year), 'car': car['id'], 'class': '410 Sprint', 'participation': 'Partial series'}, form_id=form('season_plan'))
-change = rec('fixture', {**gfx[3]['data']['values'], 'date': up(38), 'review': 'pending', 'replaces': gfx[3]['id'], 'suggest_note': 'Moved to Sunday — series Facebook page'}, form_id=FX)
-push(*cal, entry, change)
+push(*cal, entry)
+# requests to the shared calendars: a team-only track with its major event, and a change to a shared date
+mud = rec('track', {'name': 'Mudtown Raceway', 'city': 'Mudtown', 'region': 'QLD', 'country': 'Australia', 'status': 'Active'}, form_id=TRF)
+mud_ev = rec('event', {'name': 'Mudtown Classic night 1', 'date': up(30), 'venue': mud['id'], 'car': car['id'], 'intent': 'Planned', 'major': True, 'major_name': 'Mudtown Classic'}, form_id=EF)
+push(mud, mud_ev)
+call(f'/t/{TID}/calendar/requests', T, 'POST', {'kind': 'change', 'subject_type': 'fixture', 'subject_id': gfx[2]['id'],
+     'values': {**gfx[2]['data']['values'], 'date': up(22), 'end_date': up(23)}, 'note': 'Moved forward a day — series Facebook page'})
+call(f'/t/{TID}/calendar/requests', T, 'POST', {'kind': 'share', 'subject_type': 'track', 'subject_id': mud['id'], 'events': [mud_ev['id']], 'note': 'Club track, 2026-27 fixture list'})
 
 SHOTS = []
 shot = lambda name: (ONLY is None or name in ONLY) and SHOTS.append(name) is None
@@ -202,8 +208,11 @@ with sync_playwright() as pw:
         page.goto(B + '/admin/calendar?show=major'); settle(page)
         save('calendar-admin', page.screenshot())
     if shot('calendar-suggestions'):
-        page.goto(B + '/admin/calendar?tab=suggestions'); settle(page)
-        save('calendar-suggestions', page.locator('.cal-sugg').first.screenshot())
+        page.goto(B + '/admin/calendar?tab=requests'); settle(page)
+        save('calendar-suggestions', page.screenshot())
+    if shot('calendar-requests'):
+        page.goto(B + '/calendar?tab=requests'); settle(page)
+        save('calendar-requests', page.screenshot())
     if shot('calendar-public'):
         pub = call(f'/t/{TID}/calendar/publish', T, 'PUT', {'on': True, 'show_cars': True, 'show_tentative': True, 'show_results': True})[1]['calendar_publish']
         m = page_for(390, 844, mobile=True)

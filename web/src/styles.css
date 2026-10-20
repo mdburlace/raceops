@@ -1392,3 +1392,26 @@ a.sc-label { color: inherit; font-weight: 600; }
 .quick-edit .row-actions { justify-content: flex-start; gap: 8px; }
 .cal-status { gap: 6px; align-items: center; flex-wrap: wrap; }
 .cs-major { font-weight: 700; color: #8a5a00; }
+.nav-badge { margin-left: auto; min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink, #fff); font-size: 11px; font-weight: 800; text-align: center; }
+/* shared-calendar requests */
+.send-panel { display: grid; gap: 10px; margin-bottom: 14px; }
+.send-panel .row-actions { justify-content: flex-start; gap: 8px; }
+.send-events { display: grid; gap: 0; max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.send-events .check-row { flex-wrap: wrap; gap: 4px 10px; }
+.req-row { align-items: flex-start; }
+.req-row .grow { display: grid; gap: 4px; }
+.req-row.unseen { background: var(--info-soft); }
+.req-items { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 4px; font-size: 13px; }
+.req-items li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.req-items li.refused span:first-child { text-decoration: line-through; opacity: .7; }
+.req-checks { display: flex; flex-wrap: wrap; gap: 4px; }
+.req-root { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; display: grid; gap: 6px; }
+.req-root .pill { margin-right: 6px; }
+.req-items-table select { min-width: 150px; }
+.req-items-table input { margin-top: 4px; }
+.req-review .row-actions { justify-content: flex-start; gap: 8px; }
+.req-notice { display: grid; gap: 4px; }
+.team-notes.compact { display: grid; gap: 6px; }
+.team-notes-edit { display: grid; gap: 6px; }
+.team-notes-edit .row-actions { justify-content: flex-start; gap: 8px; }
+.tabs .nav-badge { margin-left: 6px; }

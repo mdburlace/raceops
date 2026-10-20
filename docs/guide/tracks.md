@@ -37,6 +37,9 @@ Your cars' classes are offered as quick picks.
 
 - **Team notes.** Each track can hold your team's own notes, such as pit gate, power or fuel. Only your team sees them.
 - **Missing track?** Add a team-only track. Or, when creating an event, type the track name; a free-text field appears for tracks not in the directory.
+- **Share a team-only track:** on its page, press **Send to shared calendars**. Once a RaceOps admin approves it, it joins the shared directory, and your events and notes move to the shared track.
+- **Something wrong on a shared track?** Press **Request a change** on its page. The admin checks it, then it updates for everyone.
+- **Our notes:** each shared track has **Our notes**, which only your team sees. **Team notes** on a linked track still work as before.
 
 ## Why location matters
 

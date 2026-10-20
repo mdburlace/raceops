@@ -47,7 +47,7 @@ export function SessionProvider({ children }) {
         try { await api('/me', { method: 'PATCH', body: { prefs: waiting } }); writePending(s.user.id, null); } catch (e) { if (e.status === 400) writePending(s.user.id, null); }
       }
       const me = await api('/me');
-      const next = { ...s, user: me.user, memberships: me.memberships, platform: me.platform || s.platform };
+      const next = { ...s, user: me.user, memberships: me.memberships, platform: me.platform || s.platform, notices: me.notices || {} };
       if (!me.memberships.some((m) => m.tenant_id === s.tenantId)) next.tenantId = me.memberships[0]?.tenant_id || null;
       update(next);
       const m = me.memberships.find((x) => x.tenant_id === next.tenantId);
@@ -150,6 +150,7 @@ export function SessionProvider({ children }) {
     linkedVersion,
     platform,
     licence: membership?.licence || 'active',
+    notices: session?.notices || {},
     can: (p) => canP(membership?.role, p),
     canType: (t, a) => canT(membership?.role, ent, t, a),
     canArea: (a) => canA(membership?.role, ent, a),

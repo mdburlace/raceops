@@ -372,6 +372,11 @@ export const FIELD_INFO = {
     start_time: ['Gate and racing times, if published.'],
     website: ['Where the date was published — the series or track web page.'],
   },
+  local_note: {
+    entity_type: ['What the note is about: a shared series, track or calendar date.'],
+    entity: ['The shared series, track or date.'],
+    notes: ['Your team’s own notes — only your team sees them. The shared record itself is kept by the RaceOps admin.'],
+  },
   season_plan: {
     series: ['The series you’re entering.'],
     season: ['The racing year, e.g. 2026, or 2026-27 for a summer season.'],

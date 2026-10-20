@@ -67,7 +67,7 @@ export const ADMIN_LINKS = [
 
 /** Navigation tree; each link declares what it needs so locked items disappear. */
 export function useNav() {
-  const { can, canArea, canModule, user, membership } = useSession();
+  const { can, canArea, canModule, user, membership, notices } = useSession();
   const admin = can('members.manage') || can('roles.manage') || can('forms.manage') || can('team.manage');
   // engine shops see jobs and customers; shops that don't race don't see the race-team pages
   const type = teamType(membership);
@@ -100,7 +100,7 @@ export function useNav() {
     ] },
     // the Calendar is open to anyone with Calendars → view, so the group shows for them too (with just that link)
     { area: 'team', label: 'Team Management', icon: I.team, show: teamFull || (racing && canModule('calendar')), path: teamFull ? null : '/calendar', links: [
-      racing && canModule('calendar') && { to: '/calendar', label: 'Calendar', icon: I.calendar },
+      racing && canModule('calendar') && { to: '/calendar', label: 'Calendar', icon: I.calendar, badge: canModule('calendar', 'edit') ? membership?.calendar_notices || 0 : 0 },
       teamFull && racing && canModule('cars') && { to: '/cars', label: 'Cars', icon: I.car },
       teamFull && canModule('contacts') && { to: '/contacts', label: 'Contacts', icon: I.book },
       teamFull && canModule('contacts') && { to: '/suppliers', label: 'Suppliers', icon: I.truck },
@@ -111,7 +111,7 @@ export function useNav() {
       canModule('reports') && { to: '/team/stats', label: 'Crew Chief stats', icon: I.star },
       canModule('reviews') && { to: '/team/reviews', label: 'Performance reviews', icon: I.user },
     ] },
-    { area: 'admin', label: 'Platform admin', icon: I.admin, show: !!user?.is_platform_admin, links: ADMIN_LINKS },
+    { area: 'admin', label: 'Platform admin', icon: I.admin, show: !!user?.is_platform_admin, links: ADMIN_LINKS.map((l) => (l.to === '/admin/calendar' ? { ...l, badge: notices?.calendar_requests || 0 } : l)) },
   ].map((g) => ({ ...g, links: g.links.filter(Boolean) }));
   return groups.filter((g) => g.show && g.links.length);
 }
@@ -193,7 +193,7 @@ export default function Layout() {
   const link = (n) => (
     <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setDrawer(false)}
       className={({ isActive }) => `nav-link${(n.to.includes('?') ? `${loc.pathname}${loc.search}`.startsWith(n.to) : isActive) ? ' active' : ''}`}>
-      <Icon d={n.icon} size={18} /><span>{n.label}</span>
+      <Icon d={n.icon} size={18} /><span>{n.label}</span>{n.badge ? <span className="nav-badge" aria-label={`${n.badge} new`}>{n.badge}</span> : null}
     </NavLink>
   );
 

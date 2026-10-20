@@ -25,6 +25,7 @@ import { mountWeather } from './weather.js';
 import { mountPublicShare, mountSharing, onRecordSaved } from './sharing.js';
 import { mountCalendar, mountPublicCalendar } from './calendar.js';
 import { mountJobs } from './jobs.js';
+import { convertLegacySuggestions, mountCalendarRequests, pendingRequests } from './calendarRequests.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -67,6 +68,7 @@ async function membershipsFor(userId) {
   const { rows } = await q(
     `SELECT t.id AS tenant_id, t.name AS tenant_name, t.racing_type, t.settings, t.plan, t.features,
             t.status, t.licence_expires, t.seats,
+            (SELECT count(*)::int FROM calendar_requests cr WHERE cr.tenant_id=t.id AND NOT cr.seen) AS calendar_notices,
             json_build_object('id', r.id, 'name', r.name, 'permissions', r.permissions, 'is_owner', r.is_owner) AS role
        FROM memberships m JOIN tenants t ON t.id=m.tenant_id JOIN roles r ON r.id=m.role_id
       WHERE m.user_id=$1 ORDER BY t.name`, [userId]);
@@ -364,7 +366,9 @@ mountPublicCalendar(app); // no-login published team calendars and their iCal fe
 app.use('/api', requireAuth);
 
 app.get('/api/me', h(async (req, res) => {
-  res.json({ user: req.user, memberships: await membershipsFor(req.user.id), platform: publicSettings() });
+  // platform admins: how many shared-calendar requests are waiting for them
+  const notices = req.user.is_platform_admin ? { calendar_requests: await pendingRequests() } : {};
+  res.json({ user: req.user, memberships: await membershipsFor(req.user.id), platform: publicSettings(), notices });
 }));
 
 app.patch('/api/me', h(async (req, res) => {
@@ -420,6 +424,7 @@ mountAi(T);
 mountWeather(T);
 mountSharing(T);
 mountCalendar(T);
+mountCalendarRequests(T);
 mountJobs(T);
 
 // --- Sync: pull ---
@@ -706,6 +711,7 @@ if (fs.existsSync(WEB_DIR)) {
 }
 
 await migrate();
+await convertLegacySuggestions().catch((e) => console.error('Calendar suggestions not moved:', e.message));
 await loadSettings();
 await ensureBaseForms();
 await ensureGlobalTracks();

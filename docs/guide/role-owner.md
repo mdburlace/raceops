@@ -37,6 +37,7 @@ Engine shops: also [set rates, tax and terms](/help/shop-settings).
 
 | I want to… | Go to |
 |---|---|
+| Share our club series with every team | [Calendar](/help/calendar) — **Send to the shared calendars** |
 | Plan the racing year and publish it for sponsors | [Calendar](/help/calendar) — **Publish** |
 | See how the season is going | [Analytics](/help/analytics) — **Performance** |
 | Add a crew member | [Invite your crew](/help/members-invites) |

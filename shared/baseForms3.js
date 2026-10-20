@@ -175,7 +175,19 @@ const seasonPlanForm = {
   ],
 };
 
-export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm, fixtureForm, seasonPlanForm, ...SHOP_FORMS];
+// A team's own notes about a shared series, track or calendar date (only that team sees them).
+const localNoteForm = {
+  target: 'local_note', name: 'Team note', is_default: true,
+  sections: [
+    { id: 'note', title: 'Team note', fields: [
+      { key: 'entity_type', label: 'About a', type: 'select', core: true, options: [{ value: 'series', label: 'Series' }, { value: 'track', label: 'Track' }, { value: 'fixture', label: 'Calendar date' }] },
+      { key: 'entity', label: 'Record', type: 'entityref', typeKey: 'entity_type', core: true },
+      { key: 'notes', label: 'Our notes', type: 'textarea', core: true },
+    ] },
+  ],
+};
+
+export const PHASE3_FORMS = [trackForm, teamTrackForm, contactForm, supplierForm, contactLinkForm, seriesForm, tuningGuideForm, fixtureForm, seasonPlanForm, localNoteForm, ...SHOP_FORMS];
 
 // Optional chassis numbers on the setup sheet, so the advisor can learn from weight, wing and rod changes.
 export const SETUP_CHASSIS_SECTION = {

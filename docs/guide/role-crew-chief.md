@@ -45,6 +45,7 @@ No signal? Keep going. Everything saves on the phone and syncs later. [Work offl
 
 | I want to… | Go to |
 |---|---|
+| Fix a wrong date on a shared series | [Calendar](/help/calendar) — **Suggest a change** |
 | Put the series rounds on our calendar for the right car | [Calendar](/help/calendar) — **Enter a series** |
 | Record that we withdrew, and why | [Calendar](/help/calendar) — **What happened** |
 | See what stagger has worked on slick nights | [Analytics](/help/analytics) — **Setups → What worked**, filter *Slick* |

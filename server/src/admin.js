@@ -12,6 +12,7 @@ import { settings, saveSetting, audit, seatLimit } from './settings.js';
 import * as limiter from './ratelimit.js';
 import { mountAiAdmin } from './ai.js';
 import { mountCalendarAdmin } from './calendar.js';
+import { mountCalendarRequestsAdmin } from './calendarRequests.js';
 import { TEAM_TYPES } from '../../shared/shop.js';
 
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -269,6 +270,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
 
   mountAiAdmin(A);
   mountCalendarAdmin(A);
+  mountCalendarRequestsAdmin(A);
 
   // ---------- sign-in lockouts ----------
   A.get('/lockouts', h(async (_req, res) => {

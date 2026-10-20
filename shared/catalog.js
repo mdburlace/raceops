@@ -39,7 +39,7 @@ export const MODULES = [
   // the team's racing calendar, the shared series / track / major-event calendars it pulls from, and
   // series entries. Shown under Team Management, but open to any role with the right (no area needed),
   // so drivers and crew can see where the team is racing.
-  { key: 'calendar', label: 'Calendars', types: ['fixture', 'season_plan'], area: null },
+  { key: 'calendar', label: 'Calendars', types: ['fixture', 'season_plan', 'local_note'], area: null },
   { key: 'setups', label: 'Setup sheets & advisor', types: ['setup', 'tuning_guide'], area: 'track' },
   { key: 'trackside', label: 'At-track checks', types: ['track_check'], area: 'track', feature: 'trackside' },
   { key: 'gears', label: 'Gears & tires', types: ['gear', 'gear_list', 'tire'], area: 'track', feature: 'gears' },
@@ -81,8 +81,8 @@ export const MODULE = Object.fromEntries(MODULES.map((m) => [m.key, m]));
 export const RECORD_TYPES = [...Object.keys(TYPE_MODULE), 'form'];
 
 // Types that can live in the shared, cross-team directory (tenant_id NULL on the server).
-// Only platform admins create or change global records; every team can read them. Teams suggest
-// shared calendar dates as their own fixtures marked for review; an admin approves them.
+// Only platform admins create or change global records; every team can read them. Teams send
+// series, tracks and dates to the shared calendars as requests (server/src/calendarRequests.js).
 export const GLOBAL_TYPES = ['track', 'contact', 'supplier', 'contact_link', 'tuning_guide', 'series', 'fixture'];
 
 // ---------------- licensing ----------------

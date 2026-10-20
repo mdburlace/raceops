@@ -4,6 +4,8 @@ import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { eventTrack, fmtDate, num, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { dateRange, eventDays } from './Events.jsx';
+import { useState } from 'react';
+import { RequestChange, TeamNotes } from '../components/SharedRequests.jsx';
 
 const roundsOf = (data, id) => data.list('event').filter((e) => v(e, 'series') === id || (v(e, 'series') && v(data.byId[v(e, 'series')], 'shared_as') === id))
   .sort((a, b) => (num(v(a, 'round')) ?? 999) - (num(v(b, 'round')) ?? 999) || (v(a, 'date') || '').localeCompare(v(b, 'date') || ''));
@@ -55,9 +57,12 @@ export function SeriesDetail() {
   const { id } = useParams();
   const data = useTeamData();
   const { canType, user } = useSession();
+  const [changing, setChanging] = useState(false);
+  const [sentMsg, setSentMsg] = useState('');
   if (!data) return null;
   const s = data.byId[id];
   if (!s) return <PageHeader title="Series not found" back="/series" />;
+  const shared = !!(s.global || s.data?.scope === 'global');
   const rounds = roundsOf(data, id);
   const cars = data.list('car').filter((c) => v(c, 'active') !== false);
   const nextRound = (Math.max(0, ...rounds.map((e) => num(v(e, 'round')) || 0)) || rounds.length) + 1;
@@ -67,9 +72,16 @@ export function SeriesDetail() {
     <div>
       <PageHeader title={v(s, 'name')} sub={[v(s, 'season'), v(s, 'class'), v(s, 'sanctioning')].filter(Boolean).join(' · ')} back="/series">
         {canType('fixture', 'view') && <Link className="btn ghost" to={`/calendar?tab=shared&show=series:${v(s, 'shared_as') || id}`}>Series calendar</Link>}
-        {canType('series', 'edit') && (!(s.global || s.data?.scope === 'global') || user?.is_platform_admin) && <Link className="btn ghost" to={`/r/series/${id}`}>Edit series</Link>}
+        {canType('series', 'edit') && (!shared || user?.is_platform_admin) && <Link className="btn ghost" to={`/r/series/${id}`}>Edit series</Link>}
+        {shared && !user?.is_platform_admin && canType('fixture', 'edit') && <button type="button" className="btn ghost" onClick={() => setChanging(!changing)}>Request a change</button>}
+        {!shared && !v(s, 'shared_as') && canType('fixture', 'edit') && <Link className="btn ghost" to={`/calendar?tab=requests&send=series:${id}`}>Send to shared calendars</Link>}
         {canType('event', 'edit') && <Link className="btn primary" to={`/r/event/new?series=${id}&round=${nextRound}`}>Add round {nextRound}</Link>}
       </PageHeader>
+      <div className="event-meta">
+        {shared ? <span className="chip static">Shared series — kept by the RaceOps admin</span> : <span className="chip static">Our own series</span>}
+      </div>
+      {sentMsg && <div className="notice info small">{sentMsg}</div>}
+      {changing && <RequestChange data={data} type="series" rec={s} onDone={(x) => { setChanging(false); if (x) setSentMsg('Change sent — a RaceOps admin will check it. See Calendar → Requests.'); }} />}
       <Section title={`Rounds (${rounds.length})`}>
         {rounds.length === 0 ? <p className="muted">No rounds yet.</p> : (
           <div className="table-scroll">
@@ -103,6 +115,7 @@ export function SeriesDetail() {
         </Section>
         <ContactLinks data={data} entity={s} />
       </div>
+      {shared && <TeamNotes data={data} entityType="series" entity={s.id} />}
     </div>
   );
 }

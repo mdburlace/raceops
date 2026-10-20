@@ -36,4 +36,7 @@ Sessions are listed in their usual running order. **Reorder** moves them with â–
 
 **At the Track â†’ Series** holds your championships: name, season, class, sanctioning body and points notes. A series lists its rounds with each car's feature finish.
 
+- **Shared series:** a series from the shared calendars is kept by the RaceOps admin. Press **Request a change** if something's wrong. Keep your own notes under **Our notes**.
+- **Your own series:** a series your team set up shows **Our own series**. **Send to shared calendars** shares it, with its rounds, for every team. Once it's approved, your rounds point at the shared series. See [Calendar](/help/calendar).
+
 The **At the Track** hub shows your next event and recent between-round checks.

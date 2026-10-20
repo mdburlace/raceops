@@ -4,12 +4,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
+import { AdminRequests, RequestsTab, TeamNotes, sendRequest, useCalendarRequests } from '../components/SharedRequests.jsx';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { api, apiJob } from '../lib/api.js';
 import { fileToPart } from '../lib/ai.js';
 import { fmtDate, formFor, num, platformList, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { deleteRecord, saveRecord } from '../lib/store.js';
+import { syncNow } from '../lib/sync.js';
 import {
   INTENTS, MONTHS, OUTCOMES, WITHDREW, WITHDRAW_REASONS, carsForFixture, entryStatus, eventFromFixture, fixtureChanges,
   fixtureClasses, inSeason, majorLabel, matchTrack, sanctioningOf, sameFixture, seasonLabel, seasonMatches, seasonOf, seasonStart, seasonSummary,
@@ -59,7 +61,7 @@ export function teamItems(data, year, sm, { notGoing = true } = {}) {
 
 /** Shared dates in the racing year: approved ones plus this team's own suggestions. */
 function sharedFixtures(data, year, sm) {
-  return data.list('fixture').filter((f) => (isGlobal(f) || vals(f).review) && inSeason(vals(f).date, vals(f).end_date, year, sm))
+  return data.list('fixture').filter((f) => isGlobal(f) && inSeason(vals(f).date, vals(f).end_date, year, sm))
     .sort((a, b) => (vals(a).date || '').localeCompare(vals(b).date || '') || (num(vals(a).round) || 0) - (num(vals(b).round) || 0));
 }
 
@@ -72,7 +74,9 @@ export function CalendarPage() {
   const tab = params.get('tab') || 'ours';
   const setTab = (t) => { const p = new URLSearchParams(params); p.set('tab', t); setParams(p, { replace: true }); };
   const [publishing, setPublishing] = useState(false);
+  const requests = useCalendarRequests();
   if (!data) return null;
+  const unseen = membership?.calendar_notices || 0;
   const published = !!membership?.settings?.calendar_publish?.token;
   return (
     <div>
@@ -85,8 +89,8 @@ export function CalendarPage() {
               <button type="button" className="icon-btn" aria-label="Next year" onClick={() => setYear(year + 1)}>›</button>
             </div>
             <div className="tabs">
-              {[['ours', 'Our calendar'], ['shared', 'Shared calendars'], ['entries', 'Series entries']].map(([k, l]) => (
-                <button key={k} type="button" className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{l}</button>
+              {[['ours', 'Our calendar'], ['shared', 'Shared calendars'], ['entries', 'Series entries'], ['requests', 'Requests']].map(([k, l]) => (
+                <button key={k} type="button" className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{l}{k === 'requests' && unseen ? <span className="nav-badge">{unseen}</span> : null}</button>
               ))}
             </div>
           </div>
@@ -97,7 +101,8 @@ export function CalendarPage() {
       </PageHeader>
       {publishing && <PublishPanel onClose={() => setPublishing(false)} />}
       {tab === 'ours' && <OurCalendar data={data} year={year} sm={sm} label={label} goShared={() => setTab('shared')} />}
-      {tab === 'shared' && <SharedCalendars data={data} year={year} sm={sm} label={label} />}
+      {tab === 'shared' && <SharedCalendars data={data} year={year} sm={sm} label={label} requests={requests} />}
+      {tab === 'requests' && <RequestsTab data={data} requests={requests} />}
       {tab === 'entries' && <SeriesEntries data={data} year={year} sm={sm} label={label} />}
     </div>
   );
@@ -177,7 +182,7 @@ function seriesChoices(data) {
 
 /** Quick edit, opened under the entry: name, dates, series & round, sanctioning body, major event. */
 function EntryQuickEdit({ ev, data, onDone }) {
-  const { tid, user } = useSession();
+  const { tid, user, canType } = useSession();
   const [x, setX] = useState(() => ({ ...vals(ev) }));
   const set = (k, val) => setX((cur) => {
     const next = { ...cur, [k]: val };
@@ -219,6 +224,8 @@ function EntryQuickEdit({ ev, data, onDone }) {
         <button type="button" className="btn primary" disabled={!x.name || !x.date} onClick={save}>Save</button>
         <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
         <Link className="btn ghost" to={`/r/event/${ev.id}?back=/calendar`}>All details</Link>
+        {!(data.byId[vals(ev).fixture] && isGlobal(data.byId[vals(ev).fixture])) && canType('fixture', 'edit')
+          && <Link className="btn ghost" to={`/calendar?tab=requests&send=events:${ev.id}`}>Send to shared calendars</Link>}
       </div>
     </div>
   );
@@ -318,7 +325,7 @@ const nextDate = (list) => list.map(vals).filter((x) => (x.end_date || x.date) >
  * calendar and suggest changes. mode 'admin' (Platform admin → Shared calendars): add, edit and
  * delete shared dates and series directly; `admin` holds the save functions and reload.
  */
-export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: adminApi = null }) {
+export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: adminApi = null, requests = null }) {
   const { canType, user, membership } = useSession();
   const team = mode === 'team';
   const [params, setParams] = useSearchParams();
@@ -340,10 +347,13 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
   const ours = (f) => onCal(f).length > 0 || enteredSeries.has(canon(data, vals(f).series))
     || fixtureClasses(vals(f), vals(data.byId[vals(f).series])).some((c) => ourClasses.has(lc(c)));
   const [kind, id] = filter.split(':');
-  // a suggested change shows on the date it changes, not as a date of its own
-  const changeFor = (f) => all.find((c) => vals(c).replaces === f.id && !isGlobal(c));
-  const dates = all.filter((f) => isGlobal(f) || !vals(f).replaces);
-  const pending = all.filter((f) => vals(f).review === 'pending').length;
+  // the team's waiting requests: a change shows on the date it changes
+  const waiting = (requests?.list || []).filter((r) => r.status === 'pending');
+  const changeFor = (f) => waiting.find((r) => r.kind === 'change' && r.subject_id === f.id);
+  const dates = all;
+  const pending = waiting.length;
+  const [noting, setNoting] = useState(null);
+  const sent = () => { requests?.reload(); };
   const pick = kind === 'series' && id ? id : '';
   const views = VIEWS.filter(([k]) => team || k !== 'ours');
   const view = id ? (kind === 'series' ? 'series' : 'tracks') : kind;
@@ -412,9 +422,9 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
           {!team && pick && <button type="button" className="btn ghost small" onClick={() => setSeriesEdit({ rec: data.byId[id] })}>Edit series</button>}
         </div>
       )}
-      {team && pending > 0 && <div className="notice info small">{pending === 1 ? 'Your suggested date is' : `${pending} of your suggested dates are`} waiting for a RaceOps admin to approve.</div>}
-      {importing && <ImportPanel data={data} year={year} sm={sm} seriesId={pick} trackId={kind === 'track' ? id : ''} saveRows={adminApi?.saveRows} onDone={() => setImporting(false)} />}
-      {editing && !editing.rec && <FixtureEditor data={data} initial={editing.initial} onSave={saveFixture} onDone={() => setEditing(null)} />}
+      {team && pending > 0 && <div className="notice info small" data-testid="waiting-notice">{pending === 1 ? 'One request from your team is' : `${pending} requests from your team are`} waiting for a RaceOps admin. <Link to="/calendar?tab=requests">See requests</Link></div>}
+      {importing && <ImportPanel data={data} year={year} sm={sm} seriesId={pick} trackId={kind === 'track' ? id : ''} saveRows={adminApi?.saveRows} onDone={(x) => { setImporting(false); if (x) sent(); }} />}
+      {editing && !editing.rec && <FixtureEditor data={data} initial={editing.initial} onSave={saveFixture} onDone={(x) => { setEditing(null); if (x) sent(); }} />}
       {seriesEdit && <SeriesEditor data={data} rec={seriesEdit.rec} year={year} sm={sm} onSave={adminApi.saveSeries} onDone={() => setSeriesEdit(null)} />}
       {entering && <EntryEditor data={data} year={year} sm={sm} initial={{ series: entering }} onDone={() => setEntering(null)} />}
       {kind === 'series' && !id ? index(seriesIndex(), 'series', (x) => [vals(x.rec).class, vals(x.rec).sanctioning].filter(Boolean).join(' · '))
@@ -431,7 +441,6 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                 const series = data.byId[fv.series];
                 const classes = fixtureClasses(fv, vals(series));
                 const change = team ? changeFor(f) : null;
-                const cv = vals(change);
                 return (
                   <div key={f.id} className={`list-row fx-row${fv.status === 'Cancelled' ? ' cancelled' : ''}`} data-fixture={f.id}>
                     <span className="date-block">
@@ -444,10 +453,8 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                       <span className="fx-flags">
                         {fv.major && <Pill level="info">{majorLabel(fv)}</Pill>}
                         {fv.status && fv.status !== 'Scheduled' && <Pill level={fv.status === 'Cancelled' ? 'over' : 'warn'}>{fv.status}</Pill>}
-                        {fv.review === 'pending' && <Pill level="info">{fv.replaces ? 'Your change — waiting for approval' : 'Suggested — waiting for approval'}</Pill>}
-                        {fv.review === 'rejected' && <Pill level="warn">Not approved{fv.review_note ? `: ${fv.review_note}` : ''}</Pill>}
-                        {cv.review === 'pending' && <Pill level="info">Your change — waiting for approval</Pill>}
-                        {cv.review === 'rejected' && <Pill level="warn">Your change wasn’t approved{cv.review_note ? `: ${cv.review_note}` : ''}</Pill>}
+                        {change && <Pill level="info">Your change — waiting for approval</Pill>}
+                        {team && data.list('local_note').some((n) => vals(n).entity === f.id && vals(n).notes) && <Pill level="muted">Our notes</Pill>}
                         {evs.map((e) => <Link key={e.id} className="pill pill-ok" to={`/events/${e.id}`}>On our calendar{data.byId[v(e, 'car')] ? ` — ${titleOf(data.byId[v(e, 'car')])}` : ''}</Link>)}
                       </span>
                     </span>
@@ -455,15 +462,13 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                       {team && canType('event', 'edit') && fv.status !== 'Cancelled' && (evs.length === 0
                         ? <button type="button" className="btn small primary" onClick={() => setAdding(f)}>Add to our calendar</button>
                         : cars.length > evs.length && <button type="button" className="btn small ghost" onClick={() => setAdding(f)}>Add another car</button>)}
-                      {canSuggest && (fv.review === 'rejected' || cv.review === 'rejected'
-                        ? <button type="button" className="btn small ghost" onClick={() => deleteRecord(cv.review === 'rejected' ? change.id : f.id)}>Dismiss</button>
-                        : <button type="button" className="btn small ghost" onClick={() => setEditing({ rec: change || f })}>{admin || !isGlobal(f) || change ? 'Edit' : 'Suggest a change'}</button>)}
+                      {team && <button type="button" className="btn small ghost" aria-expanded={noting === f.id} onClick={() => setNoting(noting === f.id ? null : f.id)}>Notes</button>}
+                      {canSuggest && !change && <button type="button" className="btn small ghost" onClick={() => setEditing({ rec: f })}>{admin ? 'Edit' : 'Suggest a change'}</button>}
                       {!team && <button type="button" className="btn small ghost danger" onClick={() => remove(f)}>Delete</button>}
                     </span>
                     {adding?.id === f.id && <AddToCalendar data={data} fx={f} onDone={() => setAdding(null)} />}
-                    {editing?.rec && (editing.rec.id === f.id || editing.rec.id === change?.id) && (
-                      <FixtureEditor data={data} rec={editing.rec} onSave={saveFixture} onDone={() => setEditing(null)} inline />
-                    )}
+                    {editing?.rec?.id === f.id && <FixtureEditor data={data} rec={editing.rec} onSave={saveFixture} onDone={(x) => { setEditing(null); if (x) sent(); }} inline />}
+                    {noting === f.id && <div className="inline-editor"><TeamNotes data={data} entityType="fixture" entity={f.id} compact /></div>}
                   </div>
                 );
               })}
@@ -545,12 +550,12 @@ function FixtureEditor({ data, rec, initial = {}, onSave = null, onDone, inline 
   const admin = !!onSave || !!user?.is_platform_admin;
   const form = formFor(data, 'fixture');
   const base = rec ? vals(rec) : { status: 'Scheduled', ...Object.fromEntries(Object.entries(initial).filter(([, x]) => x)) };
-  const [values, setValues] = useState(() => { const { review, review_note: _n, replaces: _r, ...rest } = base; return rest; }); // eslint-disable-line no-unused-vars
+  const [values, setValues] = useState(() => ({ ...base }));
   const [publish, setPublish] = useState(admin);
   const [errors, setErrors] = useState({});
   const [note, setNote] = useState('');
   const [err, setErr] = useState('');
-  const dupes = data.list('fixture').filter((f) => f.id !== rec?.id && (isGlobal(f) || vals(f).review === 'pending') && sameFixture(vals(f), values));
+  const dupes = data.list('fixture').filter((f) => f.id !== rec?.id && isGlobal(f) && sameFixture(vals(f), values));
   const save = async () => {
     const e = {};
     if (!values.name) e.name = 'Required'; if (!values.date) e.date = 'Required';
@@ -562,26 +567,34 @@ function FixtureEditor({ data, rec, initial = {}, onSave = null, onDone, inline 
       // Platform admin → Shared calendars: straight to the server
       try { await onSave(clean, rec); } catch (x) { setErr(x.message); return; }
     } else if (admin && publish) {
-      // admins change shared dates directly
-      await saveRecord(tid, 'fixture', rec && isGlobal(rec) ? rec.id : null, { ...(rec && isGlobal(rec) ? rec.data : {}), scope: 'global', form_id: form?.id, values: clean }, user.id);
-    } else if (rec && !isGlobal(rec)) {
-      await saveRecord(tid, 'fixture', rec.id, { ...rec.data, values: { ...clean, review: 'pending', ...(vals(rec).replaces ? { replaces: vals(rec).replaces } : {}), ...(note ? { suggest_note: note } : {}) } }, user.id);
+      // admins change shared dates directly (teams' entries follow on the server)
+      try { await api(`/admin/calendar/fixtures/${rec ? rec.id : 'new'}`, { method: 'PUT', body: { values: clean } }); syncNow(); } catch (x) { setErr(x.message); return; }
     } else {
-      await saveRecord(tid, 'fixture', null, { form_id: form?.id, values: { ...clean, review: 'pending', ...(rec ? { replaces: rec.id } : {}), ...(note ? { suggest_note: note } : {}) } }, user.id);
+      // teams ask: a change to a shared date, or a new date
+      try {
+        // a new date in the team's own series goes up with the series
+        const ownSeries = clean.series && data.byId[clean.series] && !isGlobal(data.byId[clean.series]);
+        await sendRequest(tid, rec ? { kind: 'change', subject_type: 'fixture', subject_id: rec.id, values: clean, note }
+          : ownSeries ? { kind: 'share', subject_type: 'series', subject_id: clean.series, dates: [clean], note }
+            : { kind: 'share', subject_type: 'dates', dates: [clean], note });
+      } catch (x) { setErr(x.message); return; }
     }
-    onDone();
+    onDone(true);
   };
   return (
     <div className={`card fx-editor${inline ? ' inline-editor' : ''}`} data-testid="fx-editor">
-      <h3>{rec ? (admin || !isGlobal(rec) ? 'Edit calendar date' : 'Suggest a change') : admin ? 'Add a calendar date' : 'Suggest a calendar date'}</h3>
+      <h3>{rec ? (admin ? 'Edit calendar date' : 'Suggest a change') : admin ? 'Add a calendar date' : 'Suggest a calendar date'}</h3>
       <FormRenderer form={form} values={values} onChange={(k, x) => setValues((s) => ({ ...s, [k]: x }))} data={data} recordType="fixture" errors={errors} />
+      {!admin && !rec && values.series && data.byId[values.series] && !isGlobal(data.byId[values.series]) && (
+        <div className="notice info small">{vals(data.byId[values.series]).name} is your team’s own series, so it goes to the admin with this date — once approved it’s shared and your events use it.</div>
+      )}
       {dupes.length > 0 && <div className="notice small">Already listed: {dupes.map((d) => `${vals(d).name} (${fmtDate(vals(d).date)})`).join(', ')}. Change that one instead if it’s wrong.</div>}
       {err && <div className="notice error">{err}</div>}
       {!(admin && publish) && <label className="field"><span className="label">Note for the admin (optional)</span><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Source: series website, posted 3 Oct" /></label>}
       {admin && !onSave && <label className="check-row"><input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} /> Publish to every team now (platform admin)</label>}
       <div className="row-actions">
         <button type="button" className="btn primary" onClick={save}>{admin && publish ? 'Save' : 'Send for approval'}</button>
-        <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
+        <button type="button" className="btn ghost" onClick={() => onDone(false)}>Cancel</button>
       </div>
     </div>
   );
@@ -604,7 +617,7 @@ function ImportPanel({ data, year, sm, seriesId, trackId, saveRows = null, onDon
   const [publish, setPublish] = useState(admin);
   const form = formFor(data, 'fixture');
   const tracks = data.list('track').map((t) => ({ id: t.id, values: vals(t) }));
-  const existing = data.list('fixture').filter((f) => isGlobal(f) || vals(f).review === 'pending').map(vals);
+  const existing = data.list('fixture').filter((f) => isGlobal(f)).map(vals);
   const seriesList = data.list('series').filter((s) => isGlobal(s) || !vals(s).shared_as);
 
   const read = async () => {
@@ -647,11 +660,19 @@ function ImportPanel({ data, year, sm, seriesId, trackId, saveRows = null, onDon
       try { await saveRows(chosen.map((c) => ({ ...c, source }))); } catch (e) { setErr(e.message); setBusy(false); return; }
       setBusy(false); onDone(); return;
     }
-    for (const clean of chosen) {
-      if (admin && publish) await saveRecord(tid, 'fixture', null, { scope: 'global', form_id: form?.id, values: { ...clean, source } }, user.id);
-      else await saveRecord(tid, 'fixture', null, { form_id: form?.id, values: { ...clean, source, review: 'pending' } }, user.id);
+    if (admin && publish) {
+      for (const clean of chosen) await api('/admin/calendar/fixtures/new', { method: 'PUT', body: { values: { ...clean, source } } });
+      syncNow();
+    } else {
+      // teams send the dates as one request for the admin to check
+      const ownSeries = series && data.byId[series] && !isGlobal(data.byId[series]);
+      try {
+        await sendRequest(tid, { kind: 'share', subject_type: ownSeries ? 'series' : 'dates', subject_id: ownSeries ? series : null, dates: chosen.map((c) => ({ ...c, source })),
+          title: `Import: ${chosen.length} date${chosen.length === 1 ? '' : 's'} from ${source}${ownSeries ? ` (with the series ${vals(data.byId[series]).name})` : ''}`.slice(0, 160) });
+      }
+      catch (e) { setErr(e.message); setBusy(false); return; }
     }
-    setBusy(false); onDone();
+    setBusy(false); onDone(true);
   };
   const on = rows?.filter((r) => r._on).length || 0;
   return (
@@ -1023,64 +1044,13 @@ export function AdminCalendar() {
             </div>
             <div className="tabs">
               <button type="button" className={tab === 'calendars' ? 'active' : ''} onClick={() => setTab('calendars')}>Calendars</button>
-              <button type="button" className={tab === 'suggestions' ? 'active' : ''} onClick={() => setTab('suggestions')}>Suggestions{pending ? ` (${pending})` : ''}</button>
+              <button type="button" className={tab === 'requests' ? 'active' : ''} onClick={() => setTab('requests')}>Requests{pending ? ` (${pending})` : ''}</button>
             </div>
           </div>
         )} />
       {err && <div className="notice error">{err}</div>}
       {tab === 'calendars' ? (data && <SharedCalendars data={data} year={year} sm={sm} label={label} mode="admin" admin={adminApi} />)
-        : <CalendarSuggestions onChange={load} />}
-    </div>
-  );
-}
-
-function CalendarSuggestions({ onChange }) {
-  const [d, setD] = useState(null);
-  const [err, setErr] = useState('');
-  const [notes, setNotes] = useState({});
-  const load = () => api('/admin/calendar/suggestions').then(setD).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
-  const act = async (id, action) => {
-    try { await api(`/admin/calendar/suggestions/${id}`, { method: 'POST', body: { action, note: notes[id] || '' } }); load(); onChange?.(); } catch (e) { setErr(e.message); }
-  };
-  const ref = (id) => d?.refs?.[id]?.values?.name || '';
-  const show = (x, k) => {
-    const val = x?.[k];
-    if (k === 'venue') return ref(val) || '';
-    if (k === 'series') return ref(val) ? `${ref(val)}${d.refs[val]?.global ? '' : ' (team series — will be shared)'}` : '';
-    if (k === 'date' || k === 'end_date') return fmtDate(val);
-    return Array.isArray(val) ? val.join(', ') : val ?? '';
-  };
-  const KEYS = [['name', 'Event'], ['date', 'Date'], ['end_date', 'End'], ['venue', 'Track'], ['track', 'Track name'], ['series', 'Series'], ['round', 'Round'], ['classes', 'Classes'], ['status', 'Status'], ['start_time', 'Times'], ['website', 'Link'], ['notes', 'Notes']];
-  const list = d?.suggestions || [];
-  return (
-    <div>
-      <p className="muted small">Dates teams have added or corrected. Approved dates go live for every team.</p>
-      {err && <div className="notice error">{err}</div>}
-      {d && list.length === 0 && <Empty>Nothing waiting for review.</Empty>}
-      <div className="cards" data-testid="cal-suggestions">
-        {list.map((s) => {
-          const old = s.values.replaces ? d.refs[s.values.replaces]?.values : null;
-          const rows = KEYS.filter(([k]) => show(s.values, k) || (old && show(old, k)));
-          return (
-            <Section key={s.id} title={`${s.values.replaces ? 'Change' : 'New date'}: ${s.values.name || ''}`} className="cal-sugg">
-              <p className="muted small">From {s.team}{s.by ? ` (${s.by})` : ''} · {fmtDate(String(s.at).slice(0, 10))}{s.values.source ? ` · source: ${s.values.source}` : ''}</p>
-              {s.values.suggest_note && <p className="small"><b>Note:</b> {s.values.suggest_note}</p>}
-              <table className="table compact">
-                <thead><tr><th /><th>{old ? 'Suggested' : 'Value'}</th>{old && <th>Now</th>}</tr></thead>
-                <tbody>{rows.map(([k, l]) => (
-                  <tr key={k} className={old && show(old, k) !== show(s.values, k) ? 'diff' : ''}><th scope="row">{l}</th><td>{show(s.values, k)}</td>{old && <td className="muted">{show(old, k)}</td>}</tr>
-                ))}</tbody>
-              </table>
-              <div className="row-actions">
-                <button type="button" className="btn primary" onClick={() => act(s.id, 'approve')}>Approve</button>
-                <input aria-label="Reason (sent back to the team)" placeholder="Reason, if rejecting" value={notes[s.id] || ''} onChange={(e) => setNotes((n) => ({ ...n, [s.id]: e.target.value }))} />
-                <button type="button" className="btn ghost danger" onClick={() => act(s.id, 'reject')}>Reject</button>
-              </div>
-            </Section>
-          );
-        })}
-      </div>
+        : <AdminRequests onChange={load} />}
     </div>
   );
 }

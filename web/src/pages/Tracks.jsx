@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { classMatches } from '@shared/tracks.js';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { TrackDates } from './Calendar.jsx';
+import { RequestChange, TeamNotes } from '../components/SharedRequests.jsx';
 import { Empty, PageHeader, Pill, Section, useOnline } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { fmtDate, titleOf, useTeamData, v, platformList } from '../lib/data.js';
@@ -188,6 +189,8 @@ export function TrackDetail() {
   const data = useTeamData();
   const { tid, user, canType } = useSession();
   const team = useTeamTracks(data);
+  const [changing, setChanging] = useState(false);
+  const [sentMsg, setSentMsg] = useState('');
   if (!data) return null;
   const t = data.byId[id];
   if (!t) return <PageHeader title="Track not found" back="/tracks" />;
@@ -230,7 +233,11 @@ export function TrackDetail() {
               <button type="button" className="btn primary" onClick={() => setLink({ link: 'Linked' })}>{hidden ? 'Show in our tracks' : 'Link to team'}</button>
             </>)}
         {canEditTrack && <Link className="btn" to={`/r/track/${id}`}>Edit track</Link>}
+        {isGlobal(t) && !user?.is_platform_admin && canType('fixture', 'edit') && <button type="button" className="btn ghost" onClick={() => setChanging(!changing)}>Request a change</button>}
+        {!isGlobal(t) && canType('fixture', 'edit') && <Link className="btn ghost" to={`/calendar?tab=requests&send=track:${id}`}>Send to shared calendars</Link>}
       </PageHeader>
+      {sentMsg && <div className="notice info small">{sentMsg}</div>}
+      {changing && <RequestChange data={data} type="track" rec={t} onDone={(x) => { setChanging(false); if (x) setSentMsg('Change sent — a RaceOps admin will check it. See Calendar → Requests.'); }} />}
       <div className="event-meta">
         {isGlobal(t) ? <span className="chip static">Shared directory</span> : <span className="chip static">Team-only track</span>}
         {linked && <span className="chip static">{v(link, 'link') === 'Linked' ? 'Linked to team' : racedHere ? `Raced here (${racedHere} event${racedHere === 1 ? '' : 's'})` : 'Our team track'}</span>}
@@ -251,6 +258,7 @@ export function TrackDetail() {
           {v(link, 'notes') && <p className="pre"><b>Team notes:</b> {v(link, 'notes')}</p>}
         </Section>
       </div>
+      {isGlobal(t) && <TeamNotes data={data} entityType="track" entity={t.id} />}
       <TrackDates data={data} trackId={t.id} />
       <ContactLinks data={data} entity={t} />
       <Section title={`Our events here (${events.length})`} actions={canType('event', 'edit') && <Link className="btn small" to={`/r/event/new?venue=${id}`}>New event here</Link>}>
