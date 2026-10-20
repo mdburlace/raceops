@@ -103,10 +103,14 @@ Entering a series records which car you're running in it and whether you're doin
 2. Pick the **Car**. The **Class** fills in from the car.
 3. Choose **Full series** or **Partial series**.
    - **Full series** adds every round to your calendar for that car.
-   - **Partial series** lists the rounds. Tick the ones you'll run.
-4. Press **Save entry**.
+   - **Partial series** lists every round in the series, with its date and track. Tick the ones you'll run. **Tick all to come** ticks every round still to run, and **Clear** unticks them all. Rounds already on your calendar are ticked and marked **On our calendar**. Past rounds are marked **Past**. Cancelled rounds aren't listed.
+4. Press **Save entry**. The ticked rounds go on your calendar for that car.
 
-**Series entries** shows each entry with how many rounds are on your calendar. If the series adds a round later, press **Add missing rounds**. Deleting an entry leaves its events on your calendar.
+**Series entries** shows each entry with how many rounds are on your calendar. To change which rounds you're running, press **Choose rounds** on a partial entry. The list opens right under that entry. Tick more rounds to add them. Untick a round that's on your calendar to mark it **Not going**: it stays on your calendar with its setups and notes, and ticking it again sets it back to **Planned**.
+
+For a full series, press **Add missing rounds** if the series adds a round later. Deleting an entry leaves its events on your calendar.
+
+If the series is your team's own and hasn't been shared yet, its rounds are the events you've added in that series. Send it to the shared calendars to share its dates.
 
 ## Quick edit an entry
 

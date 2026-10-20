@@ -1435,3 +1435,11 @@ a.sc-label { color: inherit; font-weight: 600; }
 .follow-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
 .upd-row.unseen { background: var(--info-soft); }
 .cal-crumb .btn, .cal-crumb .pill { align-self: center; }
+.rounds-pick { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.rounds-pick .round-row { align-items: flex-start; padding: 6px 0; border-top: 1px solid var(--line); }
+.rounds-pick .round-row:first-of-type { border-top: 0; }
+.rounds-pick .round-row .pill { margin-left: 6px; }
+.list > .entry-editor { margin: 4px 0 12px; }
+.rounds-pick .round-row { display: flex; flex-direction: row; gap: 10px; }
+.rounds-pick .round-row > .grow { display: block; flex: 1; min-width: 0; line-height: 1.5; }
+.rounds-pick .round-row .pill { display: inline-block; width: auto; vertical-align: middle; }

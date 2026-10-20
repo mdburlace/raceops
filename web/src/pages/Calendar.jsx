@@ -1,7 +1,7 @@
 // Calendars: the team's own calendar for a racing year (its events, with whether the team is going
 // and what happened), the shared series and track calendars every team can pull dates from,
 // series entries (full or partial), importing published calendars, printing and publishing.
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import {
@@ -821,8 +821,13 @@ function ImportPanel({ data, year, sm, seriesId, trackId, saveRows = null, onDon
 }
 
 // ======================================================================= series entries
-function seriesRounds(data, seriesId, year, sm) {
-  return sharedFixtures(data, year, sm).filter((f) => seriesId && canon(data, vals(f).series) === canon(data, seriesId) && vals(f).status !== 'Cancelled');
+/** Every round of a series: its calendar dates (shared, or the team's own), in date and round order. A series
+ * record is one season, so all its dates count, even ones outside the racing year on screen. */
+function seriesRounds(data, seriesId) {
+  if (!seriesId) return [];
+  const sid = canon(data, seriesId);
+  return data.list('fixture').filter((f) => canon(data, vals(f).series) === sid && vals(f).status !== 'Cancelled' && vals(f).date)
+    .sort((a, b) => (vals(a).date || '').localeCompare(vals(b).date || '') || (num(vals(a).round) || 0) - (num(vals(b).round) || 0));
 }
 
 function SeriesEntries({ data, year, sm, label }) {
@@ -834,26 +839,30 @@ function SeriesEntries({ data, year, sm, label }) {
     <>
       <p className="muted small">The series you’re running in {label}, with which car and class, and whether it’s the full series or some rounds.</p>
       {canType('season_plan', 'edit') && <div className="toolbar"><button type="button" className="btn primary" onClick={() => setEditing({})}>New series entry</button></div>}
-      {editing && <EntryEditor data={data} year={year} sm={sm} rec={editing.rec} initial={editing.initial} onDone={() => setEditing(null)} />}
+      {editing && !editing.rec && <EntryEditor data={data} year={year} sm={sm} initial={editing.initial} onDone={() => setEditing(null)} />}
       {entries.length === 0 ? <Empty>No series entries for {label}. Add one to put its rounds on your calendar.</Empty> : (
         <div className="list" data-testid="entries">
           {entries.map((p) => {
             const pv = vals(p);
-            const rounds = seriesRounds(data, pv.series, year, sm);
-            const mine = rounds.filter((f) => evs.some((e) => v(e, 'fixture') === f.id && v(e, 'car') === pv.car));
+            const rounds = seriesRounds(data, pv.series);
+            const mine = rounds.filter((f) => evs.some((e) => v(e, 'fixture') === f.id && v(e, 'car') === pv.car && v(e, 'intent') !== 'Not going'));
             const ownEvents = evs.filter((e) => canon(data, v(e, 'series')) === canon(data, pv.series) && v(e, 'car') === pv.car && inSeason(v(e, 'date'), v(e, 'end_date'), year, sm));
             const car = data.byId[pv.car];
             return (
-              <div key={p.id} className="list-row entry-row">
+              <Fragment key={p.id}>
+              <div className="list-row entry-row">
                 <span className="grow">
                   <span className="row-title">{seriesName(data, pv.series) || 'Series'}</span>
                   <span className="row-sub">{[car && titleOf(car), pv.class, pv.participation, rounds.length ? `${mine.length} of ${rounds.length} rounds on our calendar` : `${ownEvents.length} round${ownEvents.length === 1 ? '' : 's'} on our calendar`].filter(Boolean).join(' · ')}</span>
                 </span>
                 {canType('season_plan', 'edit') && <span className="row-actions">
                   {rounds.length > mine.length && pv.participation !== 'Partial series' && <AddRounds data={data} entry={p} rounds={rounds.filter((f) => !mine.includes(f))} />}
-                  <button type="button" className="btn small ghost" onClick={() => setEditing({ rec: p })}>{pv.participation === 'Partial series' ? 'Choose rounds' : 'Edit'}</button>
+                  <button type="button" className="btn small ghost" aria-expanded={editing?.rec?.id === p.id}
+                    onClick={() => setEditing(editing?.rec?.id === p.id ? null : { rec: p })}>{pv.participation === 'Partial series' ? 'Choose rounds' : 'Edit'}</button>
                 </span>}
               </div>
+              {editing?.rec?.id === p.id && <EntryEditor key={p.id} data={data} year={year} sm={sm} rec={p} onDone={() => setEditing(null)} />}
+              </Fragment>
             );
           })}
         </div>
@@ -881,10 +890,14 @@ function EntryEditor({ data, year, sm, rec, initial = {}, onDone }) {
   const { tid, user, canType } = useSession();
   const form = formFor(data, 'season_plan');
   const [values, setValues] = useState(() => (rec ? { ...vals(rec) } : { season: seasonLabel(year, sm), participation: 'Full series', ...initial }));
-  const rounds = seriesRounds(data, values.series, year, sm);
+  const rounds = seriesRounds(data, values.series);
   const evs = data.list('event');
   const onCalFor = (f, car) => evs.find((e) => v(e, 'fixture') === f.id && v(e, 'car') === car);
-  const [picked, setPicked] = useState(() => rounds.filter((f) => onCalFor(f, values.car)).map((f) => f.id));
+  const going = (f, car) => { const e = onCalFor(f, car); return !!e && v(e, 'intent') !== 'Not going'; };
+  // the team's own dates in this series that aren't on a calendar date (a series it hasn't shared yet)
+  const ownRounds = values.series ? evs.filter((e) => !v(e, 'fixture') && canon(data, v(e, 'series')) === canon(data, values.series) && (!values.car || v(e, 'car') === values.car))
+    .sort((a, b) => (v(a, 'date') || '').localeCompare(v(b, 'date') || '')) : [];
+  const [picked, setPicked] = useState(() => rounds.filter((f) => going(f, values.car)).map((f) => f.id));
   const [errors, setErrors] = useState({});
   const set = (k, x) => setValues((s) => {
     const next = { ...s, [k]: x };
@@ -892,7 +905,8 @@ function EntryEditor({ data, year, sm, rec, initial = {}, onDone }) {
     if (k === 'series' && !s.class) next.class = vals(data.byId[x]).class || s.class;
     return next;
   });
-  useEffect(() => { setPicked(rounds.filter((f) => onCalFor(f, values.car)).map((f) => f.id)); }, [values.series, values.car]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setPicked(rounds.filter((f) => going(f, values.car)).map((f) => f.id)); }, [values.series, values.car]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tick = (id, on) => setPicked((p) => (on ? [...new Set([...p, id])] : p.filter((x) => x !== id)));
   const partial = values.participation === 'Partial series';
   const save = async () => {
     const e = {};
@@ -900,30 +914,62 @@ function EntryEditor({ data, year, sm, rec, initial = {}, onDone }) {
     setErrors(e);
     if (Object.keys(e).length) return;
     await saveRecord(tid, 'season_plan', rec?.id || null, { ...(rec?.data || {}), form_id: form?.id, values }, user.id);
-    // full series: every round not yet on the calendar for this car; partial: the ticked rounds
+    // full series: every round not yet on the calendar for this car; partial: the ticked rounds.
+    // Unticking a round already on the calendar marks it Not going (its setups and notes stay); ticking it again brings it back.
     const want = rounds.filter((f) => (partial ? picked.includes(f.id) : true) && !onCalFor(f, values.car));
-    if (canType('event', 'edit')) await addRounds(data, tid, user, values, want);
+    if (canType('event', 'edit')) {
+      await addRounds(data, tid, user, values, want);
+      for (const f of partial ? rounds : []) {
+        const e = onCalFor(f, values.car);
+        if (!e) continue;
+        const on = picked.includes(f.id);
+        const intent = v(e, 'intent');
+        if (!on && intent !== 'Not going') await saveRecord(tid, 'event', e.id, { ...e.data, values: { ...vals(e), intent: 'Not going' } }, user.id);
+        if (on && intent === 'Not going') await saveRecord(tid, 'event', e.id, { ...e.data, values: { ...vals(e), intent: 'Planned' } }, user.id);
+      }
+    }
     onDone();
   };
   const remove = async () => { await deleteRecord(rec.id); onDone(); };
   return (
     <div className="card entry-editor" data-testid="entry-editor">
-      <h3>{rec ? 'Series entry' : 'New series entry'}</h3>
+      <h3>{rec ? (partial ? 'Choose rounds' : 'Edit series entry') : 'New series entry'}</h3>
       <FormRenderer form={form} values={values} onChange={set} data={data} recordType="season_plan" errors={errors} />
-      {values.series && (rounds.length ? (
-        <div className="rounds-pick">
-          <b>{partial ? 'Rounds we’re running' : `All ${rounds.length} rounds go on the calendar`}</b>
+      {!values.series ? (partial && <p className="muted small">Pick the series to see its rounds.</p>) : rounds.length ? (
+        <div className="rounds-pick" data-testid="rounds-pick">
+          <div className="inline-row wrap">
+            <b className="grow">{partial ? `Rounds we’re running — ${picked.length} of ${rounds.length}` : `All ${rounds.length} rounds go on the calendar`}</b>
+            {partial && <>
+              <button type="button" className="btn small ghost" onClick={() => setPicked(rounds.filter((f) => (vals(f).end_date || vals(f).date) >= today()).map((f) => f.id).concat(picked.filter((id) => rounds.some((f) => f.id === id && (vals(f).end_date || vals(f).date) < today()))))}>Tick all to come</button>
+              <button type="button" className="btn small ghost" onClick={() => setPicked([])}>Clear</button>
+            </>}
+          </div>
+          {!values.car && partial && <p className="muted small">Pick the car too — each car has its own rounds on the calendar.</p>}
           {partial ? rounds.map((f) => {
-            const on = onCalFor(f, values.car);
+            const fv = vals(f);
+            const e = onCalFor(f, values.car);
+            const past = (fv.end_date || fv.date) < today();
             return (
-              <label key={f.id} className="check-row">
-                <input type="checkbox" disabled={!!on} checked={!!on || picked.includes(f.id)} onChange={(e) => setPicked((p) => (e.target.checked ? [...p, f.id] : p.filter((x) => x !== f.id)))} />
-                {vals(f).round ? `Rd ${vals(f).round} — ` : ''}{vals(f).name} · {fmtDate(vals(f).date)}{on ? ' (already on our calendar)' : ''}
+              <label key={f.id} className="check-row round-row">
+                <input type="checkbox" checked={picked.includes(f.id)} onChange={(ev) => tick(f.id, ev.target.checked)} />
+                <span className="grow">{fv.round ? <b>Rd {fv.round}</b> : null}{fv.round ? ' — ' : ''}{fv.name} · {fmtDate(fv.date)}{fv.end_date && fv.end_date !== fv.date ? ` – ${fmtDate(fv.end_date)}` : ''}
+                  {data.byId[fv.venue] ? <span className="muted"> · {titleOf(data.byId[fv.venue])}</span> : null}
+                  {fv.major && <span className="pill pill-warn">★ Major event</span>}
+                  {e && <span className="pill pill-ok">{v(e, 'intent') === 'Not going' ? 'On our calendar — not going' : 'On our calendar'}</span>}
+                  {past && <span className="pill pill-muted">Past</span>}
+                </span>
               </label>
             );
           }) : <p className="muted small">{rounds.map((f) => `${vals(f).round ? `Rd ${vals(f).round}` : vals(f).name} ${fmtDate(vals(f).date)}`).join(' · ')}</p>}
+          {partial && rounds.some((f) => onCalFor(f, values.car)) && <p className="muted small">Untick a round that’s on our calendar to mark it Not going. Its setups and notes are kept.</p>}
         </div>
-      ) : <p className="muted small">This series has no shared dates for this racing year yet — import or suggest them under Shared calendars.</p>)}
+      ) : ownRounds.length ? (
+        <div className="rounds-pick" data-testid="rounds-pick">
+          <b>{ownRounds.length} round{ownRounds.length === 1 ? '' : 's'} on our calendar</b>
+          <p className="muted small">{ownRounds.map((e) => `${v(e, 'round') ? `Rd ${v(e, 'round')} ` : ''}${v(e, 'name') || ''} ${fmtDate(v(e, 'date'))}`).join(' · ')}</p>
+          <p className="muted small">This series is your team’s own, so its rounds are the events you’ve added. Send it to the shared calendars (under <b>Requests</b>) to share the dates, or add more events in the series.</p>
+        </div>
+      ) : <p className="muted small">This series has no dates yet — import or suggest them under Shared calendars.</p>}
       <div className="row-actions">
         <button type="button" className="btn primary" onClick={save}>Save entry</button>
         {rec && canType('season_plan', 'delete') && <button type="button" className="btn ghost danger" onClick={remove}>Delete entry</button>}
