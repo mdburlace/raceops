@@ -121,7 +121,7 @@ Press **Edit** on any entry in **Our calendar**. The quick edit opens right unde
 - the **Sanctioning body**, such as Speedway Australia. Picking a series fills it in from the series if it's empty;
 - **Major event**, with the **Major event name** (e.g. *Australian Sprintcar Title*).
 
-Press **Save**. **All details** opens the full event form.
+**Save** and **Cancel** are at the top of the quick edit. **All details** opens the full event form, which also has **Save** and **Cancel** at the top.
 
 ## Sanctioning bodies and major events
 

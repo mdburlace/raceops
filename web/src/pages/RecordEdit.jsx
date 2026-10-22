@@ -336,6 +336,8 @@ export default function RecordEdit() {
     : <span className="muted">Copy settings from a previous {cfg?.label}{type === 'setup' ? ' or baseline' : ''}:</span>;
   const choosingStart = type === 'setup' && choosing && !readOnly && (thisEvent.length || earlier.length || baselines.length > 0);
 
+  // calendar entries (events): Save and Cancel sit at the top of the form
+  const topActions = !readOnly && type === 'event';
   return (
     <div className={`record-edit type-${type}`}>
       <PageHeader title={title} sub={sub} back={params.get('back') || (isNew ? -1 : afterSave(type, rec || { data: { values } }))}
@@ -351,6 +353,14 @@ export default function RecordEdit() {
         {type === 'setup' && !isNew && canModule('dyno') && <Link className="btn ghost" to={`/workshop/dyno?setup=${id}`}>Shock dyno</Link>}
         {type === 'engine_build' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
         {!isNew && canType(type, 'delete') && <button type="button" className="btn ghost danger" onClick={remove}>Delete</button>}
+        {topActions && (
+          <span className="top-actions" data-testid="top-actions">
+            {Object.keys(errors).length > 0 && <span className="error-text">Fill in the required fields.</span>}
+            {dirty && <span className="muted small">Unsaved changes</span>}
+            <button type="button" className="btn ghost" onClick={() => nav(-1)}>Cancel</button>
+            <button type="button" className="btn primary" onClick={save}>Save</button>
+          </span>
+        )}
       </PageHeader>
 
       {readOnly && (isGlobal && canType(type, 'edit')
@@ -451,7 +461,7 @@ export default function RecordEdit() {
         </>
       )}
 
-      {!readOnly && (
+      {!readOnly && !topActions && (
         <div className="save-bar">
           {Object.keys(errors).length > 0 && <span className="error-text">Fill in the required fields.</span>}
           {dirty && <span className="muted small">Unsaved changes</span>}

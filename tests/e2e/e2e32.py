@@ -57,6 +57,25 @@ with sync_playwright() as pw:
     expect(page.locator('.list-row:has-text("Spring night")')).to_contain_text('Rd 4')
     shot = lambda n: page.screenshot(path=f'{OUT}/{n}.png', full_page=True)
 
+    # ---- Our calendar quick edit and the event form: Save and Cancel at the top
+    page.goto(B + '/calendar')
+    page.locator('.list-row:has-text("Spring night") button:has-text("Edit")').click()
+    qe = page.locator('[data-testid="quick-edit"]')
+    qh = qe.locator('.qe-head')
+    assert qh.locator('button:has-text("Save")').bounding_box()['y'] < qe.locator('input[aria-label="Event name"]').bounding_box()['y']
+    qe.locator('input[aria-label="Event name"]').fill('Spring night (edited)')
+    qh.locator('button:has-text("Save")').click()
+    expect(page.locator('.list-row:has-text("Spring night (edited)")')).to_be_visible()
+    page.goto(f"{B}/r/event/{ev['id']}")
+    top = page.locator('[data-testid="top-actions"]')
+    expect(top.locator('button:has-text("Save")')).to_be_visible(); expect(top.locator('button:has-text("Cancel")')).to_be_visible()
+    assert page.locator('.save-bar').count() == 0
+    page.fill('#f-name', 'Spring night')
+    top.locator('button:has-text("Save")').click()
+    page.wait_for_timeout(800)
+    page.goto(B + '/events')
+    expect(page.locator('a.list-row:has-text("Spring night")')).to_be_visible()
+
     # ---- the calendar date form: Save and Cancel above the fields
     page.goto(B + '/calendar?tab=shared&show=all')
     r = page.locator('.list-row:has-text("Display Rd 2")')

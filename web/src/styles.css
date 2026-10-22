@@ -1495,3 +1495,5 @@ a.sc-label { color: inherit; font-weight: 600; }
 .fx-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
 .fx-editor-head h3 { margin: 0; }
 .fx-editor-head .row-actions { margin: 0; }
+.top-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.qe-head h3 { font-size: 14px; }

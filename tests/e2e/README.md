@@ -88,6 +88,6 @@ Output goes to `tests/e2e/out/` (ignored by Git): a log per suite, screenshots p
 | `e2e29` | Series entries: choosing rounds for a partial series |
 | `e2e30` | Feedback & roadmap: bug reports with pictures, requests, similar items and votes, admin review (edit, areas, questions, approve, duplicate, decline), send to Claude (mock GitHub issue and brief), done, emails |
 | `e2e31` | Setup sheet inventory: bars, tyres and wheels by corner and car, manual entry and Save to inventory, top and front wings, front wicker, wing positions in Assets |
-| `e2e32` | Event lists show round and track first (Events, At the Track, Calendar, track page); calendar date form has Save and Cancel at the top |
+| `e2e32` | Event lists show round and track first (Events, At the Track, Calendar, track page); Save and Cancel at the top of the calendar date form, the Our calendar quick edit and the event form |
 
 When you add a suite, name it `e2eNN.py` with the next number, add a row here, and make it print `… OK` as its last line.

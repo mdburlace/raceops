@@ -207,6 +207,13 @@ function EntryQuickEdit({ ev, data, onDone }) {
   const name = vals(ev).name || 'event';
   return (
     <div className="card quick-edit" data-testid="quick-edit">
+      <div className="fx-editor-head qe-head">
+        <h3>Quick edit</h3>
+        <div className="row-actions">
+          <button type="button" className="btn primary" disabled={!x.name || !x.date} onClick={save}>Save</button>
+          <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
+        </div>
+      </div>
       <div className="qe-grid">
         <label className="field"><span className="label">Event name</span><input aria-label="Event name" value={x.name || ''} onChange={(e) => set('name', e.target.value)} /></label>
         <label className="field"><span className="label">Date</span><input type="date" aria-label="Date" value={x.date || ''} onChange={(e) => set('date', e.target.value)} /></label>
@@ -227,8 +234,6 @@ function EntryQuickEdit({ ev, data, onDone }) {
       <label className="check-row"><input type="checkbox" checked={!!x.major} onChange={(e) => set('major', e.target.checked)} /> Major event (a title or classic)</label>
       {x.major && <label className="field"><span className="label">Major event name</span><input aria-label="Major event name" value={x.major_name || ''} placeholder="e.g. Australian Sprintcar Title" onChange={(e) => set('major_name', e.target.value)} /></label>}
       <div className="row-actions">
-        <button type="button" className="btn primary" disabled={!x.name || !x.date} onClick={save}>Save</button>
-        <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
         <Link className="btn ghost" to={`/r/event/${ev.id}?back=/calendar`}>All details</Link>
         {!(data.byId[vals(ev).fixture] && isGlobal(data.byId[vals(ev).fixture])) && canType('fixture', 'edit')
           && <Link className="btn ghost" to={`/calendar?tab=requests&send=events:${ev.id}`}>Send to shared calendars</Link>}
