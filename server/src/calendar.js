@@ -89,7 +89,7 @@ async function publicCalendar(token) {
     const fx = byId[v.fixture];
     const cancelled = fx?.status === 'Cancelled' || v.outcome === 'Event cancelled';
     items.push({
-      id: r.id, name: v.name || 'Event', date: v.date, end_date: v.end_date || '', days: v.multi_day ? eventDayList(v) : undefined,
+      id: r.id, name: v.name || 'Event', date: v.date, end_date: v.end_date || '', days: eventDayList(v).length > 1 ? eventDayList(v) : undefined,
       track: venue?.name || v.track || '', location: [venue?.city || v.location, venue?.region].filter(Boolean).join(', '),
       series: series?.name || '', round: v.round || '', tentative: v.intent === 'Tentative', cancelled,
       car: opts.show_cars && car ? [car.number && `#${car.number}`, car.name].filter(Boolean).join(' ') : '',

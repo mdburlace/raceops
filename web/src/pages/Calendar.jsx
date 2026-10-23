@@ -4,7 +4,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
-import { sheetsByDay } from '../components/DaysField.jsx';
+import { daysError, sheetsByDay } from '../components/DaysField.jsx';
 import {
   AdminRequests, DuplicatesPanel, FeedPanel, FollowButton, HistoryPanel, MergeInto, OfficialsPanel, ReportResults, RequestsTab, ResultsTable, TeamNotes,
   UpdatesTab, sendRequest, useCalendarRequests, useOfficials, winnerText,
@@ -18,7 +18,7 @@ import { deleteRecord, saveRecord } from '../lib/store.js';
 import { syncNow } from '../lib/sync.js';
 import {
   INTENTS, MONTHS, OUTCOMES, WITHDREW, WITHDRAW_REASONS, carsForFixture, consecutiveDays, daysOn, entryStatus, eventDayList, eventFromFixture, fixtureChanges,
-  normaliseDays, respanDays,
+  keepUsedDays, normaliseDays, respanDays,
   fixtureClasses, inSeason, majorLabel, matchTrack, sanctioningOf, sameFixture, seasonLabel, seasonMatches, seasonOf, seasonStart, seasonSummary,
 } from '@shared/calendar.js';
 
@@ -278,8 +278,10 @@ function FixtureMoved({ ev, fx, changes, data }) {
   const shown = changes.filter((c) => c.key !== 'status');
   const fmt = (c, x) => (c.key === 'venue' ? trackName(data, { venue: x }) : c.key === 'days' ? fmtDays({ multi_day: true, days: x, date: x[0]?.date }) || '—' : fmtDate(x) || '—');
   const apply = () => {
-    const x = { ...vals(ev) };
+    let x = { ...vals(ev) };
     for (const c of shown) Object.assign(x, c.patch || { [c.key]: c.now });
+    // a day of our own that has setup sheets stays
+    x = keepUsedDays(vals(ev), x, new Set(Object.keys(sheetsByDay(data, ev.id)).map(Number)));
     saveRecord(tid, 'event', ev.id, { ...ev.data, values: x }, user.id);
   };
   return (
@@ -675,10 +677,12 @@ function FixtureEditor({ data, rec, initial = {}, onSave = null, onDone, inline 
     const e = {};
     const tidy = normaliseDays(values);
     if (!values.name) e.name = 'Required'; if (!tidy.date) e[values.multi_day ? 'days' : 'date'] = 'Required';
+    const daysProblem = values.multi_day ? daysError(values.days) : '';
+    if (daysProblem) e.days = daysProblem;
     if (!values.venue && !values.track) e.venue = 'Pick a track or type its name';
     setErrors(e);
     if (Object.keys(e).length) return;
-    const clean = Object.fromEntries(Object.entries(tidy).filter(([, x]) => x !== '' && x !== undefined && x !== false && !(Array.isArray(x) && !x.length)));
+    const clean = Object.fromEntries(Object.entries(tidy).filter(([k, x]) => x !== '' && x !== undefined && (x !== false || k === 'multi_day') && !(Array.isArray(x) && !x.length)));
     if (onSave) {
       // Platform admin → Shared calendars: straight to the server
       try { await onSave(clean, rec); } catch (x) { setErr(x.message); return; }

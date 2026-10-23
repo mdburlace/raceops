@@ -1,7 +1,7 @@
 # Multi-day events: one event with a row per day (gaps allowed, names, start times, rained out), day tabs and
 # sheets by day, the setup sheet's Day pick, keeping a day that has sheets, the month view and list, quick edit,
 # older date ranges, the server keeping days and dates in step, shared dates carrying their days, and iCal feeds.
-import json, os, re, sys, urllib.request, urllib.error, uuid
+import json, os, re, sys, time, urllib.request, urllib.error, uuid
 from datetime import date, datetime, timedelta, timezone
 from playwright.sync_api import sync_playwright, expect
 B = os.environ.get('RACEOPS_URL', 'http://localhost:8080').rstrip('/')
@@ -32,6 +32,17 @@ assert call(f'/t/{TID}', OT, 'PATCH', {'settings': {**settings, 'calendar_season
 o = login(); OT = o['token']
 recs = lambda: [r for r in call(f'/t/{TID}/sync?since=0', OT)[1]['records'] if not r['deleted']]
 rec_of = lambda rid: next(r for r in recs() if r['id'] == rid)
+def until(check, what, timeout=20):
+    # the app syncs in the background: wait for the server to have it
+    end = time.time() + timeout
+    while True:
+        try:
+            got = check()
+            if got: return got
+        except (StopIteration, KeyError, IndexError):
+            pass
+        if time.time() > end: raise AssertionError(f'timed out waiting for {what}')
+        time.sleep(0.5)
 def push(type, rid, values, **extra):
     st, r = call(f'/t/{TID}/sync', OT, 'POST', {'changes': [{'id': rid, 'type': type, 'data': {'values': values, **extra}, 'client_updated_at': now()}]})
     assert st == 200, r
@@ -95,8 +106,7 @@ with sync_playwright() as pw:
     page.get_by_role('button', name='Save', exact=True).first.click()
     expect(page.locator('.day-tabs button[data-day="2"] .tab-count')).to_have_text('1')
     expect(page.locator('.day-tabs button[data-day="1"] .tab-count')).to_have_text('')
-    page.wait_for_timeout(1500)
-    sheet = next(r for r in recs() if r['type'] == 'setup' and r['data']['values'].get('event') == classic['id'])
+    sheet = until(lambda: next(r for r in recs() if r['type'] == 'setup' and r['data']['values'].get('event') == classic['id']), 'the Feature sheet')
     assert str(sheet['data']['values']['day']) == '2', sheet['data']['values']
     shot('40-02-event-tabs')
 
@@ -116,8 +126,7 @@ with sync_playwright() as pw:
     shot('40-03-days-field')
     page.get_by_role('button', name='Save', exact=True).first.click()
     expect(page.locator('h1')).to_have_text('Valley Spring Classic')
-    page.wait_for_timeout(1500)
-    v = rec_of(classic['id'])['data']['values']
+    v = until(lambda: (lambda x: x if len(x.get('days', [])) == 3 else None)(rec_of(classic['id'])['data']['values']), 'three days')
     assert [(x['n'], x['date']) for x in v['days']] == [(1, D1), (2, D2), (3, iso(D2, 1))] and v['end_date'] == iso(D2, 1), v
     assert v['days'][0]['status'] == 'Rained out' and v['days'][2]['label'] == 'Spare day', v
     expect(page.locator('.day-tabs button')).to_have_count(3)
@@ -135,8 +144,7 @@ with sync_playwright() as pw:
     page.locator('#f-multi_day').check()
     page.get_by_role('button', name='Save', exact=True).first.click()
     expect(page.locator('h1')).to_have_text('Valley Spring Classic')
-    page.wait_for_timeout(1500)
-    v = rec_of(classic['id'])['data']['values']
+    v = until(lambda: (lambda x: x if len(x.get('days', [])) == 2 else None)(rec_of(classic['id'])['data']['values']), 'two days again')
     assert [x['date'] for x in v['days']] == [D1, D2] and v['end_date'] == D2, v
 
     # ---- the calendar: one entry; the month marks only the days it runs, a rained-out day crossed out
@@ -149,13 +157,12 @@ with sync_playwright() as pw:
     expect(crow.locator('[aria-label="End date"]')).to_have_count(0)
     crow.locator('button:has-text("Cancel")').click()
     page.click('.seg button:has-text("Month")')
-    dt1 = date.fromisoformat(D1)
-    month = page.locator(f'section.month:has(h3:text-is("{dt1.strftime("%B")} {dt1.year}"))')
-    day_cell = lambda ds: month.locator('.mg-d').nth(int(ds[8:]) - 1)
+    def day_cell(ds):
+        dt = date.fromisoformat(ds)
+        return page.locator(f'section.month:has(h3:text-is("{dt.strftime("%B")} {dt.year}")) .mg-d').nth(dt.day - 1)
     expect(day_cell(D1)).to_have_class('mg-d has off')
     expect(day_cell(D2)).to_have_class('mg-d has')
-    if iso(D1, 1)[:7] == D1[:7]:
-        expect(day_cell(iso(D1, 1))).to_have_class('mg-d')                                       # the night off isn't marked
+    expect(day_cell(iso(D1, 1))).to_have_class('mg-d')                                           # the night off isn't marked
     expect(day_cell(D2).locator('a')).to_have_attribute('href', f'/events/{classic["id"]}?day=2')
     shot('40-04-month')
     page.click('.seg button:has-text("List")')
@@ -168,8 +175,7 @@ with sync_playwright() as pw:
     qe.get_by_label('Date', exact=True).fill(d(44))
     expect(qe.get_by_label('End date', exact=True)).to_have_value(d(47))
     qe.locator('button:has-text("Save")').click()
-    page.wait_for_timeout(1500)
-    lv = rec_of(legacy)['data']['values']
+    lv = until(lambda: (lambda x: x if len(x['days']) == 4 else None)(rec_of(legacy)['data']['values']), 'four days')
     assert [(x['n'], x['date']) for x in lv['days']] == [(1, d(44)), (2, d(45)), (3, d(46)), (4, d(47))], lv
 
     # ---- a shared date over two nights with a gap: teams get its days, and changes follow
@@ -184,8 +190,7 @@ with sync_playwright() as pw:
     af.locator('label:has-text("Car 17") input').check()
     af.locator('button:has-text("Add to our calendar")').click()
     expect(frow).to_contain_text('On our calendar')
-    page.wait_for_timeout(1500)
-    ev = next(r for r in recs() if r['type'] == 'event' and r['data']['values'].get('fixture') == FX)
+    ev = until(lambda: next(r for r in recs() if r['type'] == 'event' and r['data']['values'].get('fixture') == FX), 'the entry from the shared date')
     ev_v = ev['data']['values']
     assert ev_v['multi_day'] and [(x['n'], x['date'], x.get('label')) for x in ev_v['days']] == [(1, d(20), 'Night 1'), (2, d(22), 'Night 2')], ev_v
     assert ev_v['end_date'] == d(22)
@@ -194,11 +199,17 @@ with sync_playwright() as pw:
     days2 = [{**g['days'][0], 'status': 'Rained out'}, g['days'][1]]
     assert call(f'/admin/calendar/fixtures/{FX}', OT, 'PUT', {'values': {**g, 'days': days2}})[0] == 200
     assert rec_of(ev['id'])['data']['values']['days'][0]['status'] == 'Rained out'
+    # the team adds its own practice day (with a sheet) the night before
+    ev_v = rec_of(ev['id'])['data']['values']
+    push('event', ev['id'], {**ev_v, 'days': ev_v['days'] + [{'n': 3, 'date': d(19), 'label': 'Our test day'}]}, form_id=ev['data'].get('form_id'))
+    push('setup', str(uuid.uuid4()), {'event': ev['id'], 'car': car17['id'], 'session': 'Practice', 'day': '3'})
+    # an older app (or the API) moves the shared date a week, giving only the new date and end date
     g = next(r for r in recs() if r['id'] == FX)['data']['values']
-    assert call(f'/admin/calendar/fixtures/{FX}', OT, 'PUT', {'values': {**g, 'date': d(27), 'end_date': d(28)}})[0] == 200
+    assert call(f'/admin/calendar/fixtures/{FX}', OT, 'PUT', {'values': {k: x for k, x in g.items() if k not in ('days', 'multi_day')} | {'date': d(27), 'end_date': d(29)}})[0] == 200
     g2 = next(r for r in recs() if r['id'] == FX)['data']['values']
-    assert [x['date'] for x in g2['days']] == [d(27), d(28)] and g2['days'][0]['label'] == 'Night 1', g2
-    assert [x['date'] for x in rec_of(ev['id'])['data']['values']['days']] == [d(27), d(28)]
+    assert [(x['n'], x['date']) for x in g2['days']] == [(1, d(27)), (2, d(29))] and g2['days'][0]['label'] == 'Night 1', g2   # the gap and names kept
+    ev_days = rec_of(ev['id'])['data']['values']['days']
+    assert [(x['n'], x['date']) for x in ev_days] == [(3, d(19)), (1, d(27)), (2, d(29))], ev_days                      # our day with a sheet stays
 
     # ---- iCal: one entry per day, the first keeps the meeting's id
     ics = raw(f'{B}/api/public/shared/track/{gtrack["id"]}.ics')

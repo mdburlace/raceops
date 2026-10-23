@@ -269,17 +269,50 @@ export function respanDays(v, date, end) {
   return { ...v, multi_day: true, days, date, end_date: days[days.length - 1].date };
 }
 
+/** The days moved by `by` days: gaps, names, start times and day numbers all kept. */
+function shiftDays(v, by) {
+  const days = eventDayList({ multi_day: true, days: v.days }).map(({ off, ...d }) => ({ ...d, date: addDays(d.date, by) })); // eslint-disable-line no-unused-vars
+  return { ...v, multi_day: true, days, date: days[0].date, end_date: days[days.length - 1].date };
+}
+
 /**
- * New values for a record that had `before`: when they carry the same days as before but a different date
- * or end date (a change that only knows the date span, e.g. an older app, an API call or a feed), the days
- * move to the new span (respanDays). Anything else is returned as it is.
+ * New values for a record that had `before` (a multi-day event or shared date), from a change that may not
+ * know about its days: an older app, an API call, a calendar request that doesn't carry them, or a feed.
+ * - The change has no days (or not as a list): the record keeps its days.
+ * - The days are the same as before but the date moved: every day moves by the same number of days, so
+ *   gaps, names and day numbers (which setup sheets point at) are kept.
+ * - Only the end date moved, on days that run one after another: days are added or taken off the end.
+ *   On days with gaps an end date alone changes nothing (the days are changed in the app).
+ * - The change edits the days themselves, or switches multi-day off: it wins.
  */
 export function moveDays(before, after) {
-  if (!after?.multi_day || !Array.isArray(after.days) || !before) return after;
-  const key = (v) => JSON.stringify(eventDayList({ multi_day: true, days: v }).map((d) => [d.n, d.date]));
-  if (key(after.days) !== key(before.days)) return after;
-  if (after.date === before.date && (after.end_date || '') === (before.end_date || '')) return after;
-  return respanDays(after, after.date, after.end_date || after.date);
+  if (!after || !before || after.multi_day === false) return after;
+  const had = before.multi_day !== false && Array.isArray(before.days) && before.days.some((d) => isIsoDate(d?.date)) ? before.days : null;
+  if (!had) return after;
+  let v = after;
+  if (!Array.isArray(after.days)) v = { ...after, multi_day: true, days: had };
+  const key = (days) => JSON.stringify(eventDayList({ multi_day: true, days }).map((d) => [d.n, d.date]));
+  if (key(v.days) !== key(had)) return v;
+  const first = eventDayList({ multi_day: true, days: had })[0].date;
+  if (isIsoDate(v.date) && v.date !== first) return shiftDays(v, spanOf(first, v.date) - 1);
+  const last = eventDayList({ multi_day: true, days: had }).slice(-1)[0].date;
+  if (isIsoDate(v.end_date) && v.end_date !== last && consecutiveDays(eventDayList({ multi_day: true, days: had }))) {
+    return respanDays({ ...v, date: first }, first, v.end_date);
+  }
+  return { ...v, date: first, end_date: last };
+}
+
+/**
+ * New shared-date values for a team's event, keeping the event's own days that have setup sheets
+ * (a practice day the team added, or a day the shared date no longer has). usedDays: the day numbers
+ * the event's sheets are on.
+ */
+export function keepUsedDays(teamBefore, next, usedDays) {
+  const coming = eventDayList(next);
+  const kept = eventDayList(teamBefore).filter((d) => usedDays.has(d.n) && !coming.some((c) => c.n === d.n));
+  if (!kept.length) return next;
+  const strip = ({ off, ...d }) => d; // eslint-disable-line no-unused-vars
+  return normaliseDays({ ...next, multi_day: true, days: [...coming.map(strip), ...kept.map(strip)] });
 }
 
 /** A shared date's or event's iCal entries: one per day for a multi-day meeting (the first keeps the meeting's id). */

@@ -20,6 +20,14 @@ export function sheetsByDay(data, eventId) {
   return out;
 }
 
+/** What's wrong with the days, for the form ('' when they're fine): a day with no date, or two on one date. */
+export function daysError(days) {
+  if (!Array.isArray(days) || !days.length) return '';
+  if (days.some((d) => !d?.date)) return 'Every day needs a date.';
+  const dates = days.map((d) => d.date);
+  return dates.some((x, i) => dates.indexOf(x) !== i) ? 'Two days have the same date. Change one, or remove it.' : '';
+}
+
 /** The rows being edited: the saved days, or (just switched on) the date to the end date, at least two days. */
 export function editingDays(values) {
   const rows = Array.isArray(values?.days) && values.days.length ? values.days : seedDays(values);

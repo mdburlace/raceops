@@ -108,8 +108,6 @@ export async function checkFeed(entityId, fetchCalendar) {
         const fv = match.values;
         const nv = { ...fv, feed_uid: uid, date: it.date, end_date: it.end_date || '', name: it.name || fv.name, status: it.status === 'Cancelled' ? 'Cancelled' : fv.status };
         const diff = ['date', 'end_date', 'name', 'status'].some((k) => (fv[k] || '') !== (nv[k] || ''));
-        // the feed moved the dates: its date-to-end-date run replaces the days set here
-        if (nv.date !== fv.date || (nv.end_date || '') !== (fv.end_date || '')) { delete nv.days; delete nv.multi_day; }
         if (diff && !waitingChanges.has(match.id)) {
           const current = Object.fromEntries(Object.entries(fv).filter(([k]) => k !== 'feed_uid'));
           await q(`INSERT INTO calendar_requests(tenant_id,user_id,kind,subject_type,subject_id,title,payload,note,source) VALUES (NULL,NULL,'change','fixture',$1,$2,$3,$4,'feed')`,
@@ -169,7 +167,7 @@ async function sharedCalendar(type, id) {
   const items = fx.map((f) => {
     const v = f.values; const t = byId[v.venue]; const s = byId[v.series];
     const win = Array.isArray(v.results) ? v.results.find((r) => String(r.pos) === '1') : null;
-    return { id: f.id, name: v.name, date: v.date, end_date: v.end_date || '', days: v.multi_day ? eventDayList(v) : undefined, track: t?.name || v.track || '', location: [t?.city, t?.region].filter(Boolean).join(', '),
+    return { id: f.id, name: v.name, date: v.date, end_date: v.end_date || '', days: eventDayList(v).length > 1 ? eventDayList(v) : undefined, track: t?.name || v.track || '', location: [t?.city, t?.region].filter(Boolean).join(', '),
       series: s?.name || '', round: v.round || '', cancelled: v.status === 'Cancelled', tentative: v.status === 'Postponed', major: v.major ? v.major_name || 'Major event' : '',
       sanctioning: v.sanctioning || s?.sanctioning || '', note: v.start_time || '', car: '', result: win ? `Won by ${[win.number && `#${win.number}`, win.driver].filter(Boolean).join(' ')}` : '' };
   }).sort((a, b) => a.date.localeCompare(b.date));

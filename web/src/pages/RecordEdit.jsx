@@ -26,7 +26,7 @@ import { GLOBAL_TYPES } from '@shared/catalog.js';
 import { Attachments, History, PageHeader } from '../components/ui.jsx';
 import { allFields, isVisible, num, formFor, formsFor, fmtDate, fmtDay, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
 import { dayPosition, eventDayList, normaliseDays } from '@shared/calendar.js';
-import { sheetsByDay } from '../components/DaysField.jsx';
+import { daysError, sheetsByDay } from '../components/DaysField.jsx';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 
@@ -318,6 +318,7 @@ export default function RecordEdit() {
       const val = values[f.key];
       if (val === undefined || val === null || val === '' || (Array.isArray(val) && !val.length)) errs[f.key] = 'Required';
     }
+    if ((type === 'event' || type === 'fixture') && values.multi_day && daysError(values.days)) errs.days = daysError(values.days);
     if (type === 'event' && !isNew) {
       // a day that has setup sheets can't go (sheets point at the day's number)
       const kept = new Set(eventDayList(normaliseDays(values)).map((d) => d.n));

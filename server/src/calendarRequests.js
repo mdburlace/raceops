@@ -13,7 +13,7 @@ import crypto from 'node:crypto';
 import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { canType } from '../../shared/catalog.js';
-import { moveDays, normaliseDays } from '../../shared/calendar.js';
+import { keepUsedDays, moveDays, normaliseDays } from '../../shared/calendar.js';
 import { audit } from './settings.js';
 import { notifyFollowers, officialFor, sendAfter } from './calendarPlus.js';
 import { mailAdmins, mailTeam } from './mail.js';
@@ -82,6 +82,10 @@ export async function syncEvents(c, fixtureId, fv, userId) {
       if (fv[k] === undefined || fv[k] === '' || fv[k] === null || fv[k] === false) { if (k !== 'name') delete v[k]; } else v[k] = fv[k];
     }
     if (fv.venue) delete v.track; else delete v.venue;
+    // a day of the team's own that has setup sheets (a practice day it added) stays on its event
+    const { rows: used } = await c.query(`SELECT DISTINCT COALESCE(NULLIF(data->'values'->>'day',''),'1') AS day FROM records
+      WHERE tenant_id=$1 AND type IN ('setup','track_check') AND NOT deleted AND data->'values'->>'event'=$2`, [e.tenant_id, e.id]);
+    Object.assign(v, keepUsedDays(e.data.values || {}, v, new Set(used.map((u) => Number(u.day) || 1))));
     if (JSON.stringify(v) !== before) { await updateRecord(c, e.id, 'event', e.tenant_id, { ...e.data, values: v }, userId); n++; }
   }
   return n;
