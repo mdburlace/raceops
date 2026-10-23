@@ -52,6 +52,12 @@ renderer.image = ({ href, text }) => (/\.(webm|mp4)$/i.test(href)
   ? `<figure class="guide-video"><video src="${VID[href] || href}" controls preload="none" playsinline${(() => { const p = IMG[href.replace(/^video\//, 'img/').replace(/\.(webm|mp4)$/i, '.webp')]; return p ? ` poster="${p}"` : ''; })()}></video><figcaption>${text || ''}</figcaption></figure>`
   : `<img src="${IMG[href] || href}" alt="${text || ''}" loading="lazy" />`);
 const attr = (html) => html.replace(/<[^>]+>/g, '').replace(/"/g, '&quot;');
+/** "Multi-day events" → "multi-day-events": the anchor a link like /help/events-sessions#multi-day-events jumps to. */
+export const headingId = (text) => String(text).replace(/<[^>]+>/g, '').toLowerCase().replace(/&[a-z]+;/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+renderer.heading = function heading({ tokens, depth }) {
+  const inner = this.parser.parseInline(tokens);
+  return `<h${depth} id="${headingId(inner)}">${inner}</h${depth}>`;
+};
 // tables: each cell carries its column name, so on a phone the rows stack as labelled cards
 renderer.table = function table(t) {
   const head = t.header.map((c) => this.parser.parseInline(c.tokens));

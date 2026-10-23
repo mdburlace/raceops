@@ -13,6 +13,7 @@ import crypto from 'node:crypto';
 import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { canType } from '../../shared/catalog.js';
+import { keepUsedDays, moveDays, normaliseDays } from '../../shared/calendar.js';
 import { audit } from './settings.js';
 import { notifyFollowers, officialFor, sendAfter } from './calendarPlus.js';
 import { mailAdmins, mailTeam } from './mail.js';
@@ -24,15 +25,17 @@ const lc = (s) => String(s ?? '').trim().toLowerCase();
 const tidy = (k, x) => (k === 'results' && Array.isArray(x) ? x.filter((r) => r && (String(r.number || '').trim() || String(r.driver || '').trim())) : x);
 const pick = (v, keys) => Object.fromEntries(keys.map((k) => [k, tidy(k, v?.[k])]).filter(([, x]) => x !== undefined && x !== null && x !== '' && !(Array.isArray(x) && !x.length)));
 export { pick as pickValues };
+/** A shared date's values: the fields kept, with its days and date span in step (see normaliseDays). */
+export const pickFixture = (v, keys = FIXTURE_KEYS) => normaliseDays(pick(v, keys));
 
-export const FIXTURE_KEYS = ['name', 'date', 'end_date', 'series', 'round', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes',
+export const FIXTURE_KEYS = ['name', 'date', 'end_date', 'multi_day', 'days', 'series', 'round', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes',
   'entries', 'results', 'results_note'];
 export const SERIES_KEYS = ['name', 'season', 'class', 'sanctioning', 'start_date', 'end_date', 'website', 'points'];
 export const TRACK_KEYS = ['name', 'address', 'city', 'region', 'country', 'status', 'length', 'surface', 'dirt_type', 'radius', 'banking', 'cushion',
   'typical', 'lat', 'lon', 'website', 'phone', 'classes'];
 const KEYS = { series: SERIES_KEYS, track: TRACK_KEYS, fixture: FIXTURE_KEYS };
 // fields a team event takes from the shared date it came from
-const SYNC_KEYS = ['name', 'date', 'end_date', 'venue', 'track', 'series', 'round', 'sanctioning', 'major', 'major_name'];
+const SYNC_KEYS = ['name', 'date', 'end_date', 'multi_day', 'days', 'venue', 'track', 'series', 'round', 'sanctioning', 'major', 'major_name'];
 
 // ---------------------------------------------------------------- record helpers
 export async function insertGlobal(c, type, data, userId) {
@@ -79,6 +82,10 @@ export async function syncEvents(c, fixtureId, fv, userId) {
       if (fv[k] === undefined || fv[k] === '' || fv[k] === null || fv[k] === false) { if (k !== 'name') delete v[k]; } else v[k] = fv[k];
     }
     if (fv.venue) delete v.track; else delete v.venue;
+    // a day of the team's own that has setup sheets (a practice day it added) stays on its event
+    const { rows: used } = await c.query(`SELECT DISTINCT COALESCE(NULLIF(data->'values'->>'day',''),'1') AS day FROM records
+      WHERE tenant_id=$1 AND type IN ('setup','track_check') AND NOT deleted AND data->'values'->>'event'=$2`, [e.tenant_id, e.id]);
+    Object.assign(v, keepUsedDays(e.data.values || {}, v, new Set(used.map((u) => Number(u.day) || 1))));
     if (JSON.stringify(v) !== before) { await updateRecord(c, e.id, 'event', e.tenant_id, { ...e.data, values: v }, userId); n++; }
   }
   return n;
@@ -204,7 +211,7 @@ const TITLE = { series: 'Series', track: 'Track', dates: 'Dates', fixture: 'Date
 /** A team event as a shared date. */
 function itemFromEvent(e, car, names) {
   const v = e.data.values || {};
-  const values = pick(v, ['name', 'date', 'end_date', 'venue', 'track', 'series', 'round', 'sanctioning', 'major', 'major_name']);
+  const values = pickFixture(v, ['name', 'date', 'end_date', 'multi_day', 'days', 'venue', 'track', 'series', 'round', 'sanctioning', 'major', 'major_name']);
   if (values.major !== true) { delete values.major; delete values.major_name; }
   if (car?.class) values.classes = [car.class];
   values.status = 'Scheduled';
@@ -249,7 +256,7 @@ async function buildRequest(req, body) {
     payload.items.push(itemFromEvent(e, byId[e.data.values?.car]?.data?.values, names));
   }
   for (const [i, d] of (Array.isArray(body.dates) ? body.dates.slice(0, 300) : []).entries()) {
-    const values = pick(d, [...FIXTURE_KEYS, 'source']);
+    const values = pickFixture(d, [...FIXTURE_KEYS, 'source']);
     if (!values.name || !/^\d{4}-\d{2}-\d{2}$/.test(values.date || '')) continue;
     if (values.venue && names[values.venue]) values.track_name = names[values.venue];
     if (values.series && names[values.series]) values.series_name = names[values.series];
@@ -276,8 +283,9 @@ async function decide(c, r, body, userId) {
     need(g, 404, 'The shared record this changes no longer exists.');
     const values = pick({ ...p.values, ...(body.change?.values || {}) }, KEYS[type]);
     // keep fields the change form doesn't carry (e.g. a track's notes and directory id)
-    const merged = { ...g.data.values, ...values };
+    let merged = { ...g.data.values, ...values };
     for (const k of KEYS[type]) if (!(k in values)) delete merged[k];
+    if (type === 'fixture') merged = normaliseDays(moveDays(g.data.values, merged));
     await updateRecord(c, g.id, type, null, { ...g.data, values: merged }, userId);
     const synced = type === 'fixture' ? await syncEvents(c, g.id, merged, userId) : 0;
     const mails = type === 'fixture' ? await notifyFollowers(c, { after: merged, before: g.data.values || {} }) : [];
@@ -321,7 +329,7 @@ async function decide(c, r, body, userId) {
       need(g, 400, `Pick the shared date to link “${it.values.name}” to.`);
       gid = g.id;
     } else {
-      const v = pick({ ...it.values, ...(choice.values || {}) }, [...FIXTURE_KEYS, 'source', 'feed_uid']);
+      const v = pickFixture({ ...it.values, ...(choice.values || {}) }, [...FIXTURE_KEYS, 'source', 'feed_uid']);
       // the series and track on the shared date must be shared ones
       if (v.series) {
         if (p.series && v.series === p.series.id) v.series = gSeries;

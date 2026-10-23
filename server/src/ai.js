@@ -7,6 +7,7 @@ import { canModule, canType } from '../../shared/catalog.js';
 import { AI_MODELS, LISTS } from '../../shared/platform.js';
 import { advise, PROBLEMS, TUNING_FIELDS, CORNER_GROUPS, EFFECT } from '../../shared/advisor.js';
 import { settings, saveSetting, audit } from './settings.js';
+import { dayDateOf, dayPosition, eventDayList } from '../../shared/calendar.js';
 import { backgroundable } from './jobs.js';
 
 const API_URL = process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com/v1/messages';
@@ -132,7 +133,12 @@ function title(r, byId) {
   const v = vals(r);
   switch (r?.type) {
     case 'car': return [v.number && `#${v.number}`, v.name].filter(Boolean).join(' ') || 'Car';
-    case 'setup': { const ev = byId.get(v.event); return `${v.session || 'Session'}${Number(v.day) > 1 ? ` (day ${v.day})` : ''} · ${ev ? vals(ev).name : 'event'}`; }
+    case 'setup': {
+      const ev = byId.get(v.event); const days = eventDayList(vals(ev));
+      const day = days.length > 1 || Number(v.day) > 1 ? days.find((d) => d.n === (Number(v.day) || 1)) : null;
+      const which = day ? ` (${day.label || `day ${dayPosition(days, day.n)}`})` : Number(v.day) > 1 ? ` (day ${v.day})` : '';
+      return `${v.session || 'Session'}${which} · ${ev ? vals(ev).name : 'event'}`;
+    }
     case 'contact': return [v.first_name, v.last_name].filter(Boolean).join(' ') || v.organisation || 'Contact';
     case 'engine_build': return [v.engine_name || v.engine, v.build_type, v.date].filter(Boolean).join(' · ') || 'Engine build';
     case 'dyno_run': return v.label || 'Dyno run';
@@ -140,12 +146,9 @@ function title(r, byId) {
   }
 }
 const eventTrack = (ev, byId) => (ev ? vals(byId.get(vals(ev).venue)).name || vals(ev).track || '' : '');
+/** The date of a setup sheet: the date of its day of the event (multi-day events can have gaps between days). */
 function sheetDate(s, byId) {
-  const ev = byId.get(vals(s).event);
-  const d = vals(ev).date;
-  if (!d) return '';
-  const dt = new Date(`${d}T00:00:00Z`); dt.setUTCDate(dt.getUTCDate() + (Number(vals(s).day) || 1) - 1);
-  return dt.toISOString().slice(0, 10);
+  return dayDateOf(vals(byId.get(vals(s).event)), vals(s).day);
 }
 const fieldsOf = (form) => (form?.data?.sections || []).flatMap((s) => s.fields.map((f) => ({ ...f, section: s.title })));
 const short = (x, n = 300) => { const s = String(x ?? ''); return s.length > n ? `${s.slice(0, n)}…` : s; };
@@ -153,6 +156,7 @@ const short = (x, n = 300) => { const s = String(x ?? ''); return s.length > n ?
 function display(f, val, byId) {
   if (val === undefined || val === null || val === '' || (Array.isArray(val) && !val.length)) return null;
   if (f?.type === 'ref' || f?.type === 'entityref') return byId.get(val) ? title(byId.get(val), byId) : null;
+  if (f?.type === 'days') return eventDayList({ multi_day: true, days: val }).map((d) => [d.date, d.label, d.time, d.status].filter(Boolean).join(' ')).join('; ') || null;
   if (f?.type === 'corners' && typeof val === 'object') {
     return Object.entries(val).map(([c, x]) => `${c} ${typeof x === 'object' && x?.asset ? title(byId.get(x.asset), byId) || '' : x ?? ''}`.trim()).filter((x) => x.includes(' ')).join(', ') || null;
   }
@@ -163,7 +167,7 @@ function display(f, val, byId) {
 }
 
 // ---------------------------------------------------------------- 1. fill from photo
-const SKIP_TYPES = new Set(['ref', 'multiref', 'member', 'asset', 'calc', 'derived', 'heading', 'check', 'entityref']);
+const SKIP_TYPES = new Set(['ref', 'multiref', 'member', 'asset', 'calc', 'derived', 'heading', 'check', 'entityref', 'days']);
 /** showIf as the app applies it ("key=A|B", "key!=A"), so only the table the form is showing is offered. */
 function shownFor(f, values) {
   if (!f.showIf || !values) return true;

@@ -105,7 +105,8 @@ with sync_playwright() as pw:
     page.fill('#f-name', 'Easter Spectacular')
     pick(page, '#f-venue', 'Archerfield')
     d1 = (TODAY + timedelta(days=10)).isoformat(); d2 = (TODAY + timedelta(days=11)).isoformat()
-    page.fill('#f-date', d1); page.fill('#f-end_date', d2)
+    page.fill('#f-date', d1); page.check('#f-multi_day')            # two days from the date
+    expect(page.get_by_label('Day 2 date')).to_have_value(d2)
     save(page)
     expect(page.locator('.tabs button')).to_have_count(2)
     page.click('.tabs button:has-text("Day 2")'); add_session(page, "Heat 1")

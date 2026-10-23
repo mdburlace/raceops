@@ -12,6 +12,9 @@ const TYPES = [
   ['checkbox', 'Yes / no'], ['corners', 'Corners (LF/RF/LR/RR)'], ['asset', 'Asset picker'], ['ref', 'Link to record'],
   ['calc', 'Calculated'], ['check', 'Checklist item'], ['heading', 'Sub-heading'],
 ];
+// built-in field types that can't be picked for a new field, named for the list
+const OTHER_TYPES = { days: 'Days of a multi-day event', table: 'Table', sweep: 'Dyno readings', derived: 'Worked out', tags: 'Tags',
+  multiref: 'Links to records', member: 'Team member', entityref: 'Link (type chosen)' };
 const ALL_CORNERS = ['LF', 'RF', 'LR', 'RR'];
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || 'field';
 
@@ -138,6 +141,7 @@ export function FormBuilder() {
                     <input className="bf-label" disabled={!editable} value={f.label} onChange={(e) => set({ label: e.target.value, ...(f._new && f.type !== 'heading' ? { key: uniqueKey(slug(e.target.value), f.key) } : {}) })} />
                     <select disabled={!editable || f.core} value={f.type} onChange={(e) => set({ type: e.target.value })}>
                       {TYPES.map(([t, l]) => <option key={t} value={t}>{l}</option>)}
+                      {!TYPES.some(([t]) => t === f.type) && <option value={f.type}>{OTHER_TYPES[f.type] || f.type}</option>}
                     </select>
                     {editable && (
                       <span className="row-actions">

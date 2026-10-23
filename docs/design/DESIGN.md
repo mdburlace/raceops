@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `018_engine_tunes.sql` |
-| Last updated | October 2026 (engine tunes and workshop engine checks) |
+| Last updated | October 2026 (multi-day events) |
 
 ---
 
@@ -422,9 +422,9 @@ Most screens are driven by **form definitions** stored as `form` records, render
 }
 ```
 
-**Field types:** `text`, `textarea`, `number`, `date`, `select` (`options`, `optionsFrom`, `allowCustom`), `tags`, `check`, `checkbox`, `ref` (another record type), `multiref`, `entityref` (type chosen by another field), `asset`, `member`, `contact`, `track`, `corners` (per-corner/per-cylinder values), `table` (rows with columns), `sweep` (dyno readings by velocity), `calc` and `derived` (computed), `heading`.
+**Field types:** `text`, `textarea`, `number`, `date`, `select` (`options`, `optionsFrom`, `allowCustom`), `tags`, `check`, `checkbox`, `ref` (another record type), `multiref`, `entityref` (type chosen by another field), `asset`, `member`, `contact`, `track`, `corners` (per-corner/per-cylinder values), `table` (rows with columns), `sweep` (dyno readings by velocity), `calc` and `derived` (computed), `heading`, `days` (the days of a multi-day event or shared date, see §12.1; rendered by `DaysField.jsx`).
 
-**Field options:** `core` (can't be removed by teams), `required`, `unit`, `help`, `placeholder`, `default`, `defaultSelf`, `showIf` (`key=A|B`, `key!=A`, empty allowed), `nocopy` (not carried to the next setup sheet), `suggest`, `measure`, `matchCar` / `match: '<key>'` (ref options limited to records with the same car, or the same engine as the picked motor), `shopOnly` (shown to engine shops only).
+**Field options:** `core` (can't be removed by teams), `required`, `unit`, `help`, `placeholder`, `default`, `defaultSelf`, `showIf` (`key=A|B`, `key!=A`, empty allowed), `nocopy` (not carried to the next setup sheet), `suggest`, `measure`, `matchCar` / `match: '<key>'` (ref options limited to records with the same car, or the same engine as the picked motor), `shopOnly` (shown to engine shops only), `hidden` (kept for its data but never shown; the app sets it, e.g. an event's `end_date` comes from its days).
 
 **Inventory pickers** (`asset` fields and `corners` fields with `input: 'asset'`): the value is `{ asset: <record id> }` when picked, or a plain string when entered manually. `category` limits assets to one category; `ref: 'tire'` lists tyre records instead of assets. `filterByCorner` (and every Shock field) lists first the items whose `position` is that corner, or empty/`N/A`/`Any`, and for this car (`car`, or a tyre's `available_for`); `scopePosition` does the same for a single field (`Top`/`Front` wings). Retired assets and worn-out tyres are hidden. **+ Save to inventory** turns a typed value into a new asset (or tyre) for that corner and car. Referenced items count laps through `setupsByAsset()`.
 
@@ -537,8 +537,9 @@ The largest cross-team workflow. Shared (global) `series` and `fixture` records 
 
 ### 12.1 Records
 
-- `fixture` (global or team): `name`, `date`, `end_date`, `venue` (track id or text), `series`, `round`, `classes`, `status` (Scheduled/Postponed/Cancelled), `major`, `major_name`, `sanctioning`, `entries`, `results` (table: pos, number, driver, team), `results_note`, `feed_uid`, `source`.
-- `event` (team): created from a fixture by `eventFromFixture()`, carries `fixture` (link), `car`, `intent` (Planned/Tentative/Not going), `outcome` (Raced the feature, Did not make the feature, Withdrew…, Did not attend, Event cancelled), `withdraw_reason`, `withdraw_session`, notes.
+- `fixture` (global or team): `name`, `date`, `end_date`, `multi_day`, `days`, `venue` (track id or text), `series`, `round`, `classes`, `status` (Scheduled/Postponed/Cancelled), `major`, `major_name`, `sanctioning`, `entries`, `results` (table: pos, number, driver, team), `results_note`, `feed_uid`, `source`.
+- **Multi-day events and dates** (`event` and `fixture`): `multi_day: true` and `days: [{ n, date, label?, time? ("HH:MM"), status? ("Rained out" | "Cancelled") }]`, at most 14. `n` is the day's number: given once (new days take the highest number + 1) and never reused or renumbered, because setup sheets and between-round checks store it as their `day`. `date` / `end_date` always hold the first and last day, so racing years, sorting and past/upcoming need nothing else. `shared/calendar.js` owns the rules: `normaliseDays()` runs on every client save of an event or fixture (`store.js` `saveRecord`, `FixtureEditor`) and on every server write of a shared date (`pickFixture()` in `calendarRequests.js`, the admin PUT in `calendar.js`); it sorts and numbers the days, sets the span, turns an older date-to-end-date run of up to 14 days into one row per day, and drops days and end date when multi-day is off. `eventDayList()` reads the days of any record (older ranges included); `dayDateOf()` gives a sheet's date (Ask RaceOps, analytics, engine sharing, weather); `respanDays()` moves consecutive days for the calendar's quick edit; `fixtureChanges()` reports a changed set of days as one `days` change with a `patch`. **Changes that don't know the days** (an app older than this feature, an API call, a calendar request or feed check that only carries the date and end date) go through `moveDays(before, after)` on the server (sync push, admin PUT, request approval): a change without a `days` list keeps the record's days; a new first date moves every day by the same number of days (gaps, names and numbers kept); a new end date alone adds or takes off days only when the days run one after another. Only a change that edits the days, or sets `multi_day: false`, replaces them. **A team's own days with sheets survive shared-date changes**: `syncEvents` (server) and **Update ours** (client) run `keepUsedDays()`, so a day the team added, or one the shared date dropped, stays while a sheet is on it. Older installed apps don't know the `days` field type or `hidden`: until they update they show the days as text and the end date as a box, and count days from date to end date; their changes are kept in line by `moveDays`. The editor refuses to remove a day (or untick multi-day) while sheets are on it; the event page shows a tab for any day number a sheet still has. iCal output (`toICS`) writes one VEVENT per day for items with `days`: the first keeps the meeting's UID, the others are `<id>-d<n>@…`.
+- `event` (team): created from a fixture by `eventFromFixture()` (which copies its days), carries `fixture` (link), `car`, `intent` (Planned/Tentative/Not going), `outcome` (Raced the feature, Did not make the feature, Withdrew…, Did not attend, Event cancelled), `withdraw_reason`, `withdraw_session`, notes.
 - `season_plan` (team): series entry — `series`, `season`, `car`, `class`, `participation` (Full/Partial).
 - `local_note` (team): private notes on a shared series, track or date.
 - `follow` (team): `entity_type` (series/track), `entity`.
@@ -551,10 +552,10 @@ The largest cross-team workflow. Shared (global) `series` and `fixture` records 
 
 - **Add a date:** choose the car(s) whose class runs (`carsForFixture`) → event linked to the fixture.
 - **Series entry:** full = every round; partial = round picker listing **every** round of the series (any racing year; cancelled hidden). Unticking a round already on the calendar sets the event to `Not going`; ticking sets `Planned`.
-- **Shared date changes** flow into linked events automatically (`syncEvents` on the server); offline edits show a "shared calendar changed" prompt.
+- **Shared date changes** flow into linked events automatically (`syncEvents` on the server, `SYNC_KEYS` include `multi_day` and `days`); offline edits show a "shared calendar changed" prompt. A feed check that moves a fixture's dates drops its days (the feed's range wins).
 - **Import:** link, iCal/webcal (parsed by `parseICS`), PDF/photo/screenshot/text (AI). The server fetches links itself and refuses private addresses (SSRF guard) unless `CALENDAR_FETCH_PRIVATE=1` (tests only).
 - **Publish:** token stored in team settings; public page `/c/:token` and iCal `/api/public/calendar/:token.ics`; shows only going events, never notes or withdraw reasons.
-- **Clashes** (client only): same day and region, flagged when classes overlap.
+- **Clashes** (client only): same day and region, flagged when classes overlap. Only the days a meeting runs count (`daysOn()`), so a gap day or a rained-out day doesn't clash.
 - **Follow → Updates:** `notifyFollowers()` writes `team_notices` when followed dates are added, moved, cancelled or get results; unseen counts appear on the membership (`calendar_updates`).
 
 ### 12.4 Requests and moderation (`calendarRequests.js`)

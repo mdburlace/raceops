@@ -12,7 +12,7 @@
 import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { canType } from '../../shared/catalog.js';
-import { parseICS, toICS, matchTrack } from '../../shared/calendar.js';
+import { eventDayList, parseICS, toICS, matchTrack } from '../../shared/calendar.js';
 import { audit } from './settings.js';
 import { mailAdmins, mailTeam, mailConfigured, mailFrom, sendMail } from './mail.js';
 
@@ -20,6 +20,8 @@ const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const lc = (s) => String(s ?? '').trim().toLowerCase();
 const fmt = (d) => (d ? new Date(`${d}T00:00:00Z`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '');
+/** A shared date's days as text, to spot a change (a day added, moved, rained out). */
+const dayDates = (v) => eventDayList(v).map((d) => `${d.date}${d.off ? '-' : ''}`).join(',');
 
 // ---------------------------------------------------------------- followers
 /**
@@ -36,6 +38,7 @@ export async function notifyFollowers(c, { after, before = null, removed = false
   else if (after.status === 'Cancelled' && before.status !== 'Cancelled') what = `${v.name} on ${fmt(v.date)} is cancelled`;
   else if (after.status === 'Postponed' && before.status !== 'Postponed') what = `${v.name} on ${fmt(before.date)} is postponed`;
   else if (before.date !== after.date || (before.end_date || '') !== (after.end_date || '')) what = `${v.name} moved from ${fmt(before.date)} to ${fmt(after.date)}`;
+  else if (dayDates(before) !== dayDates(after)) what = `${v.name} (${fmt(v.date)}) changed its days`;
   else if (before.venue !== after.venue || (before.track || '') !== (after.track || '')) what = `${v.name} (${fmt(v.date)}) changed track`;
   else if (before.name !== after.name) what = `${before.name} (${fmt(v.date)}) is now ${after.name}`;
   else if (JSON.stringify(before.results || null) !== JSON.stringify(after.results || null) && after.results?.length) what = `Results are in for ${v.name} (${fmt(v.date)})`;
@@ -164,7 +167,7 @@ async function sharedCalendar(type, id) {
   const items = fx.map((f) => {
     const v = f.values; const t = byId[v.venue]; const s = byId[v.series];
     const win = Array.isArray(v.results) ? v.results.find((r) => String(r.pos) === '1') : null;
-    return { id: f.id, name: v.name, date: v.date, end_date: v.end_date || '', track: t?.name || v.track || '', location: [t?.city, t?.region].filter(Boolean).join(', '),
+    return { id: f.id, name: v.name, date: v.date, end_date: v.end_date || '', days: eventDayList(v).length > 1 ? eventDayList(v) : undefined, track: t?.name || v.track || '', location: [t?.city, t?.region].filter(Boolean).join(', '),
       series: s?.name || '', round: v.round || '', cancelled: v.status === 'Cancelled', tentative: v.status === 'Postponed', major: v.major ? v.major_name || 'Major event' : '',
       sanctioning: v.sanctioning || s?.sanctioning || '', note: v.start_time || '', car: '', result: win ? `Won by ${[win.number && `#${win.number}`, win.driver].filter(Boolean).join(' ')}` : '' };
   }).sort((a, b) => a.date.localeCompare(b.date));
@@ -184,7 +187,7 @@ export function mountPublicShared(app) {
     const cal = await sharedCalendar(req.params.type, req.params.id);
     res.set('Content-Type', 'text/calendar; charset=utf-8').set('Cache-Control', 'public, max-age=1800').send(toICS({
       name: `${cal.name} — race calendar`,
-      items: cal.items.map((i) => ({ uid: `${i.id}@raceops-shared`, date: i.date, end_date: i.end_date, summary: `${i.cancelled ? 'CANCELLED: ' : ''}${i.name}${i.track && cal.type === 'series' ? ` — ${i.track}` : ''}`,
+      items: cal.items.map((i) => ({ uid: `${i.id}@raceops-shared`, date: i.date, end_date: i.end_date, days: i.days, summary: `${i.cancelled ? 'CANCELLED: ' : ''}${i.name}${i.track && cal.type === 'series' ? ` — ${i.track}` : ''}`,
         location: [i.track, i.location].filter(Boolean).join(', '), description: [i.major, i.series && `${i.series}${i.round ? ` round ${i.round}` : ''}`, i.note, i.result].filter(Boolean).join('\n'),
         status: i.cancelled ? 'CANCELLED' : 'CONFIRMED' })),
     }));

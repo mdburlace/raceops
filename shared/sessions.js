@@ -9,6 +9,8 @@ const num = (x) => {
 };
 
 export const dayOf = (s) => num(v(s, 'day')) || 1;
+// Callers that know the event pass `rank` (sheet → the day's place in date order) for a multi-day event
+// whose days aren't numbered in date order (a day added before the others); otherwise the day number is used.
 
 /** Map of sheet id → sort key. */
 export function sessionKeys(sheets, presets = []) {
@@ -22,9 +24,9 @@ export function sessionKeys(sheets, presets = []) {
 }
 
 /** Sheets in running order: by day, then position. */
-export function orderSessions(sheets, presets = []) {
+export function orderSessions(sheets, presets = [], rank = dayOf) {
   const key = sessionKeys(sheets, presets);
-  return sheets.slice().sort((a, b) => dayOf(a) - dayOf(b) || key.get(a.id) - key.get(b.id)
+  return sheets.slice().sort((a, b) => rank(a) - rank(b) || key.get(a.id) - key.get(b.id)
     || String(a.created_at || '').localeCompare(String(b.created_at || '')));
 }
 
@@ -44,13 +46,13 @@ export function orderForNew(daySheets, presets, session) {
 }
 
 /** The session just before `values` (a sheet being created or edited) at the same event. */
-export function previousSession(all, values, presets, selfId) {
+export function previousSession(all, values, presets, selfId, rank = dayOf) {
   const mine = all.filter((s) => s.id !== selfId && v(s, 'event') === values.event && v(s, 'car') === values.car);
   if (!mine.length) return null;
   const key = sessionKeys(mine, presets);
-  const myDay = num(values.day) || 1;
+  const myDay = rank({ data: { values } });
   const myKey = num(values.order) ?? Infinity;
-  const before = orderSessions(mine, presets).filter((s) => dayOf(s) < myDay || (dayOf(s) === myDay && key.get(s.id) < myKey));
+  const before = orderSessions(mine, presets, rank).filter((s) => rank(s) < myDay || (rank(s) === myDay && key.get(s.id) < myKey));
   return before[before.length - 1] || null;
 }
 

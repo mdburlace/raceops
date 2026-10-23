@@ -1,6 +1,6 @@
 // Help & guide: the user guide from docs/guide, filtered to the reader's role and team type.
-import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSession } from '../lib/session.jsx';
 import { SECTIONS, SECTION, excerpt, searchArticles, visibleTo } from '@shared/guide.js';
 import { Empty, PageHeader, Section } from '../components/ui.jsx';
@@ -89,6 +89,13 @@ export function HelpArticle() {
   const ctx = useGuideCtx();
   const a = ARTICLE[id];
   const parts = useMemo(() => (a ? renderArticle(a) : []), [a]);
+  const { hash } = useLocation();
+  // a link to a section (#multi-day-events) opens the article at that heading
+  useEffect(() => {
+    if (!hash) return;
+    const el = document.getElementById(decodeURIComponent(hash.slice(1)));
+    if (el) el.scrollIntoView({ block: 'start' });
+  }, [hash, parts]);
   if (!a) return <div><PageHeader title="Not found" back="/help" /><Empty>That guide page doesn’t exist. <Link to="/help">Back to Help</Link></Empty></div>;
   const forYou = visibleTo(a, ctx);
   const page = a.pages.find((p) => !p.includes(':') && !p.includes('*') && p !== '/' && !p.startsWith('/help'));
@@ -136,7 +143,7 @@ export function HelpPrint() {
   const body = (a) => renderArticle(a).map((p, i) => (p.app === 'checklist'
     ? <p key={i} className="muted small">The live “Set up your team” checklist is on Home in the app.</p>
     // eslint-disable-next-line react/no-danger
-    : <div key={i} className="md" dangerouslySetInnerHTML={{ __html: p.html.replace(/href="\/help\/([a-z0-9-]+)"/g, 'href="#g-$1"') }} />));
+    : <div key={i} className="md" dangerouslySetInnerHTML={{ __html: p.html.replace(/href="\/help\/([a-z0-9-]+)(?:#[^"]*)?"/g, 'href="#g-$1"') }} />));
   // ?ids=a,b prints just those articles (e.g. the quick reference cards, one card per page)
   const ids = (params.get('ids') || '').split(',').map((x) => x.trim()).filter((x) => ARTICLE[x]);
   if (ids.length) {

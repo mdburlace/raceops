@@ -384,4 +384,12 @@ export const PHASE3_UPGRADES = [
   // the engine's tune sheet: picked on setup sheets (jetting for the weather) and workshop setups
   { target: 'setup', section: 'engine', after: 'engine', field: { key: 'engine_tune', label: 'Engine tune', type: 'ref', ref: 'engine_tune', match: 'engine' } },
   { target: 'shop_setup', section: 'engine', after: 'engine', field: { key: 'engine_tune', label: 'Engine tune', type: 'ref', ref: 'engine_tune', match: 'engine' } },
+  // multi-day events and shared dates: a switch, then one row per day (date, name, start time, rained out);
+  // the date and end date are set from the days, so the end date is no longer typed in
+  ...['event', 'fixture'].flatMap((target) => [
+    { target, section: target, after: 'date', field: { key: 'multi_day', label: 'Runs over more than one day', type: 'checkbox', core: true } },
+    { target, section: target, after: 'multi_day', field: { key: 'days', label: 'Days', type: 'days', core: true, showIf: 'multi_day=true' } },
+    { target, key: 'date', patch: { showIf: 'multi_day!=true' } },
+    { target, key: 'end_date', patch: { hidden: true } },
+  ]),
 ];

@@ -24,7 +24,9 @@ import DynoChart from '../components/DynoChart.jsx';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { GLOBAL_TYPES } from '@shared/catalog.js';
 import { Attachments, History, PageHeader } from '../components/ui.jsx';
-import { allFields, isVisible, num, formFor, formsFor, fmtDate, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
+import { allFields, isVisible, num, formFor, formsFor, fmtDate, fmtDay, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
+import { dayPosition, eventDayList, normaliseDays } from '@shared/calendar.js';
+import { daysError, sheetsByDay } from '../components/DaysField.jsx';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 
@@ -44,6 +46,21 @@ const CARRY = {
   // a new version of an engine's tune starts from its newest version
   engine_tune: { match: 'engine', skip: ['engine', 'name', 'date', 'active', 'notes', 'builder_tune', 'builder_updated'], label: 'version' },
 };
+
+/** The save bar's message: a field's own problem, or "fill in the required fields". */
+const errorSummary = (errors) => Object.values(errors).find((e) => e !== 'Required') || 'Fill in the required fields.';
+
+/**
+ * Setup sheets at a multi-day event: Day becomes a pick of the event's days ("Day 2 · Sat 6 Dec · Feature"),
+ * stored as the day's number.
+ */
+function withEventDays(form, days) {
+  if (!form || days.length < 2) return form;
+  const options = days.map((d, i) => ({ value: String(d.n), label: [`Day ${i + 1}`, fmtDay(d.date), d.label, d.off && d.status].filter(Boolean).join(' · ') }));
+  return { ...form, data: { ...form.data, sections: form.data.sections.map((s) => ({
+    ...s, fields: s.fields.map((f) => (f.key === 'day' ? { ...f, type: 'select', options, placeholder: '', help: '' } : f)),
+  })) } };
+}
 
 function afterSave(type, rec) {
   const vals = rec.data.values;
@@ -144,7 +161,8 @@ export default function RecordEdit() {
   useEffect(() => {
     if (!data || values || (!isNew && rec === undefined)) return;
     if (!isNew && !rec) return;
-    if (!isNew) { setValues(rec.data.values || {}); setFormId(rec.data.form_id); return; }
+    // events and shared dates: an older date-to-end-date run opens as its days
+    if (!isNew) { setValues(type === 'event' || type === 'fixture' ? normaliseDays(rec.data.values) : rec.data.values || {}); setFormId(rec.data.form_id); return; }
     const f = formFor(data, type, params.get('form'));
     const init = {};
     for (const fd of allFields(f)) if (fd.default !== undefined) init[fd.key] = fd.default;
@@ -252,15 +270,18 @@ export default function RecordEdit() {
     .sort((a, b) => String(v(a, 'baseline_name') || titleOf(a, data)).localeCompare(String(v(b, 'baseline_name') || titleOf(b, data)))) : [];
   const baselineLabel = (s) => `${v(s, 'baseline_name') || titleOf(s, data)} — ${titleOf(data.byId[v(s, 'car')])}`;
   const presets = (type === 'setup' && form?.data.sessions) || [];
+  // setup sheets: the days of the sheet's event (date order), and each day number's place in that order
+  const evDays = data && type === 'setup' && values?.event ? eventDayList(data.byId[values.event]?.data?.values) : [];
+  const dayRank = (s) => dayPosition(evDays, dayOf(s));
   // the session just before this one in the event's running order (the default to copy from)
-  const prevSession = data && type === 'setup' && values?.event && values?.car ? previousSession(data.list('setup'), values, presets, id) : null;
+  const prevSession = data && type === 'setup' && values?.event && values?.car ? previousSession(data.list('setup'), values, presets, id, dayRank) : null;
   // sessions that can be copied: this event in running order, then this car's earlier events
   const thisEvent = data && type === 'setup' && values?.event && values?.car
-    ? orderSessions(data.list('setup').filter((s) => s.id !== id && v(s, 'event') === values.event && v(s, 'car') === values.car), presets) : [];
+    ? orderSessions(data.list('setup').filter((s) => s.id !== id && v(s, 'event') === values.event && v(s, 'car') === values.car), presets, dayRank) : [];
   const earlier = data && type === 'setup' && values?.car
     ? sortSetupsDesc(data.list('setup').filter((s) => s.id !== id && v(s, 'car') === values.car && v(s, 'event') !== values.event), data).slice(0, 40) : [];
-  const multiDay = thisEvent.some((s) => dayOf(s) > 1) || num(values?.day) > 1;
-  const inEventLabel = (s) => `${multiDay ? `Day ${dayOf(s)} · ` : ''}${v(s, 'session') || 'Session'}${s.id === prevSession?.id ? ' (previous)' : ''}`;
+  const multiDay = thisEvent.some((s) => dayOf(s) > 1) || num(values?.day) > 1 || evDays.length > 1;
+  const inEventLabel = (s) => `${multiDay ? `Day ${dayPosition(evDays, dayOf(s))} · ` : ''}${v(s, 'session') || 'Session'}${s.id === prevSession?.id ? ' (previous)' : ''}`;
   const chosenSession = pickSession || prevSession?.id || earlier[0]?.id || '';
   const lastEvent = data && type === 'setup' && values?.car
     ? sortSetupsDesc(data.list('setup').filter((s) => s.id !== id && v(s, 'car') === values.car && v(s, 'event') !== values.event), data)[0] : null;
@@ -296,6 +317,17 @@ export default function RecordEdit() {
       if (!isVisible(f, values)) continue;
       const val = values[f.key];
       if (val === undefined || val === null || val === '' || (Array.isArray(val) && !val.length)) errs[f.key] = 'Required';
+    }
+    if ((type === 'event' || type === 'fixture') && values.multi_day && daysError(values.days)) errs.days = daysError(values.days);
+    if (type === 'event' && !isNew) {
+      // a day that has setup sheets can't go (sheets point at the day's number)
+      const kept = new Set(eventDayList(normaliseDays(values)).map((d) => d.n));
+      const lost = Object.entries(sheetsByDay(data, id)).filter(([n]) => !kept.has(Number(n)));
+      if (lost.length) {
+        const days = lost.map(([n]) => `day ${dayPosition(eventDayList(rec.data.values), n)}`).join(' and ');
+        const total = lost.reduce((a, [, c]) => a + c, 0);
+        errs[values.multi_day ? 'days' : 'multi_day'] = `${total} sheet${total > 1 ? 's are' : ' is'} on ${days}. Move ${total > 1 ? 'them' : 'it'} to another day (open the sheet and change its Day) before taking that day off.`;
+      }
     }
     setErrors(errs);
     if (Object.keys(errs).length) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
@@ -337,7 +369,7 @@ export default function RecordEdit() {
   const fuelRecorded = fuelUnit(values.fuel_unit);
   const fuelShown = fuelView || fuelRecorded;
   const fuelConverting = type === 'setup' && fuelShown !== fuelRecorded;
-  const setupForm = type === 'setup' ? withFuelUnits(withWeatherUnits(form, wxUnits), fuelShown) : form;
+  const setupForm = type === 'setup' ? withEventDays(withFuelUnits(withWeatherUnits(form, wxUnits), fuelShown), evDays) : form;
   const shownValues = fuelConverting
     ? { ...values, fuel_start: convertFuel(values.fuel_start, fuelRecorded, fuelShown), fuel_finish: convertFuel(values.fuel_finish, fuelRecorded, fuelShown) }
     : values;
@@ -398,7 +430,7 @@ export default function RecordEdit() {
         {!isNew && canType(type, 'delete') && <button type="button" className="btn ghost danger" onClick={remove}>Delete</button>}
         {topActions && (
           <span className="top-actions" data-testid="top-actions">
-            {Object.keys(errors).length > 0 && <span className="error-text">Fill in the required fields.</span>}
+            {Object.keys(errors).length > 0 && <span className="error-text">{errorSummary(errors)}</span>}
             {dirty && <span className="muted small">Unsaved changes</span>}
             <button type="button" className="btn ghost" onClick={() => nav(-1)}>Cancel</button>
             <button type="button" className="btn primary" onClick={save}>Save</button>
@@ -493,7 +525,8 @@ export default function RecordEdit() {
 
       {arranging && layout && <ArrangeSections form={form} layout={layout} onClose={() => setArranging(false)} />}
       <FormRenderer form={setupForm} values={shownValues} onChange={onChange} data={data} readOnly={readOnly} layout={layout} roKeys={fuelConverting ? ['fuel_start', 'fuel_finish'] : []}
-        level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
+        level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} recordId={isNew ? null : id} errors={errors}
+        hideKeys={type === 'setup' && evDays.length <= 1 && !(num(values.day) > 1) ? ['day'] : []}
         sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, rate: <BarResults data={data} id={id} values={values} /> }
           : type === 'dyno_run' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, data: <ShockVsInitial data={data} id={isNew ? null : id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           engine: <TunePanel type="setup" form={form} values={values} readOnly={readOnly} units={wxUnits} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
@@ -520,7 +553,7 @@ export default function RecordEdit() {
 
       {!readOnly && !topActions && (
         <div className="save-bar">
-          {Object.keys(errors).length > 0 && <span className="error-text">Fill in the required fields.</span>}
+          {Object.keys(errors).length > 0 && <span className="error-text">{errorSummary(errors)}</span>}
           {dirty && <span className="muted small">Unsaved changes</span>}
           <button type="button" className="btn" onClick={() => nav(-1)}>Cancel</button>
           <button type="button" className="btn primary" onClick={save}>Save</button>

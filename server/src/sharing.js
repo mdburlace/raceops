@@ -12,6 +12,7 @@ import { canType } from '../../shared/catalog.js';
 import { isShop } from '../../shared/shop.js';
 import { enginePack, lastServiceDate } from '../../shared/enginePack.js';
 import { settings } from './settings.js';
+import { dayDateOf } from '../../shared/calendar.js';
 
 const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg); };
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -52,8 +53,7 @@ async function teamUsage(db, link, since) {
     if (s.type !== 'setup' || assetId(vals(s).engine) !== link.team_asset_id) continue;
     const ev = events.get(vals(s).event);
     if (!ev?.date) continue;
-    const d = new Date(`${ev.date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + (Number(vals(s).day) || 1) - 1);
-    const date = d.toISOString().slice(0, 10);
+    const date = dayDateOf(ev, vals(s).day); // the sheet's day of the event
     if (from && date < from) continue;
     sessions += 1;
     laps += Number(vals(s).laps) || 0;

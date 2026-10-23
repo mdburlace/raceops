@@ -2,25 +2,37 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { Empty, PageHeader, Section } from '../components/ui.jsx';
-import { eventTrack, fmtDate, roundAndTrack, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { eventTrack, fmtDays, fmtDay, fmtTime, roundAndTrack, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { eventDayList } from '@shared/calendar.js';
 import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
 import { orderForNew, orderSessions } from '../lib/sessions.js';
 import { EntryResult } from './Calendar.jsx';
 
 /** Number of days an event runs (1 for single-day). */
-export function eventDays(ev) {
-  const a = v(ev, 'date'); const b = v(ev, 'end_date');
-  if (!a || !b || b <= a) return 1;
-  return Math.min(14, Math.round((new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`)) / 864e5) + 1);
+export const eventDays = (ev) => Math.max(1, eventDayList(ev?.data?.values).length);
+/** When the event runs, in words ("Thu 4 & Sat 6 Dec 2026" when the days have gaps). */
+export const dateRange = (ev) => fmtDays(ev?.data?.values);
+
+/**
+ * The tabs for an event's days: its days in date order, plus any day number a sheet is on that the event
+ * no longer has (so no sheet is ever out of sight). [{ n, date, label, time, status, off, pos }]
+ */
+export function dayTabs(ev, sheets) {
+  const days = eventDayList(ev?.data?.values);
+  const known = new Set(days.map((d) => d.n));
+  const stray = [...new Set(sheets.map((s) => num(v(s, 'day')) || 1))].filter((n) => !known.has(n)).sort((a, b) => a - b)
+    .map((n) => ({ n, date: '', stray: true }));
+  return [...days, ...stray].map((d, i) => ({ ...d, pos: i + 1 }));
 }
-export function dayDate(ev, d) {
-  const dt = new Date(`${v(ev, 'date')}T00:00:00`);
-  dt.setDate(dt.getDate() + d - 1);
-  return dt.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+
+/** The day to open on: today's day while the event is on, the last day once it's over, else the first. */
+export function currentDay(tabs, t = today()) {
+  const dated = tabs.filter((d) => d.date);
+  if (!dated.length) return tabs[0]?.n || 1;
+  const on = dated.filter((d) => d.date <= t);
+  return (on.length ? on[on.length - 1] : dated[0]).n;
 }
-export const dateRange = (ev) => (v(ev, 'end_date') && v(ev, 'end_date') !== v(ev, 'date')
-  ? `${fmtDate(v(ev, 'date'))} – ${fmtDate(v(ev, 'end_date'))}` : fmtDate(v(ev, 'date')));
 
 export function EventRow({ e, data, n }) {
   const s = data.byId[v(e, 'series')];
@@ -32,7 +44,7 @@ export function EventRow({ e, data, n }) {
       </span>
       <span className="grow">
         <span className="row-title">{v(e, 'name')}{eventDays(e) > 1 ? <span className="pill pill-info days-pill">{eventDays(e)} days</span> : null}</span>
-        <span className="row-sub">{[roundAndTrack(v(e, 'round'), eventTrack(e, data)), s && titleOf(s), !s && v(e, 'event_type'), data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')])].filter(Boolean).join(' · ')}</span>
+        <span className="row-sub">{[eventDays(e) > 1 && dateRange(e), roundAndTrack(v(e, 'round'), eventTrack(e, data)), s && titleOf(s), !s && v(e, 'event_type'), data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')])].filter(Boolean).join(' · ')}</span>
       </span>
       <span className="row-meta">{n ? `${n} sheet${n > 1 ? 's' : ''}` : ''}</span>
     </Link>
@@ -164,11 +176,14 @@ export function EventDetail() {
   if (!ev) return <><PageHeader title="Event not found" back="/events" /></>;
   const form = formFor(data, 'setup');
   const presets = form?.data.sessions || [];
-  const days = eventDays(ev);
-  const day = dayState || (days > 1 ? Math.min(days, Math.max(1, Math.round((new Date(`${today()}T00:00:00`) - new Date(`${v(ev, 'date')}T00:00:00`)) / 864e5) + 1)) : 1);
   const dayOf = (s) => num(v(s, 'day')) || 1;
   const setups = data.list('setup').filter((s) => v(s, 'event') === id);
-  const daySetups = orderSessions(setups.filter((s) => days === 1 || dayOf(s) === day), presets);
+  const tabs = dayTabs(ev, setups);
+  const days = tabs.length;
+  const day = tabs.some((d) => d.n === dayState) ? dayState : currentDay(tabs);
+  const thisDay = tabs.find((d) => d.n === day) || tabs[0];
+  const rank = (s) => tabs.find((d) => d.n === dayOf(s))?.pos || dayOf(s);
+  const daySetups = orderSessions(setups.filter((s) => days === 1 || dayOf(s) === day), presets, rank);
   const car = data.byId[v(ev, 'car')];
   // sheets recorded for other cars (before the event had a car) stay reachable
   const otherCars = [...new Set(setups.map((s) => v(s, 'car')))].filter((c) => c && c !== car?.id).map((c) => data.byId[c]).filter(Boolean);
@@ -196,10 +211,10 @@ export function EventDetail() {
   const carBlock = (c, primary) => {
     const mine = daySetups.filter((s) => v(s, 'car') === c.id);
     const used = mine.map((s) => v(s, 'session'));
-    const all = orderSessions(setups.filter((s) => v(s, 'car') === c.id), presets);
+    const all = orderSessions(setups.filter((s) => v(s, 'car') === c.id), presets, rank);
     const nextSession = presets.find((p) => !used.includes(p)) || 'Practice';
     return (
-      <Section key={c.id} title={primary ? `${titleOf(c)} — sessions${days > 1 ? ` · Day ${day}` : ''}` : `${titleOf(c)} (earlier sheets)`} className={`event-car${primary ? '' : ' other-car'}`}
+      <Section key={c.id} title={primary ? `${titleOf(c)} — sessions${days > 1 ? ` · Day ${thisDay?.pos || day}${thisDay?.label ? ` · ${thisDay.label}` : ''}` : ''}` : `${titleOf(c)} (earlier sheets)`} className={`event-car${primary ? '' : ' other-car'}`}
         actions={(
           <span className="row-actions">
             {primary && canEdit && !reorder && shop && v(shop, 'car') === c.id && (
@@ -254,13 +269,19 @@ export function EventDetail() {
       </div>
       {v(ev, 'track_notes') && <div className="card"><p className="pre">{v(ev, 'track_notes')}</p></div>}
       {days > 1 && (
-        <div className="tabs scroll">
-          {Array.from({ length: days }, (_, i) => i + 1).map((d) => (
-            <button type="button" key={d} className={d === day ? 'active' : ''} onClick={() => setDay(d)}>
-              Day {d} <small className="muted">{dayDate(ev, d)}</small> <span className="tab-count">{setups.filter((s) => dayOf(s) === d && (!car || v(s, 'car') === car.id)).length || ''}</span>
+        <div className="tabs scroll day-tabs" role="tablist" aria-label="Days">
+          {tabs.map((d) => (
+            <button type="button" key={d.n} role="tab" aria-selected={d.n === day} className={`${d.n === day ? 'active' : ''}${d.off ? ' off' : ''}`} onClick={() => setDay(d.n)} data-day={d.n}>
+              {d.label || `Day ${d.pos}`} <small className="muted">{d.stray ? 'not one of the days' : fmtDay(d.date)}</small> <span className="tab-count">{setups.filter((s) => dayOf(s) === d.n && (!car || v(s, 'car') === car.id)).length || ''}</span>
             </button>
           ))}
         </div>
+      )}
+      {days > 1 && thisDay && (thisDay.time || thisDay.off || thisDay.stray) && (
+        <p className={`day-note small${thisDay.off ? ' notice' : ' muted'}`} data-testid="day-note">
+          {thisDay.stray ? 'The event no longer has this day. Open each sheet and pick one of the event’s days.'
+            : [thisDay.off && `${thisDay.status} — this day didn’t run.`, thisDay.time && `Starts ${fmtTime(thisDay.time)}.`].filter(Boolean).join(' ')}
+        </p>
       )}
       {car ? carBlock(car, true) : <ChooseCar ev={ev} data={data} />}
       {otherCars.map((c) => carBlock(c, false))}
