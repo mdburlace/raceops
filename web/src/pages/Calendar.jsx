@@ -1054,7 +1054,7 @@ function PublishPanel({ onClose }) {
             <label className="field"><span className="label">Subscribe (iCal)</span><span className="copy-row"><input readOnly value={ics} aria-label="Subscribe link" /><button type="button" className="btn small" onClick={() => copy('ics', ics)}>{copied === 'ics' ? 'Copied' : 'Copy'}</button><a className="btn small ghost" href={ics.replace(/^https?:/, 'webcal:')}>Subscribe</a></span></label>
           </div>
           <div className="pub-opts">
-            {[['show_tentative', 'Include tentative events'], ['show_cars', 'Show which car'], ['show_results', 'Show results (raced the feature, withdrew)']].map(([k, l]) => (
+            {[['show_tentative', 'Include tentative events'], ['show_cars', 'Show which car'], ['show_results', 'Show results (raced the feature, withdrew)'], ['show_sponsors', 'Show our sponsors (signed, marked “Show on our public page”)']].map(([k, l]) => (
               <label key={k} className="check-row"><input type="checkbox" checked={!!(k in shown ? shown[k] : pub[k])} disabled={busy} onChange={(e) => { setShown((x) => ({ ...x, [k]: e.target.checked })); put({ [k]: e.target.checked }); }} /> {l}</label>
             ))}
           </div>
@@ -1177,6 +1177,12 @@ export function PublicCalendar() {
       <CalendarSheet title={`${cal.team} — race calendar ${label}`}
         sub={next ? `Next: ${next.name}${next.track ? ` at ${next.track}` : ''}, ${dateRangeOf(next)}` : ''}
         items={items} showCar={cal.options.show_cars} showResult={cal.options.show_results} />
+      {cal.sponsors?.length > 0 && (
+        <section className="public-sponsors-wrap" data-testid="public-sponsors">
+          <h2>Our sponsors</h2>
+          <div className="public-sponsors">{cal.sponsors.map((x) => <span key={x.name} className="chip static">{x.name}{x.level ? ` · ${x.level}` : ''}</span>)}</div>
+        </section>
+      )}
     </div>
   );
 }

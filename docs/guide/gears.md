@@ -42,4 +42,6 @@ Results can be limited to the sets that car can use, or cover every ring & pinio
 
 Set each tyre's **Intended position** (or **Any**) and **Available for cars**. The setup sheet then lists the right tyres first at each corner, and you can add a tyre straight from the sheet with **+ Save to inventory**. See [Shocks, bars, tyres, wheels and wings on the setup sheet](/help/shocks-on-setup).
 
+Each tyre has a **Work log**: a row each time it's mounted, cut, siped, ground or measured, with the date, circumference and durometer readings and who did it.
+
 **Stagger combos** uses the circumferences to show the stagger from each pair of rear tyres.

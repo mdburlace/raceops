@@ -184,7 +184,7 @@ function VoiceDebrief({ values, setValues, available, onDone }) {
 }
 
 /** AI toolbar shown on record forms. */
-export function AiTools({ type, form, values, setValues, onApplied }) {
+export function AiTools({ type, form, values, setValues, onApplied, debriefOnly = false }) {
   const st = useAiStatus();
   const [open, setOpen] = useState('');
   const [review, setReview] = useState(null);
@@ -196,7 +196,7 @@ export function AiTools({ type, form, values, setValues, onApplied }) {
     <div className="card ai-bar">
       <div className="inline-row wrap">
         <span className="ai-tag"><Icon d={SPARK} size={16} />AI</span>
-        {st.available ? <PhotoFill form={form} values={values} onReview={(r) => { setReview(r); setOpen(''); }} onError={setErr} /> : null}
+        {st.available && !debriefOnly ? <PhotoFill form={form} values={values} onReview={(r) => { setReview(r); setOpen(''); }} onError={setErr} /> : null}
         {hasFeedback && (
           <button type="button" className={`btn small ai-btn${open === 'debrief' ? ' primary' : ''}`} onClick={() => setOpen(open === 'debrief' ? '' : 'debrief')}>
             <Icon d={I.user} size={16} />Voice debrief

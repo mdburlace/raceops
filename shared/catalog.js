@@ -61,6 +61,13 @@ export const MODULES = [
   { key: 'ai', label: 'AI assistant', types: [], area: null, actions: ['view'], feature: 'ai' },
   // charts and trends worked out from the team's own records
   { key: 'analytics', label: 'Analytics', types: [], area: null, actions: ['view'], feature: 'analytics' },
+  // parts orders: anyone with edit raises a request; a role with "Approve parts orders" approves it
+  { key: 'purchases', label: 'Parts orders', types: ['purchase'], area: null },
+  // business and logistics modules: no area (like the calendar), each switched on per plan by its feature
+  { key: 'finance', label: 'Finance (budget, expenses, income, contracts)', types: ['expense', 'income', 'budget', 'contract'], area: null, feature: 'finance' },
+  { key: 'transport', label: 'Transport (trips, load lists, pre-trip checks, licences)', types: ['trip', 'load_list', 'pre_trip', 'licence'], area: null, feature: 'transport' },
+  { key: 'partnerships', label: 'Partnerships (sponsors, livery, hospitality)', types: ['sponsor', 'livery', 'guest'], area: null, feature: 'partnerships' },
+  { key: 'marketing', label: 'Marketing (media, results posts, merchandise)', types: ['media', 'social_post', 'merch'], area: null, feature: 'marketing' },
 ];
 
 export const ACTIONS = ['view', 'edit', 'delete'];
@@ -75,12 +82,43 @@ export const ADMIN_PERMISSIONS = [
   { key: 'trash.manage', label: 'Recover anyone’s deleted items' },
 ];
 
+// Rights that sit beside a module's view / edit / delete.
+//  - part rights let a role edit only some sections of a record it can otherwise only view (a driver's
+//    debrief, the car chief's change list, the tyre specialist's tyre and wheel sections). The server
+//    allows a change only when every value that changed is in one of those sections.
+//  - money.view shows costs and amounts on parts orders, finance and sponsor deals (MONEY_FIELDS);
+//    without it they're hidden on the device and kept unchanged by the server.
+//  - purchases.approve: approve or decline parts orders.
+export const PART_PERMISSIONS = [
+  { key: 'setups.part.feedback', module: 'setups', type: 'setup', sections: ['feedback'], label: 'Setup sheets: edit only Track conditions & car feedback (driver debrief)' },
+  { key: 'setups.part.changes', module: 'setups', type: 'setup', sections: ['changes'], label: 'Setup sheets: tick off the change list' },
+  { key: 'setups.part.tires', module: 'setups', type: 'setup', sections: ['tires', 'wheels'], label: 'Setup sheets: edit only the tyre and wheel sections' },
+];
+export const SPECIAL_PERMISSIONS = [
+  ...PART_PERMISSIONS,
+  { key: 'purchases.approve', module: 'purchases', label: 'Approve or decline parts orders' },
+  { key: 'money.view', module: null, label: 'See costs, prices and amounts (parts orders, finance, sponsor deals)' },
+];
+/** Fields only shown to roles with money.view (top-level values keys, by record type). */
+export const MONEY_FIELDS = {
+  purchase: ['unit_cost', 'cost'],
+  expense: ['amount', 'tax_amount', 'rate'],
+  income: ['amount', 'tax_amount', 'rate'],
+  budget: ['amount', 'lines'],
+  contract: ['value'],
+  sponsor: ['value'],
+  engine_build: ['rebuild_cost'],
+  merch: ['cost'],
+};
+export const moneyFields = (type) => MONEY_FIELDS[type] || [];
+
 export const AREA_PERMISSIONS = AREAS.map((a) => ({ key: `area.${a.key}`, label: `Enter “${a.label}”` }));
 
 export const ALL_PERMISSIONS = [
   ...AREA_PERMISSIONS.map((p) => p.key),
   ...MODULES.flatMap((m) => moduleActions(m).map((a) => `${m.key}.${a}`)),
   ...ADMIN_PERMISSIONS.map((p) => p.key),
+  ...SPECIAL_PERMISSIONS.map((p) => p.key),
 ];
 
 export const TYPE_MODULE = Object.fromEntries(MODULES.flatMap((m) => m.types.map((t) => [t, m.key])));
@@ -101,6 +139,10 @@ export const FEATURES = [
   { key: 'reports', label: 'Reports & Crew Chief stats', area: 'team' },
   { key: 'reviews', label: 'Performance reviews', area: 'team' },
   { key: 'analytics', label: 'Analytics', area: null },
+  { key: 'finance', label: 'Finance', area: null },
+  { key: 'transport', label: 'Transport', area: null },
+  { key: 'partnerships', label: 'Partnerships', area: null },
+  { key: 'marketing', label: 'Marketing', area: null },
   { key: 'ai', label: 'AI assistant', area: null, addon: true },
 ];
 const ALL_FEATURE_KEYS = FEATURES.map((f) => f.key);
@@ -139,6 +181,30 @@ export function canModule(role, ent, modKey, action) {
   return can(role, `${modKey}.${action}`);
 }
 
+/**
+ * Sections of a record type this role may edit without the module's edit right (part rights), or []
+ * when it has the full edit right, can't view the type, or has no part rights for it.
+ */
+export function editableSections(role, ent, type) {
+  if (!role || !canType(role, ent, type, 'view') || canType(role, ent, type, 'edit')) return [];
+  return [...new Set(PART_PERMISSIONS.filter((p) => p.type === type && can(role, p.key)).flatMap((p) => p.sections))];
+}
+export const canSeeMoney = (role) => can(role, 'money.view');
+
+/** One role made from several (a member who holds more than one): everything any of them allows. */
+export function mergeRoles(roles) {
+  const list = (roles || []).filter(Boolean);
+  if (!list.length) return null;
+  const first = list[0];
+  return {
+    ...first,
+    name: list.map((r) => r.name).join(' + '),
+    names: list.map((r) => r.name),
+    is_owner: list.some((r) => r.is_owner),
+    permissions: [...new Set(list.flatMap((r) => r.permissions || []))],
+  };
+}
+
 export function canType(role, ent, type, action) {
   if (!role) return false;
   if (type === 'form') return action === 'view' ? true : can(role, 'forms.manage');
@@ -150,26 +216,101 @@ const mod = (keys, actions) => keys.flatMap((k) => actions.filter((a) => moduleA
 const areas = (...keys) => keys.map((k) => `area.${k}`);
 const allMods = MODULES.map((m) => m.key);
 
+const VIEW_TRACK = ['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics', 'enginetunes'];
+const BUSINESS = ['finance', 'transport', 'partnerships', 'marketing'];
+
+// alias: an older name for the same role, so Add standard roles doesn't add it a second time
 export const DEFAULT_ROLES = [
   { name: 'Owner', description: 'Full control of the team', is_owner: true, permissions: [] },
   {
     name: 'Crew Chief',
-    description: 'Runs the car at the track and in the workshop; edits forms; sees reports',
-    permissions: [...areas('track', 'workshop', 'engines', 'team'), ...mod(allMods.filter((m) => m !== 'reviews'), ACTIONS), 'forms.manage'],
+    description: 'Runs the car at the track and in the workshop; calls changes, approves parts orders, edits forms; sees reports',
+    permissions: [...areas('track', 'workshop', 'engines', 'team'), ...mod(allMods.filter((m) => m !== 'reviews' && !BUSINESS.includes(m)), ACTIONS),
+      ...mod(['transport'], ['view']), 'forms.manage', 'purchases.approve', 'money.view'],
   },
   {
-    name: 'Mechanic',
-    description: 'Workshop and engine work; reads setups and track checks',
+    name: 'Car Chief',
+    description: 'Mechanic who also works the setup sheet’s change list: ticks off each change the crew chief calls',
     permissions: [
       ...areas('track', 'workshop', 'engines'),
       ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view']),
-      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs', 'shopsetups', 'enginetunes', 'enginechecks'], ['view', 'edit']),
+      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs', 'shopsetups', 'enginetunes', 'enginechecks', 'purchases'], ['view', 'edit']),
+      ...mod(['customers'], ['view']),
+      'setups.part.changes',
+    ],
+  },
+  {
+    name: 'Mechanic',
+    description: 'Workshop and engine work; reads setups and track checks; raises parts orders',
+    permissions: [
+      ...areas('track', 'workshop', 'engines'),
+      ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view']),
+      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs', 'shopsetups', 'enginetunes', 'enginechecks', 'purchases'], ['view', 'edit']),
       ...mod(['customers'], ['view']),
     ],
   },
   {
-    name: 'Driver / Viewer',
+    name: 'Tire Specialist',
+    description: 'Looks after the tyres: tyre stock and work log, and the tyre and wheel sections of each setup sheet',
+    permissions: [
+      ...areas('track', 'workshop'),
+      ...mod(['cars', 'events', 'calendar', 'setups', 'tracks', 'contacts', 'ai', 'analytics', 'assets'], ['view']),
+      ...mod(['gears', 'purchases'], ['view', 'edit']),
+      'setups.part.tires',
+    ],
+  },
+  {
+    name: 'Driver',
+    description: 'Reads the setup at the track; fills in Track conditions & car feedback (the debrief) after each session',
+    permissions: [...areas('track'), ...mod(VIEW_TRACK, ['view']), 'setups.part.feedback'],
+  },
+  {
+    name: 'Viewer', alias: 'Driver / Viewer',
     description: 'Read-only access at the track',
-    permissions: [...areas('track'), ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics', 'enginetunes'], ['view'])],
+    permissions: [...areas('track'), ...mod(VIEW_TRACK, ['view'])],
+  },
+  {
+    name: 'Transport',
+    description: 'Hauler driver and transport crew: trips, load lists, pre-trip checks, licences and the team’s vehicles',
+    permissions: [
+      ...areas('track', 'workshop'),
+      ...mod(['cars', 'events', 'calendar', 'tracks', 'contacts', 'engines'], ['view']),
+      ...mod(['transport'], ACTIONS), ...mod(['assets', 'maintenance'], ['view', 'edit']),
+    ],
+  },
+  {
+    name: 'Business Manager',
+    description: 'Office and business manager: budget, expenses, income, contracts, exports to accounting software',
+    permissions: [
+      ...areas('team'),
+      ...mod(['cars', 'events', 'calendar', 'customers', 'jobs', 'reports', 'transport', 'partnerships'], ['view']),
+      ...mod(['finance'], ACTIONS), ...mod(['purchases', 'contacts'], ['view', 'edit']),
+      'money.view',
+    ],
+  },
+  {
+    name: 'Partnerships Manager',
+    description: 'Sponsors and partners: deals, deliverables, sponsor reports, paint schemes and hospitality',
+    permissions: [
+      ...areas('team'),
+      ...mod(['cars', 'events', 'calendar', 'reports', 'ai'], ['view']),
+      ...mod(['partnerships'], ACTIONS), ...mod(['marketing', 'contacts'], ['view', 'edit']),
+      'money.view',
+    ],
+  },
+  {
+    name: 'Marketing Manager',
+    description: 'Media library, results posts for social media, merchandise and hospitality check-in',
+    permissions: [
+      ...areas('team'),
+      ...mod(['cars', 'events', 'calendar', 'contacts', 'ai'], ['view']),
+      ...mod(['marketing'], ACTIONS), ...mod(['partnerships'], ['view', 'edit']),
+    ],
   },
 ];
+
+/** Standard roles a team doesn't have yet (by name or older name), for Add standard roles. */
+export function missingStandardRoles(existingNames) {
+  const have = new Set((existingNames || []).map((n) => String(n).trim().toLowerCase()));
+  return DEFAULT_ROLES.filter((r) => !r.is_owner && !have.has(r.name.toLowerCase()) && !(r.alias && have.has(r.alias.toLowerCase())));
+}

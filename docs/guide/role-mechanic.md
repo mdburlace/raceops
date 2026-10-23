@@ -30,6 +30,10 @@ You keep the car right. The built-in Mechanic role can edit checks, maintenance,
 
 Add new shocks with their **position** and **adjustable type**, so they show at the right corner, with the right adjuster boxes, on setup sheets.
 
+## Parts orders
+
+Need a part? **Business → Parts orders → New parts order**. The crew chief approves it, then it's ordered. [Parts orders](/help/parts-orders)
+
 ## Common jobs
 
 | I want to… | Go to |

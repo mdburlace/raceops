@@ -12,8 +12,8 @@
 | Product | RaceOps — race team and engine shop manager (self-hosted, multi-tenant PWA) |
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
-| Last schema migration | `018_engine_tunes.sql` |
-| Last updated | October 2026 (a line for each day in lists) |
+| Last schema migration | `019_team_roles.sql` |
+| Last updated | October 2026 (team roles and the Business area) |
 
 ---
 
@@ -60,6 +60,8 @@ The app is split into four **areas**, each with its own access control and licen
 | **In the Workshop** (`workshop`) | Car maintenance checklists and service schedules, asset lifecycle and measurements, shock and torsion-bar dyno |
 | **Engine Builds** (`engines`) | Engine build sheets, and for engine shops: customers, jobs (parts and labour), sharing engines with owners |
 | **Team Management** (`team`) | Members, roles, forms, reports, Crew Chief stats, reviews, the calendar |
+
+The **Business** group in the menu (`/business`) is not an area: its modules — parts orders, finance, transport, partnerships and marketing — have no area (like the calendar) and are gated by their own rights and licence features (§11.3).
 
 Cross-cutting features: cars, contacts and suppliers, analytics, 47 calculators, a fuel planner, track weather, an optional AI assistant (paid add-on), the shared calendars, and an in-app user guide.
 
@@ -162,6 +164,7 @@ server/
   src/backupCli.js        command-line backup / inspect / restore
   src/exportData.js       team data export: CSV (ZIP), XML, JSON, with files; a small ZIP writer
   src/recycle.js          recently deleted: listing, recovery, retention, the hourly clean-up
+  src/partners.js         sponsor portal (no-login sponsor page and its photos), media library file list
 shared/                   code used by server AND web
   catalog.js              areas, modules, record types, permissions, plans, default roles
   platform.js             default platform settings, plans merge, licence state, AI models and prices, pick-lists
@@ -170,6 +173,14 @@ shared/                   code used by server AND web
   calcs.js, gearLists.js, fuel.js, dyno.js, bars.js, sessions.js, analytics.js, advisor.js, weather.js, tracks.js,
   engineChecks.js, enginePack.js, shop.js, setupLayout.js, themes.js, calendar.js
   practiceData.js         demo data for practice teams (training)
+  baseForms5.js           phase 5 forms (parts orders, finance, transport, partnerships, marketing) and upgrades (change list, tyre targets, crew list, tyre work log, contact tags, vehicles)
+  fieldInfo5.js           ⓘ descriptions for the phase 5 fields (merged into FIELD_INFO)
+  regions.js              region packs (AU, NZ, US, UK, EU): currency, tax, business number, licence classes, work-hour rules, inspections, accounting order
+  accounting.js           finance categories, accounting connectors (file now, API/enterprise later), export rows, tax codes, CSV layouts
+  finance.js              event and period profit and loss, wear from laps, budget alerts
+  reminders.js            the reminders engine (dated and low-stock items from every module)
+  partners.js             sponsor deliverable progress from evidence, deal results, offline results-post draft
+  raceNight.js            current events, crew spot, race-night jobs by role, load list items from an event
   workshopSetup.js        the workshop setup sheet form, and mapping it onto a track setup sheet
   engineTune.js           engine tune and engine check forms; active tune, pill-settings row for the weather, check comparison, shared tunes
   guide.js, guideData.js, guideChecklist.js   user guide parser, generated tables, first-run checklist
@@ -254,7 +265,7 @@ Browsers only allow the service worker and "Add to Home Screen" over HTTPS, so p
 | `users` | Accounts | `id uuid`, `email unique`, `name`, `password_hash` (bcrypt), `is_platform_admin`, `disabled`, `last_login_at`, `prefs jsonb` (theme, sidebar, units, `email_notices`) |
 | `tenants` | Teams | `id`, `name`, `racing_type`, `settings jsonb` (team type, season start, units, shop settings, calendar publish, AI opt-out…), `plan`, `features jsonb` (per-team overrides), `status` (`active`/`suspended`), `seats`, `licence_expires date`, `admin_notes`, `ai_budget_usd`, `deleted_retention_days` (NULL = platform default, 0 = forever), `retention_request jsonb` |
 | `roles` | Per-team roles | `tenant_id`, `name` (unique per team), `permissions jsonb` (array of permission keys), `is_owner` |
-| `memberships` | User ↔ team | PK `(user_id, tenant_id)`, `role_id` |
+| `memberships` | User ↔ team | PK `(user_id, tenant_id)`, `role_id` (main role), `extra_role_ids uuid[]` (more roles; never the Owner role) |
 | `invites` | Invite links | `tenant_id`, `email`, `role_id`, `token unique`, `expires_at`, `accepted_at` |
 | `records` | **All syncable business data** | `id uuid` (client-generated), `tenant_id` (NULL = shared/global), `type`, `data jsonb`, `deleted`, `deleted_at`, `deleted_by`, `created_by`, `updated_by`, `created_at`, `updated_at`, `client_updated_at`, `seq bigint` from sequence `record_seq` |
 | `record_history` | Every write attempt | `record_id`, `tenant_id`, `type`, `op` (create/update/delete), `outcome` (applied/superseded), `data`, `user_id`, `client_updated_at` |
@@ -264,6 +275,7 @@ Browsers only allow the service worker and "Add to Home Screen" over HTTPS, so p
 | `admin_audit` | Platform admin and security log | `user_id`, `action`, `target`, `detail`, `at` |
 | `ai_usage` | Every AI call | tenant, user, feature, model, token counts, `cost_usd`, `ok`, `error` |
 | `engine_shares` | No-login engine pages | shop `tenant_id`, `engine_id`, `token`, revoke info, view counts |
+| `sponsor_portals` | No-login sponsor pages | `tenant_id`, `sponsor_id` (a `sponsor` record), `token unique`, `created_by`, `revoked_at`, `views`, `last_viewed_at` |
 | `engine_links` | Shop engine ↔ owner team | `shop_tenant_id`, `engine_id`, `code`, `status` (pending/active/ended), `team_tenant_id`, `team_asset_id`, `feed_lifecycle`, `snapshot` |
 | `calendar_requests` | Team/feed requests to the shared calendars | `tenant_id` (NULL for feed), `kind` (share/change), `subject_type`, `subject_id`, `title`, `payload`, `note`, `status`, `decision`, `source` (team/feed/official), `seen` |
 | `calendar_request_messages` | Question/answer thread on a request | `request_id`, `from_admin`, `body` |
@@ -355,7 +367,15 @@ Permission keys:
 
 Owners skip 2 and 3 but never 1. Forms: everyone can view; editing needs `forms.manage`. The same functions run on the server (enforcement) and in the web app (what to show).
 
-**Default roles** created with each team: Owner, Crew Chief, Mechanic, Driver / Viewer (see `DEFAULT_ROLES`). Teams can add their own roles.
+**Default roles** created with each team: Owner, Crew Chief, Car Chief, Mechanic, Tire Specialist, Driver, Viewer, Transport, Business Manager, Partnerships Manager, Marketing Manager (see `DEFAULT_ROLES`; teams made before October 2026 have Owner, Crew Chief, Mechanic and Driver / Viewer). `POST /roles/standard` adds the missing ones by name (`missingStandardRoles`, an `alias` counts: Viewer = Driver / Viewer). Teams can add their own roles.
+
+**Several roles per member:** `memberships.extra_role_ids`. `requireMember` and `membershipsFor` merge the main and extra roles with `mergeRoles` (union of permissions, owner if any is), keeping the main role's id, so every check and the device see one role.
+
+**Special rights** (`SPECIAL_PERMISSIONS`, part of `ALL_PERMISSIONS`):
+
+- **Part rights** (`PART_PERMISSIONS`): `setups.part.feedback`, `setups.part.changes`, `setups.part.tires` give a role that can only *view* setups the right to change the listed sections (`feedback`; `changes`; `tires`, `wheels`). `editableSections(role, ent, type)` returns them (empty when the role has the full edit right). The device opens only those sections (`FormRenderer roSections`); the server (§8.2) takes only those values.
+- `purchases.approve`: approve or decline parts orders (enforced in sync).
+- `money.view`: see the fields in `MONEY_FIELDS` (parts order costs, finance amounts and rates, budget lines, contract and sponsor values, merchandise cost, engine rebuild cost). Without it they're stripped from pulls, push results and record history, and kept unchanged on push.
 
 ### 7.5 Platform admin
 
@@ -383,6 +403,8 @@ The device sends dirty records in batches of up to 200 (server limit 500): `{ ch
 3. checks permissions: global records need a platform admin and a global type; team records need `edit`, or `delete` when deleting;
 4. **conflict rule:** if the stored `client_updated_at` is newer than the incoming one, the change is `superseded`, written to history, and the newer record is returned;
 5. otherwise inserts or updates (new `seq`), writes history `applied`, and runs side effects (`onRecordSaved`, e.g. ending engine sharing when an engine changes owner).
+
+Before 4: a role with only part rights on the type may **update** (never create or delete): `partialChange` loads the record's form and takes from the device only the values of fields in the allowed sections, keeping everything else as stored. A role without `money.view` keeps the stored `MONEY_FIELDS` (`keepMoney`). A `purchase` whose status changes to Approved or Declined needs `purchases.approve`, else `denied`. Every record returned to the device goes through `hideMoney`.
 
 The device then marks each record clean, replaces it with the server copy, or drops it if denied (raising a `raceops:denied` event so the UI can explain). A record edited again while its push was in flight stays dirty.
 
@@ -473,6 +495,7 @@ Conventions:
 | `backupCli.js` | command line | `backup`, `team`, `inspect`, `restore` |
 | `exportData.js` | used by `POST /api/t/:tid/backup/export` | team data export (§19.5) |
 | `recycle.js` | `/api/t/:tid/deleted*`, `/api/admin/deleted*` | recently deleted (§19.6) |
+| `partners.js` | `/api/public/sponsor/:token[/photos/:id]`, `/api/t/:tid/sponsors/:id/portal`, `/api/t/:tid/media/files` | sponsor portal (no login), media library files |
 | `practice.js` | `/api/t/:tid/practice/reset`; `makePractice()` called from `POST /api/admin/tenants` | practice teams (§11.2) |
 
 The full route list is in [Appendix D](#appendix-d--api-routes).
@@ -506,6 +529,11 @@ Each module is a set of record types, base forms, pages and (sometimes) shared c
 | Reviews (`reviews`) | `review` | Ratings and feedback per member and period |
 | AI (`ai`) | — | Server-side only; see §15 |
 | Analytics (`analytics`) | — | Computed on device from records (`shared/analytics.js`): performance, conditions, setups that worked, jet chart, service forecast, shock fade |
+| Parts orders (`purchases`, area none, no feature) | `purchase` | Status Requested → Approved/Declined (needs `purchases.approve`) → Ordered → Received; `cost` = qty × `unit_cost` when blank; **Record as an expense** prefills an expense (`?purchase=`) and saving links `expense` and marks it Received |
+| Finance (`finance`, feature `finance`) | `expense`, `income`, `budget`, `contract` | Amounts carry `currency` and `rate` to the team currency (`baseAmount`); budget `lines` table by category with `alert_pct`; `shared/finance.js`: `eventPnl` (expenses, income, unexpensed orders, wear from `setupsByAsset`: tyre cost × laps share, engine `rebuild_cost` over laps to freshen, parts cost ÷ life), `periodPnl`, `budgetAlerts`; export in `shared/accounting.js` (§11.3) marks `exported` |
+| Transport (`transport`, feature `transport`) | `trip`, `load_list`, `pre_trip`, `licence` | Vehicles are assets with category `Vehicle` (`vehicle_type`, `rego_due`, `inspection_due`); load list `items` table with stamped ticks (`loaded`, `at_track`, `home` + `_by`/`_at`), templates (`is_template`), `loadItemsFor()` adds the event's car and engines; licence class options from the region (`optionsFrom: 'region.licence_classes'`); trip fuel and tolls → travel expense |
+| Partnerships (`partnerships`, feature `partnerships`) | `sponsor`, `livery`, `guest` | Sponsor `stage` pipeline, `deliverables` table; `shared/partners.js deliverableProgress()` counts liveries/media (logo), Posted `social_post` per deal event (posts), checked-in guests' passes; season report and proposal at `/print/sponsor/:id`; sponsor portal (`sponsor_portals`, `/sp/:token`); `public` sponsors on the published calendar (`show_sponsors`) |
+| Marketing (`marketing`, feature `marketing`) | `media`, `social_post`, `merch` | Post status Draft → Approved → Posted; `draftPost()` offline, `POST /ai/post` with AI; share via `navigator.share`; media photos are attachments (`/media/files` lists them) |
 
 Other shared logic: 47 calculators (`calcs.js`, documented by the `{{calculators}}` guide embed), fuel planner (`fuel.js`), sessions (`sessions.js`), themes (`themes.js`), weather maths (`weather.js`).
 
@@ -521,7 +549,7 @@ Not team data, so it lives in its own tables (§6.1), not in `records`, and is o
 ### 11.2 Practice teams and the training pack (`server/src/practice.js`, `shared/practiceData.js`)
 
 - A practice team is an ordinary tenant with `tenants.settings.practice = true` and team type `both`. A platform admin creates one by ticking **Practice team** on **Create a team** (`POST /api/admin/tenants` with `practice: true`); the server calls `makePractice()`, which sets the flag and seeds it in the same transaction. The audit entry records `practice`.
-- `practiceData({ form, today, uuid })` returns the demo records (cars, engines, shocks, bars, wheels, wings, tyres, a contact and supplier, the *Club Championship* series with eight past rounds and two setup sheets each, tonight's event with a Heat 1 sheet and a between-round check, next week's round 9, three schedules, a weekly maintenance, an engine build, and an engine shop customer, engine and job J-1001). Dates are relative to `today`, so the data always looks current. `seedPractice()` maps each record to the team's form for its type and writes record history.
+- `practiceData({ form, today, uuid })` returns the demo records (cars, engines, shocks, bars, wheels, wings, tyres, a contact and supplier, the *Club Championship* series with eight past rounds and two setup sheets each, tonight's event with a Heat 1 sheet and a between-round check, next week's round 9, three schedules, a weekly maintenance, an engine build, and an engine shop customer, engine and job J-1001, plus business records: a parts order, budget, expenses and income per round, an unpaid bill, a contract, the sponsor Valley Tyres with a paint scheme, photo, post and guest, a prospect, merchandise, the Hauler, a licence, a load list template and a trip). Dates are relative to `today`, so the data always looks current. `seedPractice()` maps each record to the team's form for its type and writes record history.
 - `POST /api/t/:tid/practice/reset` (owner, `team.manage` or platform admin; practice teams only, else 400) removes every record except `form` and `gear_list` for good (with their attachments and history, so they don't fill Recently deleted), sets a new `data_epoch` (devices download the team again), deletes the team's calendar requests and team notices, and re-seeds. Forms and roles are kept.
 - Practice teams can't send calendar requests (`calendarRequests.js` returns 400), so trainees never reach the shared-calendar admins.
 - Web: a **Practice team** banner in `Layout` (links to `/help/training`), and a **Practice team** box with **Reset practice data** on the Team page.
@@ -530,6 +558,18 @@ Not team data, so it lives in its own tables (§6.1), not in `records`, and is o
 **Team types** (`shared/shop.js TEAM_TYPES`): `race`, `shop`, `both`. They change navigation and checklists, not permissions.
 
 ---
+
+### 11.3 Shared foundations of the business modules
+
+- **The event is the spine.** New records carry `event`; the event page (`EventBusiness`) lists every linked record by type, the crew list and the event P&L, with **+ Add** prefilled.
+- **Crew list:** event `crew` table (member, role text). `shared/raceNight.js` finds today's events where the person is on the crew and maps the role text (or role names) to jobs (debrief, change list, tyre sheet, load list, trip, guests, post, media) for the Home card.
+- **Setup sheet additions:** `changes` section (`change_list` table with stamped `done`; **Add changes from this sheet** from `changedFields`), `tire_sheet` section (target pressure, stagger, spacing; compared on the Tires section).
+- **Contacts:** `tags` (Sponsor, Supplier, Engine customer, Promoter, Hospitality guest, Transport driver, Media, Official) and consent fields.
+- **Reminders:** `shared/reminders.js computeReminders()` on the device from licence, vehicle, expense (unpaid), contract, sponsor (and deliverable due dates), merch and decal stock, budget alerts and requested parts orders, filtered by what the role can view; lead days in `LEAD_DAYS`. No table, no email yet.
+- **Region packs:** `shared/regions.js` (team settings `region`, `currency`, `tax_rate`, `entity_name`); `regionOf()` used by finance, the receipt tax hint, licence classes, transport rule links and the export.
+- **Accounting export:** `exportRows()` builds one row per expense/income (dates, party, business number, category → account code from `settings.accounting.accounts`, currency, rate, base amount, tax, car/event cost centres, entity), `buildExport(connector)` lays out Xero, QuickBooks Online, MYOB, Sage or universal CSV with region tax codes (`taxCode`). Connectors marked `future` (direct API, NetSuite, Dynamics 365 BC, Sage Intacct, SAP B1) are listed but not built.
+- **Table cells:** `TableField` columns may be `check` (with `stamp`: `<key>_by`, `<key>_at`), `options`, `member` or `date` as well as text and number.
+- **Upgrades:** `PHASE5_UPGRADES` (baseForms5) run with the others; new upgrade kind `addOptions` adds pick-list choices once (asset category `Vehicle`).
 
 ## 12. Shared calendars subsystem
 
@@ -851,6 +891,7 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | `015_backups.sql` | `backup_targets`, `backup_plans`, `backup_runs`; `backup.manage` for roles with `team.manage` |
 | `016_recently_deleted.sql` | `records.deleted_at`, `deleted_by` (back-filled); `tenants.deleted_retention_days`, `retention_request`; `trash.manage` for roles with `team.manage` |
 | `017_workshop_setups.sql` | `shopsetups` rights for existing roles: full for roles that edit setups, view/edit for roles that edit maintenance or assets, view for roles that view setups |
+| `019_team_roles.sql` | `memberships.extra_role_ids`; `sponsor_portals`; parts-order rights for existing roles (full with approve and `money.view` for roles that delete setups, view/edit for roles that edit maintenance or assets) |
 | `018_engine_tunes.sql` | `enginetunes` and `enginechecks` rights for existing roles: tunes full for roles that delete engine builds or setups, view/edit for roles that edit builds, setups or maintenance, view for roles that view setups or builds; checks full for roles that delete maintenance or builds, view/edit for editors, view for viewers |
 
 ## Appendix C — Record types
@@ -875,20 +916,25 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | jobs | `job` |
 | customers | `customer` |
 | reviews | `review` |
+| purchases | `purchase` |
+| finance | `expense`, `income`, `budget`, `contract` |
+| transport | `trip`, `load_list`, `pre_trip`, `licence` |
+| partnerships | `sponsor`, `livery`, `guest` |
+| marketing | `media`, `social_post`, `merch` |
 | (all) | `form` |
 
 ## Appendix D — API routes
 
-Public: `GET /api/health`, `POST /api/device/clear-cache`, `GET /api/status`, `POST /api/setup`, `POST /api/setup/restore` (only while no users exist), `GET /api/backup/oauth/callback`, `GET /api/backup/ops/:id`, `POST /api/auth/login`, `GET|POST /api/invites/:token[/accept]`, `GET /api/share/:token`, `GET /api/public/calendar/:token[.ics]`, `GET /api/public/shared/:type/:id[.ics]`.
+Public: `GET /api/health`, `POST /api/device/clear-cache`, `GET /api/status`, `POST /api/setup`, `POST /api/setup/restore` (only while no users exist), `GET /api/backup/oauth/callback`, `GET /api/backup/ops/:id`, `POST /api/auth/login`, `GET|POST /api/invites/:token[/accept]`, `GET /api/share/:token`, `GET /api/public/calendar/:token[.ics]`, `GET /api/public/shared/:type/:id[.ics]`, `GET /api/public/sponsor/:token`, `GET /api/public/sponsor/:token/photos/:id`.
 
 Signed in: `GET|PATCH /api/me`; feedback `GET /api/feedback/mine|roadmap|similar`, `POST /api/feedback`, `POST /api/feedback/seen`, `POST /api/feedback/:id/files|reply|withdraw|vote`, `DELETE /api/feedback/:id/files/:fid`, `GET /api/feedback/files/:fid[?download]`.
 
-Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `PATCH|DELETE /roles/:id`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; practice `POST /practice/reset`; backups (`backup.manage`) `GET /backup`, `PUT /backup/plan`, `POST /backup/run|upload|restore`, `GET /backup/runs/:id/download`, `DELETE /backup/runs/:id`, `POST /backup/targets`, `PATCH|DELETE /backup/targets/:id`, `POST /backup/targets/:id/connect|test`, `GET /backup/targets/:id/files`, `POST /backup/export`; recently deleted `GET /deleted`, `POST /deleted/recover|retention-request`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
+Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `POST /roles/standard`, `PATCH|DELETE /roles/:id` (members `PATCH` takes `role_id` and `extra_role_ids`); sponsors `GET|POST|DELETE /sponsors/:id/portal`, `GET /media/files`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import|post`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; practice `POST /practice/reset`; backups (`backup.manage`) `GET /backup`, `PUT /backup/plan`, `POST /backup/run|upload|restore`, `GET /backup/runs/:id/download`, `DELETE /backup/runs/:id`, `POST /backup/targets`, `PATCH|DELETE /backup/targets/:id`, `POST /backup/targets/:id/connect|test`, `GET /backup/targets/:id/files`, `POST /backup/export`; recently deleted `GET /deleted`, `POST /deleted/recover|retention-request`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
 
 Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tracks/export|import|reseed`, `settings`, `settings/general`, `settings/lists/:key`, `overview`, `audit`, `system`, `system/upgrade-forms`, `ai`, `ai/test`, `calendar/data`, `calendar/fixtures/:id`, `calendar/series/:id`, `calendar/requests[/:id/decide|ask]`, `calendar/officials[/:id]`, `calendar/duplicates`, `calendar/merge`, `calendar/history/:id[/restore]`, `calendar/feeds[/:id[/check]]`, `mail`, `mail/test`, `feedback` (list by view, create idea), `feedback/:id` (get, patch, delete), `feedback/:id/files|decide|claude|github`, `DELETE feedback/:id/files/:fid`, `backups` (overview), `backups/plans/:scope`, `backups/run`, `backups/teams/:tid/run`, `backups/runs/:id[/download]`, `backups/upload|inspect|restore`, `backups/targets[/:id[/connect|test|files]]`, `deleted`, `deleted/recover`, `deleted/retention[/:tid[/decline]]`.
 
 ## Appendix E — Web routes
 
-Public: `/login`, `/invite/:token`, `/s/:token`, `/c/:token`, `/cal/:type/:id`, `/print/calendar`, `/print/guide`, `/print/job/:id`.
+Public: `/login`, `/invite/:token`, `/s/:token`, `/c/:token`, `/cal/:type/:id`, `/sp/:token`, `/print/calendar`, `/print/guide`, `/print/job/:id`.
 
-Signed in: `/` (home), `/track`, `/workshop`, `/engines`, `/team`, `/team/members`, `/team/reports`, `/team/reviews`, `/team/stats`, `/roles`, `/forms`, `/forms/:id`, `/cars`, `/events`, `/events/:id`, `/series`, `/series/:id`, `/setups`, `/compare`, `/track/advisor`, `/track/advisor/guides[/:id]`, `/track/checks`, `/track/gears`, `/tracks`, `/tracks/:id`, `/calendar`, `/maintenance`, `/assets`, `/assets/:id`, `/workshop/dyno`, `/engines/linked/:id`, `/link-engine/:code`, `/jobs`, `/customers`, `/customers/:id`, `/contacts`, `/contacts/:id`, `/suppliers`, `/calculators`, `/analytics`, `/ask`, `/help`, `/help/:id`, `/feedback`, `/profile`, `/r/:type/:id` (generic record editor), `/admin`, `/admin/teams|plans|users|directory|lists|settings|system|ai|calendar|feedback|backups|deleted`, `/team/backups`, `/deleted`, `/workshop/setups`, `/workshop/engine-checks`, `/tunes`. Print: `/print/tune/:id`, `/print/engine-check/:id`.
+Signed in: `/` (home), `/track`, `/workshop`, `/engines`, `/team`, `/team/members`, `/team/reports`, `/team/reviews`, `/team/stats`, `/roles`, `/forms`, `/forms/:id`, `/cars`, `/events`, `/events/:id`, `/series`, `/series/:id`, `/setups`, `/compare`, `/track/advisor`, `/track/advisor/guides[/:id]`, `/track/checks`, `/track/gears`, `/tracks`, `/tracks/:id`, `/calendar`, `/maintenance`, `/assets`, `/assets/:id`, `/workshop/dyno`, `/engines/linked/:id`, `/link-engine/:code`, `/jobs`, `/customers`, `/customers/:id`, `/contacts`, `/contacts/:id`, `/suppliers`, `/calculators`, `/analytics`, `/ask`, `/help`, `/help/:id`, `/feedback`, `/profile`, `/r/:type/:id` (generic record editor), `/admin`, `/admin/teams|plans|users|directory|lists|settings|system|ai|calendar|feedback|backups|deleted`, `/team/backups`, `/deleted`, `/workshop/setups`, `/workshop/engine-checks`, `/tunes`, `/business`, `/reminders`, `/purchases`, `/finance`, `/transport`, `/partners`, `/partners/sponsors/:id`, `/marketing`. Print: `/print/tune/:id`, `/print/engine-check/:id`, `/print/sponsor/:id[?kind=proposal]`.

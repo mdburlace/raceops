@@ -30,6 +30,10 @@ import { AdminBackups, TeamBackups } from './pages/Backups.jsx';
 import { AdminDeleted, RecentlyDeleted } from './pages/Deleted.jsx';
 import { WorkshopSetups } from './pages/WorkshopSetups.jsx';
 import { CheckPrint, EngineCheckList, EngineTunes, TunePrint } from './pages/EngineTunes.jsx';
+import { BusinessHub, Purchases, RemindersPage } from './pages/Business.jsx';
+import { Finance } from './pages/Finance.jsx';
+import { Transport } from './pages/Transport.jsx';
+import { Marketing, Partnerships, SponsorDetail, SponsorPortal, SponsorPrint } from './pages/Partners.jsx';
 import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
 
 /** A fresh record page per record — moving between records never carries one's state into another. */
@@ -58,6 +62,7 @@ function Routed() {
       <Route path="/s/:token" element={<SharePage />} />
       <Route path="/c/:token" element={<PublicCalendar />} />
       <Route path="/cal/:type/:id" element={<PublicShared />} />
+      <Route path="/sp/:token" element={<SponsorPortal />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
@@ -69,6 +74,7 @@ function Routed() {
       <Route path="/s/:token" element={<SharePage />} />
       <Route path="/c/:token" element={<PublicCalendar />} />
       <Route path="/cal/:type/:id" element={<PublicShared />} />
+      <Route path="/sp/:token" element={<SponsorPortal />} />
         <Route path="*" element={<NoTeam />} />
       </Routes>
     );
@@ -79,12 +85,14 @@ function Routed() {
       <Route path="/s/:token" element={<SharePage />} />
       <Route path="/c/:token" element={<PublicCalendar />} />
       <Route path="/cal/:type/:id" element={<PublicShared />} />
+      <Route path="/sp/:token" element={<SponsorPortal />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/print/tune/:id" element={<ModuleGate module="enginetunes"><TunePrint /></ModuleGate>} />
       <Route path="/print/engine-check/:id" element={<AreaGate area="workshop" module="enginechecks"><CheckPrint /></AreaGate>} />
       <Route path="/print/job/:id" element={<AreaGate area="engines" module="jobs"><JobPrint /></AreaGate>} />
       <Route path="/print/guide" element={<HelpPrint />} />
       <Route path="/print/calendar" element={<ModuleGate module="calendar"><CalendarPrint /></ModuleGate>} />
+      <Route path="/print/sponsor/:id" element={<ModuleGate module="partnerships"><SponsorPrint /></ModuleGate>} />
       <Route element={<Layout />}>
         <Route index element={<Landing />} />
         {/* At the track */}
@@ -136,6 +144,15 @@ function Routed() {
         <Route path="compare" element={<Compare />} />
         <Route path="r/:type/:id" element={<RecordRoute />} />
         <Route path="profile" element={<Profile />} />
+        {/* Business */}
+        <Route path="business" element={<BusinessHub />} />
+        <Route path="reminders" element={<RemindersPage />} />
+        <Route path="purchases" element={<ModuleGate module="purchases"><Purchases /></ModuleGate>} />
+        <Route path="finance" element={<ModuleGate module="finance"><Finance /></ModuleGate>} />
+        <Route path="transport" element={<ModuleGate module="transport"><Transport /></ModuleGate>} />
+        <Route path="partners" element={<ModuleGate module="partnerships"><Partnerships /></ModuleGate>} />
+        <Route path="partners/sponsors/:id" element={<ModuleGate module="partnerships"><SponsorDetail /></ModuleGate>} />
+        <Route path="marketing" element={<ModuleGate module="marketing"><Marketing /></ModuleGate>} />
         {/* Platform admin */}
         <Route path="admin" element={<AdminGate><AdminOverview /></AdminGate>} />
         <Route path="admin/calendar" element={<AdminGate><AdminCalendar /></AdminGate>} />

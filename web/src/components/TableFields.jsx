@@ -3,6 +3,55 @@ import { useState } from 'react';
 import { ADJUSTERS } from '@shared/baseForms2.js';
 import { fillX, parseGearSets, parseSweep, parseTable } from '../lib/parse.js';
 import { SHEET_ACCEPT, readSpreadsheet, sheetToText } from '../lib/sheets.js';
+import { fmtDate, fmtDateTime, memberName, membersList } from '../lib/data.js';
+import { useSession } from '../lib/session.jsx';
+
+/**
+ * One table cell. Columns are numbers by default; text: true, date: true, options: [...] (a pick-list),
+ * member: true (a team member) or check: true (a tick box — stamp: true also records who ticked it and when,
+ * in <key>_by and <key>_at).
+ */
+function Cell({ c, row, readOnly, label, set, setMany }) {
+  const { user } = useSession() || {};
+  const val = row[c.key];
+  if (c.check) {
+    const by = c.stamp && val ? [memberName(row[`${c.key}_by`]), row[`${c.key}_at`] && fmtDateTime(row[`${c.key}_at`])].filter(Boolean).join(' · ') : '';
+    if (readOnly) return <span className="cell-check" title={by}>{val ? '✓' : ''}{by ? <small className="muted"> {by}</small> : null}</span>;
+    return (
+      <label className="cell-check" title={by}>
+        <input type="checkbox" aria-label={label} checked={!!val} onChange={(e) => (c.stamp
+          ? setMany({ [c.key]: e.target.checked, [`${c.key}_by`]: e.target.checked ? user?.id || '' : '', [`${c.key}_at`]: e.target.checked ? new Date().toISOString() : '' })
+          : set(e.target.checked))} />
+        {by ? <small className="muted">{by}</small> : null}
+      </label>
+    );
+  }
+  if (c.member) {
+    if (readOnly) return memberName(val);
+    return (
+      <select aria-label={label} value={val ?? ''} onChange={(e) => set(e.target.value)}>
+        <option value="">—</option>
+        {membersList().map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+        {val && !membersList().some((m) => m.id === val) ? <option value={val}>{memberName(val)}</option> : null}
+      </select>
+    );
+  }
+  if (c.options) {
+    if (readOnly) return val ?? '';
+    return (
+      <select aria-label={label} value={val ?? ''} onChange={(e) => set(e.target.value)}>
+        <option value="">—</option>
+        {[...new Set([...c.options, ...(val && !c.options.includes(val) ? [val] : [])])].map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+  if (c.date) {
+    if (readOnly) return fmtDate(val);
+    return <input type="date" aria-label={label} value={val ?? ''} onChange={(e) => set(e.target.value)} />;
+  }
+  if (readOnly) return val ?? '';
+  return <input inputMode={c.text ? 'text' : 'decimal'} className={c.text ? 'txt' : 'num'} aria-label={label} value={val ?? ''} onChange={(e) => set(e.target.value)} />;
+}
 
 function PastePanel({ onApply, onClose, hint, allowAppend = true }) {
   const [text, setText] = useState('');
@@ -38,7 +87,7 @@ function PastePanel({ onApply, onClose, hint, allowAppend = true }) {
 
 export function TableField({ field, value, onChange, readOnly, compactHelp, labelPrefix = '' }) {
   const cols = field.columns || [];
-  const rows = Array.isArray(value) && value.length ? value : (field.defaultRows || [{}]);
+  const rows = Array.isArray(value) && (value.length || field.defaultRows?.length === 0) ? value : (field.defaultRows?.length === 0 ? [] : field.defaultRows || [{}]);
   const [panel, setPanel] = useState(null);
   const [fill, setFill] = useState({ start: '0', end: '10', step: '0.25' });
   const [msg, setMsg] = useState('');
@@ -90,11 +139,9 @@ export function TableField({ field, value, onChange, readOnly, compactHelp, labe
             {rows.map((r, i) => (
               <tr key={i}>
                 {cols.map((c) => (
-                  <td key={c.key}>
-                    {readOnly ? (r[c.key] ?? '') : (
-                      <input inputMode={c.text ? 'text' : 'decimal'} className={c.text ? 'txt' : 'num'} aria-label={`${labelPrefix}${c.label} row ${i + 1}`}
-                        value={r[c.key] ?? ''} onChange={(e) => set(i, c.key, e.target.value)} />
-                    )}
+                  <td key={c.key} className={c.check ? 'td-check' : ''}>
+                    <Cell c={c} row={r} readOnly={readOnly} label={`${labelPrefix}${c.label} row ${i + 1}`}
+                      set={(x) => set(i, c.key, x)} setMany={(patch) => onChange(rows.map((row, j) => (j === i ? { ...row, ...patch } : row)))} />
                   </td>
                 ))}
                 {!readOnly && <td><button type="button" className="icon-btn" aria-label="Remove row" onClick={() => onChange(rows.filter((_, j) => j !== i))}>✕</button></td>}

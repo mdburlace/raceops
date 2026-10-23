@@ -9,6 +9,7 @@ import { saveRecord } from '../lib/store.js';
 import { orderForNew, orderSessions } from '../lib/sessions.js';
 import { EntryResult } from './Calendar.jsx';
 import DayLines from '../components/DayLines.jsx';
+import { EventBusiness } from './Business.jsx';
 
 /** Number of days an event runs (1 for single-day). */
 export const eventDays = (ev) => Math.max(1, eventDayList(ev?.data?.values).length);
@@ -287,6 +288,7 @@ export function EventDetail() {
       )}
       {car ? carBlock(car, true) : <ChooseCar ev={ev} data={data} />}
       {otherCars.map((c) => carBlock(c, false))}
+      <EventBusiness ev={ev} />
       <ContactLinks data={data} entity={ev} />
     </div>
   );

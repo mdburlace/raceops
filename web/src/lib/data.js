@@ -13,6 +13,10 @@ export const setTeamClasses = (list) => { TEAM_CLASSES = Array.isArray(list) ? l
 // the car form's original fixed classes, superseded by the shared Race classes list
 const OLD_CAR_CLASSES = ['410 Winged Sprint', '360 Winged Sprint', '305 Winged Sprint', 'Other'];
 export const platformList = (key) => PLATFORM_LISTS[key] || null;
+// the team's region pack (Team → Region & currency): licence classes, tax, currency
+let REGION = null;
+export const setRegion = (r) => { REGION = r; };
+export const teamRegion = () => REGION;
 
 /** All live (non-deleted) records of the current team, indexed by type and id. */
 export function useTeamData() {
@@ -55,6 +59,11 @@ export function optionsOf(field, form, data) {
   }
   if (lk && PLATFORM_LISTS[lk]?.length) return PLATFORM_LISTS[lk];
   if (field.optionsFrom === 'sessions') return form?.data.sessions || [];
+  if (field.optionsFrom?.startsWith('region.')) {
+    const list = REGION?.[field.optionsFrom.slice(7)];
+    // the region's choices first; anything else the form lists stays pickable
+    return Array.isArray(list) ? [...new Set([...list, ...(field.options || [])])] : field.options || [];
+  }
   if (field.optionsFrom === 'levels') return (form?.data.levels || []).map((l) => ({ value: l.key, label: l.label }));
   if (field.optionsFrom && data) {
     const [target, key] = field.optionsFrom.split('.');
@@ -115,10 +124,28 @@ export function titleOf(rec, data) {
     case 'shop_setup': return `${vals.name || 'Workshop setup'}${data?.byId[vals.car] ? ` · ${titleOf(data.byId[vals.car])}` : ''}`;
     case 'engine_tune': return `${vals.name || 'Engine tune'}${data?.byId[vals.engine] ? ` · ${titleOf(data.byId[vals.engine])}` : ''}${vals.active ? ' (active)' : ''}`;
     case 'engine_check': return `Engine check${data?.byId[vals.engine] ? ` · ${titleOf(data.byId[vals.engine])}` : ''}${vals.date ? ` · ${fmtDate(vals.date)}` : ''}`;
+    case 'purchase': return `${vals.item || 'Parts order'}${vals.qty && String(vals.qty) !== '1' ? ` × ${vals.qty}` : ''}`;
+    case 'expense': return `${vals.description || vals.supplier_name || vals.category || 'Expense'}${vals.date ? ` · ${fmtDate(vals.date)}` : ''}`;
+    case 'income': return `${vals.description || vals.kind || 'Income'}${vals.date ? ` · ${fmtDate(vals.date)}` : ''}`;
+    case 'budget': return `Budget ${vals.season || ''}`.trim();
+    case 'contract': return vals.name || 'Contract';
+    case 'trip': return `Trip${data?.byId[vals.event] ? ` · ${titleOf(data.byId[vals.event])}` : ''}${vals.depart_date ? ` · ${fmtDate(vals.depart_date)}` : ''}`;
+    case 'load_list': return vals.is_template ? `Template: ${vals.name || 'Load list'}` : `Load list${data?.byId[vals.event] ? ` · ${titleOf(data.byId[vals.event])}` : ''}`;
+    case 'pre_trip': return `Pre-trip check${data?.byId[assetId(vals.vehicle)] ? ` · ${titleOf(data.byId[assetId(vals.vehicle)])}` : ''}${vals.date ? ` · ${fmtDate(vals.date)}` : ''}`;
+    case 'licence': return `${vals.member ? memberName(vals.member) : vals.holder || 'Driver'} · ${vals.class || 'Licence'}`;
+    case 'sponsor': return vals.name || 'Sponsor';
+    case 'livery': return `${vals.name || 'Paint scheme'}${data?.byId[vals.car] ? ` · ${titleOf(data.byId[vals.car])}` : ''}`;
+    case 'guest': return vals.name || 'Guest';
+    case 'media': return vals.caption || 'Photo';
+    case 'social_post': return `Results post${data?.byId[vals.event] ? ` · ${titleOf(data.byId[vals.event])}` : ''}`;
+    case 'merch': return `${vals.name || 'Merchandise'}${vals.variant ? ` (${vals.variant})` : ''}`;
     case 'season_plan': return `${titleOf(data?.byId[vals.series], data)}${data?.byId[vals.car] ? ` · ${titleOf(data.byId[vals.car])}` : ''}`;
     default: return rec.type;
   }
 }
+
+/** An asset field's record id: { asset: id } when picked from inventory, or a typed string. */
+const assetId = (x) => (x && typeof x === 'object' ? x.asset : null);
 
 const LEVELS = { weekly: 'Weekly', race2: 'Every 2nd race', monthly: 'Monthly / 4th race' };
 /** showIf: "key=A", "key=A|B" (any of; empty allowed: "key=|A"), "key!=A|B". */

@@ -22,7 +22,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
 import ContactLinks from '../components/ContactLinks.jsx';
-import { GLOBAL_TYPES } from '@shared/catalog.js';
+import { GLOBAL_TYPES, moneyFields } from '@shared/catalog.js';
+import { ChangeListTools, LoadListTools, PostTools, PurchaseTools, TaxHint, TripTools, TyreTargets } from '../components/RecordExtras.jsx';
 import { Attachments, History, PageHeader } from '../components/ui.jsx';
 import { allFields, isVisible, num, formFor, formsFor, fmtDate, fmtDay, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
 import { dayPosition, eventDayList, normaliseDays } from '@shared/calendar.js';
@@ -36,6 +37,9 @@ export const TYPE_LABEL = {
   gear: 'Gear set', gear_list: 'Gear list', tire: 'Tire', track: 'Track', team_track: 'Team track', contact: 'Contact',
   supplier: 'Supplier', contact_link: 'Contact role', series: 'Series', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
   customer: 'Customer', job: 'Job', shop_setup: 'Workshop setup', engine_tune: 'Engine tune', engine_check: 'Engine check',
+  purchase: 'Parts order', expense: 'Expense', income: 'Income', budget: 'Budget', contract: 'Contract',
+  trip: 'Trip plan', load_list: 'Load list', pre_trip: 'Pre-trip check', licence: 'Driver licence',
+  sponsor: 'Sponsor', livery: 'Paint scheme', guest: 'Hospitality guest', media: 'Photo', social_post: 'Results post', merch: 'Merchandise item',
 };
 
 // New records pre-filled from the latest record with the same car / engine.
@@ -90,6 +94,21 @@ function afterSave(type, rec) {
     case 'shop_setup': return '/workshop/setups';
     case 'engine_tune': return '/tunes';
     case 'engine_check': return '/workshop/engine-checks';
+    case 'purchase': return '/purchases';
+    case 'expense': return '/finance';
+    case 'income': return '/finance?tab=income';
+    case 'budget': return '/finance?tab=budget';
+    case 'contract': return '/finance?tab=contracts';
+    case 'trip': return '/transport';
+    case 'load_list': return '/transport?tab=load';
+    case 'pre_trip': return '/transport?tab=checks';
+    case 'licence': return '/transport?tab=licences';
+    case 'sponsor': return `/partners/sponsors/${rec.id}`;
+    case 'livery': return '/partners?tab=livery';
+    case 'guest': return vals.event ? `/partners?tab=guests&event=${vals.event}` : '/partners?tab=guests';
+    case 'media': return '/marketing?tab=media';
+    case 'social_post': return '/marketing';
+    case 'merch': return '/marketing?tab=merch';
     default: return '/';
   }
 }
@@ -129,14 +148,17 @@ export default function RecordEdit() {
   const { type, id } = useParams();
   const [params] = useSearchParams();
   const nav = useNavigate();
-  const { tid, user, canType, canModule, membership } = useSession();
+  const { tid, user, canType, canModule, membership, editParts, canMoney } = useSession();
   const data = useTeamData();
   const rec = useRecordById(id === 'new' ? null : id);
   const isNew = id === 'new';
   const canBeGlobal = GLOBAL_TYPES.includes(type) && user?.is_platform_admin;
   const [makeGlobal, setMakeGlobal] = useState(type === 'track' || new URLSearchParams(window.location.search).get('scope') === 'global');
   const isGlobal = isNew ? canBeGlobal && makeGlobal : !!(rec?.global || rec?.data?.scope === 'global');
-  const readOnly = !canType(type, 'edit') || (!isNew && isGlobal && !user?.is_platform_admin);
+  // part rights (driver's debrief, car chief's change list, tyre specialist's tyre sections): only those sections open
+  const parts = !isNew && !isGlobal ? editParts(type) : [];
+  const partial = parts.length > 0;
+  const readOnly = (!canType(type, 'edit') && !partial) || (!isNew && isGlobal && !user?.is_platform_admin);
 
   const [formId, setFormId] = useState(null);
   const [values, setValues] = useState(null);
@@ -333,6 +355,8 @@ export default function RecordEdit() {
     if (Object.keys(errs).length) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const vals = { ...values };
     if (type === 'event' && vals.venue && data.byId[vals.venue]) vals.track = v(data.byId[vals.venue], 'name');
+    // parts order: the total is quantity × unit cost when it isn't entered
+    if (type === 'purchase' && !num(vals.cost) && num(vals.unit_cost)) vals.cost = String(Math.round((num(vals.qty) || 1) * num(vals.unit_cost) * 100) / 100);
     const scope = isGlobal ? { scope: 'global' } : {};
     const saved = await saveRecord(tid, type, isNew ? null : id, { ...(rec?.data || {}), ...scope, form_id: form.id, values: vals }, user.id);
     // only one initial measurement per shock or bar: this one takes over
@@ -343,6 +367,9 @@ export default function RecordEdit() {
     }
     // only one active version of an engine's tune: this one takes over
     if (type === 'engine_tune' && vals.active) await makeActive(tid, user.id, { list: (t) => [...data.list(t).filter((r) => r.id !== saved.id), saved] }, saved);
+    // an expense recorded from a parts order: the order points at it and is marked received
+    const fromOrder = type === 'expense' && isNew && data.byId[params.get('purchase')];
+    if (fromOrder) await saveRecord(tid, 'purchase', fromOrder.id, { ...fromOrder.data, values: { ...fromOrder.data.values, expense: saved.id, status: 'Received' } }, user.id);
     setDirty(false);
     nav(params.get('back') || afterSave(type, saved), { replace: true });
   };
@@ -416,7 +443,7 @@ export default function RecordEdit() {
       <PageHeader title={title} sub={sub} back={params.get('back') || (isNew ? -1 : afterSave(type, rec || { data: { values } }))}
         below={(
           <>
-            {!readOnly && canType(type, 'edit') ? <AiTools type={type} form={form} values={values} setValues={(fn) => { setValues(fn); setDirty(true); }} /> : null}
+            {!readOnly && (canType(type, 'edit') || parts.includes('feedback')) ? <AiTools type={type} form={form} values={values} debriefOnly={!canType(type, 'edit')} setValues={(fn) => { setValues(fn); setDirty(true); }} /> : null}
             {layout && !choosingStart && <SheetNav form={form} layout={layout} shown={shownSections} changed={changed} onArrange={() => setArranging(true)} />}
           </>
         )}>
@@ -438,6 +465,12 @@ export default function RecordEdit() {
         )}
       </PageHeader>
 
+      {partial && (
+        <div className="notice info" data-testid="part-notice">You can change <b>{form.data.sections.filter((x) => parts.includes(x.id)).map((x) => x.title).join(' and ') || 'some sections'}</b> on this {TYPE_LABEL[type]?.toLowerCase() || 'record'}; the rest is read-only for your role.</div>
+      )}
+      {type === 'purchase' && !isNew && <PurchaseTools rec={rec} values={values} />}
+      {type === 'social_post' && <PostTools rec={isNew ? null : rec} values={values} readOnly={readOnly} data={data} setValues={(fn) => { setValues(fn); setDirty(true); }} />}
+      {type === 'load_list' && <LoadListTools id={id} values={values} readOnly={readOnly} data={data} setValues={(fn) => { setValues(fn); setDirty(true); }} />}
       {readOnly && (isGlobal && canType(type, 'edit')
         ? <div className="notice info">Shared directory record — kept up to date by the platform administrator. Add your team's notes and contacts on the {TYPE_LABEL[type]?.toLowerCase()} page.</div>
         : <div className="notice">You have read-only access to {TYPE_LABEL[type]?.toLowerCase()}s.</div>)}
@@ -526,12 +559,17 @@ export default function RecordEdit() {
       {arranging && layout && <ArrangeSections form={form} layout={layout} onClose={() => setArranging(false)} />}
       <FormRenderer form={setupForm} values={shownValues} onChange={onChange} data={data} readOnly={readOnly} layout={layout} roKeys={fuelConverting ? ['fuel_start', 'fuel_finish'] : []}
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} recordId={isNew ? null : id} errors={errors}
-        hideKeys={type === 'setup' && evDays.length <= 1 && !(num(values.day) > 1) ? ['day'] : []}
+        hideKeys={[...(type === 'setup' && evDays.length <= 1 && !(num(values.day) > 1) ? ['day'] : []), ...(canMoney ? [] : moneyFields(type))]}
+        roSections={partial ? form.data.sections.map((x) => x.id).filter((x) => !parts.includes(x)) : null}
         sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, rate: <BarResults data={data} id={id} values={values} /> }
           : type === 'dyno_run' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, data: <ShockVsInitial data={data} id={isNew ? null : id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           engine: <TunePanel type="setup" form={form} values={values} readOnly={readOnly} units={wxUnits} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           race: <FuelPlanner id={id} data={data} values={shownValues} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }}
-            unit={fuelShown} recorded={fuelRecorded} setView={(u) => setFuelView(u === fuelRecorded ? null : u)} setRecorded={setFuelRecorded} /> }
+            unit={fuelShown} recorded={fuelRecorded} setView={(u) => setFuelView(u === fuelRecorded ? null : u)} setRecorded={setFuelRecorded} />,
+          changes: <ChangeListTools form={form} values={values} changed={changed} data={data} readOnly={readOnly || partial}
+            setValues={(fn) => { setValues(fn); setDirty(true); }} />,
+          tires: <TyreTargets values={values} /> }
+          : type === 'expense' || type === 'income' ? { amount: <TaxHint values={values} /> }
           : type === 'shop_setup' ? { engine: <TunePanel type="shop_setup" form={form} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />
       {type === 'engine_build' && <EngineChecks values={values} />}
@@ -539,6 +577,7 @@ export default function RecordEdit() {
       {type === 'shop_setup' && !isNew && <ShopSetupLinks rec={rec} values={values} />}
       {type === 'engine_tune' && !isNew && <TuneVersions rec={rec} values={values} />}
       {type === 'engine_check' && <CheckCompare rec={isNew ? null : rec} values={values} />}
+      {type === 'trip' && <TripTools values={values} data={data} />}
 
       {type === 'dyno_run' && <DynoChart runs={[{ id: id || 'new', name: values.label || 'This run', values, form }]} />}
 

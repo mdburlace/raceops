@@ -9,7 +9,7 @@ import { q, tx, migrate } from './db.js';
 import {
   requireAuth, requireMember, hashPassword, checkPassword, signToken, randomToken, HttpError,
 } from './auth.js';
-import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, GLOBAL_TYPES, canType, can, entitlements } from '../../shared/catalog.js';
+import { DEFAULT_ROLES, ALL_PERMISSIONS, RECORD_TYPES, GLOBAL_TYPES, canType, can, entitlements, mergeRoles, missingStandardRoles, editableSections, canSeeMoney, moneyFields } from '../../shared/catalog.js';
 import { mapImportedTrack } from '../../shared/tracks.js';
 import { cleanPrefs } from '../../shared/themes.js';
 import { TEAM_TYPES, cleanShop } from '../../shared/shop.js';
@@ -26,6 +26,7 @@ import { mountPublicShare, mountSharing, onRecordSaved } from './sharing.js';
 import { fetchCalendar, mountCalendar, mountPublicCalendar } from './calendar.js';
 import { mountCalendarPlus, mountPublicShared, startFeedChecks } from './calendarPlus.js';
 import { mountJobs } from './jobs.js';
+import { mountPartners, mountPublicPartners } from './partners.js';
 import { convertLegacySuggestions, mountCalendarRequests, pendingRequests } from './calendarRequests.js';
 import { moveDays, normaliseDays } from '../../shared/calendar.js';
 import { feedbackNotices, mountFeedback } from './feedback.js';
@@ -81,9 +82,19 @@ async function membershipsFor(userId) {
             t.status, t.licence_expires, t.seats,
             (SELECT count(*)::int FROM calendar_requests cr WHERE cr.tenant_id=t.id AND NOT cr.seen) AS calendar_notices,
             (SELECT count(*)::int FROM team_notices n WHERE n.tenant_id=t.id AND NOT n.seen) AS calendar_updates,
-            json_build_object('id', r.id, 'name', r.name, 'permissions', r.permissions, 'is_owner', r.is_owner) AS role
+            json_build_object('id', r.id, 'name', r.name, 'permissions', r.permissions, 'is_owner', r.is_owner) AS role, m.extra_role_ids
        FROM memberships m JOIN tenants t ON t.id=m.tenant_id JOIN roles r ON r.id=m.role_id
       WHERE m.user_id=$1 ORDER BY t.name`, [userId]);
+  // members with more than one role: the device gets one role made from all of them
+  const extraIds = [...new Set(rows.flatMap((m) => m.extra_role_ids || []))];
+  if (extraIds.length) {
+    const { rows: extra } = await q('SELECT id, tenant_id, name, permissions, is_owner FROM roles WHERE id = ANY($1)', [extraIds]);
+    for (const m of rows) {
+      const mine = extra.filter((r) => r.tenant_id === m.tenant_id && (m.extra_role_ids || []).includes(r.id));
+      if (mine.length) m.role = { ...mergeRoles([m.role, ...mine]), id: m.role.id };
+    }
+  }
+  for (const m of rows) delete m.extra_role_ids;
   // plans are editable by the platform admin, so the server works out each team's features
   return rows.map((m) => ({ ...m, entitlements: [...entitlements(m, settings().plans)], licence: licenceState(m), seat_limit: seatLimit(m),
     plan_label: settings().plans[m.plan]?.label || m.plan }));
@@ -384,6 +395,7 @@ app.post('/api/invites/:token/accept', h(async (req, res) => {
 mountPublicShare(app); // no-login engine pages for engine shop customers
 mountPublicCalendar(app); // no-login published team calendars and their iCal feeds
 mountPublicShared(app); // no-login pages and iCal feeds for each shared series and track
+mountPublicPartners(app, { UPLOAD_DIR }); // no-login sponsor pages
 mountBackupPublic(app); // cloud sign-in callback, backup progress, restore on a brand-new server
 app.use('/api', requireAuth);
 
@@ -448,6 +460,7 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
 mountAi(T);
 mountWeather(T);
 mountSharing(T);
+mountPartners(T);
 mountCalendar(T);
 mountCalendarRequests(T);
 mountCalendarPlus(T);
@@ -469,7 +482,7 @@ T.get('/sync', h(async (req, res) => {
   const last = rows.length ? Number(rows[rows.length - 1].seq) : since;
   // changes when the team is restored from a backup: devices then drop their copy and download it again
   const { rows: [t] } = await q("SELECT settings->>'data_epoch' AS epoch FROM tenants WHERE id=$1", [req.tid]);
-  res.json({ records: rows.map((r) => ({ ...r, seq: Number(r.seq) })), since: last, more: rows.length === limit, epoch: t?.epoch || null });
+  res.json({ records: rows.map((r) => hideMoney(req.role, { ...r, seq: Number(r.seq) })), since: last, more: rows.length === limit, epoch: t?.epoch || null });
 }));
 
 // --- Sync: push (last save wins by client timestamp; every attempt is kept in history) ---
@@ -485,6 +498,34 @@ T.post('/sync', h(async (req, res) => {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** A part-rights change: only the values in the allowed sections of the record's form are taken from the device. */
+async function partialChange(c, tid, cur, incoming, sections) {
+  const { rows: [form] } = await c.query("SELECT data FROM records WHERE id=$1 AND tenant_id=$2 AND type='form'", [cur.data?.form_id || incoming?.form_id || null, tid]);
+  const allowed = new Set((form?.data?.sections || []).filter((x) => sections.includes(x.id)).flatMap((x) => (x.fields || []).map((f) => f.key)));
+  const was = cur.data?.values || {};
+  const got = incoming?.values || {};
+  const values = { ...was };
+  for (const k of allowed) { if (k in got) values[k] = got[k]; else delete values[k]; }
+  return { ...cur.data, values };
+}
+
+/** Keep the stored costs and amounts (MONEY_FIELDS) when a role that can't see them saves a record. */
+function keepMoney(cur, incoming, type) {
+  const values = { ...(incoming?.values || {}) };
+  const was = cur?.data?.values || {};
+  for (const k of moneyFields(type)) { if (k in was) values[k] = was[k]; else delete values[k]; }
+  return { ...incoming, values };
+}
+
+/** A record as sent to a role that can't see costs and amounts. */
+function hideMoney(role, r) {
+  const keys = moneyFields(r.type);
+  if (!keys.length || canSeeMoney(role) || !r.data?.values) return r;
+  const values = { ...r.data.values };
+  for (const k of keys) delete values[k];
+  return { ...r, data: { ...r.data, values } };
+}
+
 async function applyChange(c, req, ch) {
   const { id, type, data: incoming = {}, deleted = false } = ch || {};
   if (!UUID.test(id || '') || !RECORD_TYPES.includes(type)) return { id, status: 'invalid' };
@@ -493,9 +534,9 @@ async function applyChange(c, req, ch) {
   const { rows: [cur] } = await c.query('SELECT * FROM records WHERE id=$1 FOR UPDATE', [id]);
   // events and shared dates: the days and the date span always agree, whatever app version sent the change
   // (an older app that only moved the date moves the days with it)
-  const data = (type === 'event' || type === 'fixture') && !deleted && incoming?.values
+  let data = (type === 'event' || type === 'fixture') && !deleted && incoming?.values
     ? { ...incoming, values: normaliseDays(moveDays(cur?.data?.values, incoming.values)) } : incoming;
-  const current = (r) => r && { ...r, seq: Number(r.seq), global: r.tenant_id === null };
+  const current = (r) => r && hideMoney(req.role, { ...r, seq: Number(r.seq), global: r.tenant_id === null });
   const isGlobal = cur ? cur.tenant_id === null : data?.scope === 'global';
 
   if (cur && cur.type !== type) return { id, status: 'denied' };
@@ -503,8 +544,21 @@ async function applyChange(c, req, ch) {
   const op = !cur ? 'create' : deleted && !cur.deleted ? 'delete' : 'update';
   const action = op === 'delete' ? 'delete' : 'edit';
   const viewable = canType(req.role, req.ent, type, 'view');
-  if (isGlobal ? !(GLOBAL_TYPES.includes(type) && req.user.is_platform_admin && viewable) : !canType(req.role, req.ent, type, action)) {
+  // part rights: a role that can only view the type may still change some sections of an existing record
+  const fullEdit = canType(req.role, req.ent, type, action);
+  const parts = !isGlobal && !fullEdit && op === 'update' && !deleted ? editableSections(req.role, req.ent, type) : [];
+  if (isGlobal ? !(GLOBAL_TYPES.includes(type) && req.user.is_platform_admin && viewable) : !fullEdit && !parts.length) {
     return { id, status: 'denied', record: viewable ? current(cur) : null };
+  }
+  if (parts.length) data = await partialChange(c, req.tid, cur, data, parts);
+  // costs and amounts: a role that can't see them can't change them either (its device never had them)
+  if (!isGlobal && !deleted && moneyFields(type).length && !canSeeMoney(req.role)) data = keepMoney(cur, data, type);
+  // parts orders: only a role with "Approve parts orders" approves or declines one
+  if (type === 'purchase' && !deleted) {
+    const st = data?.values?.status; const was = cur?.data?.values?.status;
+    if (['Approved', 'Declined'].includes(st) && st !== was && !can(req.role, 'purchases.approve')) {
+      return { id, status: 'denied', record: current(cur) };
+    }
   }
   const owner = isGlobal ? null : req.tid;
 
@@ -543,13 +597,14 @@ T.get('/records/:id/history', h(async (req, res) => {
     `SELECT h.id, h.op, h.outcome, h.data, h.client_updated_at, h.created_at, u.name AS user_name
        FROM record_history h LEFT JOIN users u ON u.id=h.user_id
       WHERE h.record_id=$1 AND (h.tenant_id=$2 OR h.tenant_id IS NULL) ORDER BY h.id DESC LIMIT 200`, [req.params.id, req.tid]);
-  res.json(rows);
+  res.json(rows.map((x) => hideMoney(req.role, { ...x, type: r.type })));
 }));
 
 // --- Members ---
 T.get('/members', h(async (req, res) => {
   const { rows } = await q(
-    `SELECT u.id, u.name, u.email, m.role_id, r.name AS role_name, m.created_at
+    `SELECT u.id, u.name, u.email, m.role_id, r.name AS role_name, m.extra_role_ids, m.created_at,
+            COALESCE((SELECT json_agg(x.name ORDER BY x.name) FROM roles x WHERE x.id = ANY(m.extra_role_ids)), '[]'::json) AS extra_role_names
        FROM memberships m JOIN users u ON u.id=m.user_id JOIN roles r ON r.id=m.role_id
       WHERE m.tenant_id=$1 ORDER BY u.name`, [req.tid]);
   res.json(rows);
@@ -563,11 +618,27 @@ async function ownerCount(tid, excludeUser) {
 }
 
 T.patch('/members/:uid', perm('members.manage'), h(async (req, res) => {
-  const { rows: [role] } = await q('SELECT * FROM roles WHERE id=$1 AND tenant_id=$2', [req.body?.role_id, req.tid]);
+  const { rows: [m] } = await q('SELECT role_id FROM memberships WHERE tenant_id=$1 AND user_id=$2', [req.tid, req.params.uid]);
+  need(m, 404, 'Not a member of this team');
+  const roleId = req.body?.role_id || m.role_id;
+  const { rows: [role] } = await q('SELECT * FROM roles WHERE id=$1 AND tenant_id=$2', [roleId, req.tid]);
   need(role, 400, 'Unknown role');
-  if (role.is_owner || (await isOwner(req.tid, req.params.uid))) need(req.role.is_owner, 403, 'Only owners can change owners');
-  if (!role.is_owner) need((await ownerCount(req.tid, req.params.uid)) > 0, 400, 'A team needs at least one owner');
-  await q('UPDATE memberships SET role_id=$1 WHERE tenant_id=$2 AND user_id=$3', [role.id, req.tid, req.params.uid]);
+  if (roleId !== m.role_id) {
+    if (role.is_owner || (await isOwner(req.tid, req.params.uid))) need(req.role.is_owner, 403, 'Only owners can change owners');
+    if (!role.is_owner) need((await ownerCount(req.tid, req.params.uid)) > 0, 400, 'A team needs at least one owner');
+  }
+  // extra roles: the member also gets everything these allow. Never the Owner role (owners are a main role).
+  let extra = null;
+  if (Array.isArray(req.body?.extra_role_ids)) {
+    const { rows: rs } = await q('SELECT id, is_owner FROM roles WHERE id = ANY($1::uuid[]) AND tenant_id=$2',
+      [req.body.extra_role_ids.filter((x) => UUID.test(String(x))), req.tid]);
+    need(!rs.some((r) => r.is_owner), 400, 'The Owner role can only be someone’s main role');
+    extra = rs.map((r) => r.id).filter((id) => id !== role.id);
+  }
+  await q('UPDATE memberships SET role_id=$1, extra_role_ids=COALESCE($4::uuid[], extra_role_ids) WHERE tenant_id=$2 AND user_id=$3',
+    [role.id, req.tid, req.params.uid, extra]);
+  // the main role can't also be an extra one
+  await q('UPDATE memberships SET extra_role_ids = array_remove(extra_role_ids, role_id) WHERE tenant_id=$1 AND user_id=$2', [req.tid, req.params.uid]);
   res.json({ ok: true });
 }));
 
@@ -625,9 +696,20 @@ T.delete('/invites/:id', perm('members.manage'), h(async (req, res) => {
 // --- Roles ---
 T.get('/roles', h(async (req, res) => {
   const { rows } = await q(
-    `SELECT r.*, (SELECT count(*)::int FROM memberships m WHERE m.role_id=r.id) AS members
+    `SELECT r.*, (SELECT count(*)::int FROM memberships m WHERE m.role_id=r.id OR r.id = ANY(m.extra_role_ids)) AS members
        FROM roles r WHERE tenant_id=$1 ORDER BY is_owner DESC, name`, [req.tid]);
   res.json(rows);
+}));
+
+// Add the built-in roles a team doesn't have yet (teams made before a role was added get it this way).
+T.post('/roles/standard', perm('roles.manage'), h(async (req, res) => {
+  const { rows: have } = await q('SELECT name FROM roles WHERE tenant_id=$1', [req.tid]);
+  const add = missingStandardRoles(have.map((r) => r.name));
+  for (const r of add) {
+    await q('INSERT INTO roles(tenant_id,name,description,permissions) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+      [req.tid, r.name, r.description, JSON.stringify(r.permissions)]);
+  }
+  res.json({ added: add.map((r) => r.name) });
 }));
 
 const cleanPerms = (p) => [...new Set((Array.isArray(p) ? p : []).filter((x) => ALL_PERMISSIONS.includes(x)))];
@@ -654,7 +736,7 @@ T.patch('/roles/:id', perm('roles.manage'), h(async (req, res) => {
 
 T.delete('/roles/:id', perm('roles.manage'), h(async (req, res) => {
   const { rows: [r] } = await q(
-    `SELECT r.*, (SELECT count(*)::int FROM memberships m WHERE m.role_id=r.id) AS members
+    `SELECT r.*, (SELECT count(*)::int FROM memberships m WHERE m.role_id=r.id OR r.id = ANY(m.extra_role_ids)) AS members
        FROM roles r WHERE id=$1 AND tenant_id=$2`, [req.params.id, req.tid]);
   need(r, 404, 'Role not found');
   need(!r.is_owner, 400, 'The Owner role cannot be deleted');

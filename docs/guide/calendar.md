@@ -256,7 +256,7 @@ Your own events keep their own notes, such as track notes and result notes, as b
 
 ![The published calendar on a phone](img/calendar-public.webp)
 
-Only events you're going to are shown, and never setups or notes. Choose whether to include **tentative events**, **which car** and **results**. Withdraw reasons are never shown. **New link** stops the old link working. **Stop publishing** turns both links off.
+Only events you're going to are shown, and never setups or notes. Choose whether to include **tentative events**, **which car**, **results** and **our sponsors** (signed sponsors with **Show on our public page** ticked — see [Partnerships](/help/partnerships)). Withdraw reasons are never shown. **New link** stops the old link working. **Stop publishing** turns both links off.
 
 ## Who can do what
 

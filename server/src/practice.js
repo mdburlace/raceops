@@ -48,6 +48,7 @@ export function mountPractice(T) {
       await c.query(`UPDATE tenants SET settings = COALESCE(settings,'{}'::jsonb) || jsonb_build_object('data_epoch', gen_random_uuid()::text) WHERE id=$1`, [req.tid]);
       await c.query(`DELETE FROM calendar_requests WHERE tenant_id=$1`, [req.tid]);
       await c.query(`DELETE FROM team_notices WHERE tenant_id=$1`, [req.tid]);
+      await c.query(`DELETE FROM sponsor_portals WHERE tenant_id=$1`, [req.tid]);
       return seedPractice(c, req.tid, req.user.id);
     });
     res.json({ ok: true, records: n });

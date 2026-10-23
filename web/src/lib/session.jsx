@@ -2,8 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api, loadSession, saveSession } from './api.js';
 import { db, getMeta, setMeta } from './store.js';
 import { fullResync, setSyncTenant, syncNow } from './sync.js';
-import { can as canP, canType as canT, canArea as canA, canModule as canM, entitlements } from '@shared/catalog.js';
-import { setMembersCache, setPlatformLists, setTeamClasses } from './data.js';
+import { can as canP, canType as canT, canArea as canA, canModule as canM, editableSections, entitlements } from '@shared/catalog.js';
+import { regionOf } from '@shared/regions.js';
+import { setMembersCache, setPlatformLists, setRegion, setTeamClasses } from './data.js';
 import { applyPrefsTheme } from './theme.js';
 import { setLinkedUsage } from './compute.js';
 import { isShop } from '@shared/shop.js';
@@ -94,6 +95,8 @@ export function SessionProvider({ children }) {
   const platform = session?.platform || null;
   setPlatformLists(platform?.lists);
   setTeamClasses(membership?.settings?.classes);
+  const region = useMemo(() => regionOf(membership?.settings), [membership?.settings]);
+  setRegion(region);
   useEffect(() => { document.title = platform?.app_name || 'RaceOps'; }, [platform?.app_name]);
   const ent = useMemo(() => entitlements(membership), [membership]);
   const [membersVersion, setMembersVersion] = useState(0);
@@ -155,10 +158,14 @@ export function SessionProvider({ children }) {
     canType: (t, a) => canT(membership?.role, ent, t, a),
     canArea: (a) => canA(membership?.role, ent, a),
     canModule: (m, a = 'view') => canM(membership?.role, ent, m, a),
+    // sections of a record type this person may edit with part rights only (empty = none, or full edit)
+    editParts: (t) => editableSections(membership?.role, ent, t),
+    canMoney: canP(membership?.role, 'money.view'),
+    region,
     licensed: (f) => ent.has(f),
     login, logout, refresh,
     switchTenant: (id) => update({ ...loadSession(), tenantId: id }),
-  }), [session, membership, ent, membersVersion, linkedVersion, login, logout, refresh, update, prefs, setPrefs]);
+  }), [session, membership, ent, region, membersVersion, linkedVersion, login, logout, refresh, update, prefs, setPrefs]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

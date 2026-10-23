@@ -6,7 +6,7 @@ order: 10
 summary: Invite people with a role, change their role or remove them.
 for: admin, perm:members.manage
 pages: /team/members, /invite/:token
-covers: perm:members.manage, setting:invites
+covers: perm:members.manage, setting:invites, setting:extra_roles
 related: roles-permissions, team-settings
 ---
 ## Invite someone
@@ -35,3 +35,9 @@ Under **Members**, change the role beside a person, or press **Remove**. **Leave
 On a practice team (one created for [training](/help/training)), this page also has a **Practice team** box. **Reset practice data** puts the demo data back as it started: everything trainees added or changed is removed. Forms and roles you changed are kept.
 
 **Who can do this:** the owner, or a role with **Edit team settings**.
+
+## More than one role
+
+In a small team one person often does two jobs. In **Members**, beside someone's main role, use **+ Also…** to give them another role. They get everything any of their roles allows, and their name shows each role. Tap an extra role (**+ Tire Specialist ×**) to take it away. The Owner role can only be a main role.
+
+**Who can do this:** the owner, or a role with **Invite & manage members**.

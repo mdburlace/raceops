@@ -10,7 +10,7 @@ covers: option:training-driver
 related: training, role-driver, setup-sheets, compare-search, calendar, analytics, feedback
 demo: Valley Speedway — Club night, Heat 1, Lakeside Raceway
 ---
-**Time:** about 25 minutes. **You need:** the practice team on your phone, signed in as a driver. The **Driver / Viewer** role can read everything at the track but doesn't change it.
+**Time:** about 25 minutes. **You need:** the practice team on your phone, signed in as a driver. The **Driver** role can read everything at the track and fill in the debrief (Track conditions & car feedback) on setup sheets; the rest it doesn't change.
 
 ![Video: Read tonight's setup and see what changed](video/training-driver.webm)
 
@@ -47,7 +47,7 @@ demo: Valley Speedway — Club night, Heat 1, Lakeside Raceway
 1. Open **Feedback & roadmap** in the sidebar.
 2. Look at the **Roadmap**, and press **Vote** on something you'd use.
 
-**When it's right:** your vote shows on the item. If your team lets drivers record feedback on setup sheets, also see [Feedback and debrief](/help/feedback-debrief).
+**When it's right:** your vote shows on the item. To fill in your own debrief, see [Feedback and debrief](/help/feedback-debrief) and the debrief exercise in [Training: business and race-night roles](/help/training-business).
 
 ## Check yourself
 

@@ -45,15 +45,19 @@ export const I = {
   idea: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3',
   backup: 'M7 18a4.5 4.5 0 0 1-.7-8.9A6 6 0 0 1 17.8 8 4.5 4.5 0 0 1 17 18M12 11v9M9 14l3-3 3 3',
   trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
+  money: 'M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3.3 4.5 1.7 4.5 3.4-2 3.3-4.5 3.3-4.5-1.3-4.5-3',
+  megaphone: 'M3 10v4l12 5V5zM15 8.5a3.5 3.5 0 0 1 0 7M6 15l1.5 5h3L9 15.5',
+  bell: 'M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 21h4',
+  briefcase: 'M3 8h18v12H3zM8 8V5h8v3M3 13h18',
   spark: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 15l.6 1.4L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.6z',
 };
 export const Icon = ({ d, size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
 );
 
-export const AREA_ICON = { track: I.track, workshop: I.shop, engines: I.engine, team: I.team, admin: I.admin };
-export const AREA_PATH = { track: '/track', workshop: '/workshop', engines: '/engines', team: '/team', admin: '/admin' };
-const TAB_LABEL = { track: 'Track', workshop: 'Workshop', engines: 'Engines', team: 'Team', admin: 'Admin' };
+export const AREA_ICON = { track: I.track, workshop: I.shop, engines: I.engine, team: I.team, business: I.briefcase, admin: I.admin };
+export const AREA_PATH = { track: '/track', workshop: '/workshop', engines: '/engines', team: '/team', business: '/business', admin: '/admin' };
+const TAB_LABEL = { track: 'Track', workshop: 'Workshop', engines: 'Engines', team: 'Team', business: 'Business', admin: 'Admin' };
 const tabLabel = (g) => (g.area === 'engines' && g.label === 'Engine Shop' ? 'Shop' : TAB_LABEL[g.area]);
 
 export const ADMIN_LINKS = [
@@ -122,6 +126,15 @@ export function useNav() {
       canModule('reports') && { to: '/team/reports', label: 'Reports', icon: I.chart },
       canModule('reports') && { to: '/team/stats', label: 'Crew Chief stats', icon: I.star },
       canModule('reviews') && { to: '/team/reviews', label: 'Performance reviews', icon: I.user },
+    ] },
+    // parts orders, finance, transport, partnerships and marketing (no area: each module's own right and licence)
+    { area: 'business', label: 'Business', icon: I.briefcase, show: ['purchases', 'finance', 'transport', 'partnerships', 'marketing'].some((m) => canModule(m)), links: [
+      canModule('purchases') && { to: '/purchases', label: 'Parts orders', icon: I.box },
+      canModule('finance') && { to: '/finance', label: 'Finance', icon: I.money },
+      canModule('transport') && { to: '/transport', label: 'Transport', icon: I.truck },
+      canModule('partnerships') && { to: '/partners', label: 'Partnerships', icon: I.trophy },
+      canModule('marketing') && { to: '/marketing', label: 'Marketing', icon: I.megaphone },
+      { to: '/reminders', label: 'Reminders', icon: I.bell },
     ] },
     { area: 'admin', label: 'Platform admin', icon: I.admin, show: !!user?.is_platform_admin, links: ADMIN_LINKS.map((l) => (l.to === '/admin/calendar' ? { ...l, badge: notices?.calendar_requests || 0 } : l.to === '/admin/feedback' ? { ...l, badge: notices?.feedback_new || 0 } : l)) },
   ].map((g) => ({ ...g, links: g.links.filter(Boolean) }));
