@@ -29,6 +29,7 @@ export const DEFAULT_GENERAL = {
   announcement: { text: '', level: 'info', until: null },
   support_email: '',
   deleted_retention_days: 90, // how long deleted records are kept for recovery; null = forever
+  release_repo_url: '', // GitHub repository the release notes link to ('' = no links)
 };
 
 export const ANNOUNCE_LEVELS = { info: 'Information', warn: 'Warning', critical: 'Critical' };

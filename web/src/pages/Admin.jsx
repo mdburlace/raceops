@@ -729,6 +729,8 @@ function SettingsForm({ g, plans }) {
             <p className="help">Shown in the menu and browser tab.</p></div>
           <div className="field"><label htmlFor="s-support">Support email</label><input id="s-support" type="email" value={f.support_email} placeholder="Shown when a licence has expired" onChange={(e) => set('support_email', e.target.value)} /></div>
           <div className="field"><label htmlFor="s-days">Invite links last (days)</label><input id="s-days" inputMode="numeric" value={f.invite_days} onChange={(e) => set('invite_days', e.target.value.replace(/\D/g, ''))} /></div>
+          <div className="field"><label htmlFor="s-repo">Code repository</label><input id="s-repo" type="url" value={f.release_repo_url || ''} placeholder="https://github.com/your-name/raceops" onChange={(e) => set('release_repo_url', e.target.value)} />
+            <p className="help">Optional. A GitHub address: the release notes then link to each release’s code changes and pull requests. Leave empty for no links.</p></div>
         </div>
       </Section>
       <Section title="New teams">

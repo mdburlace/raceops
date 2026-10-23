@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `018_engine_tunes.sql` |
-| Last updated | October 2026 (multi-day events) |
+| Last updated | October 2026 (release notes) |
 
 ---
 
@@ -649,6 +649,14 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 - `shared/guideData.js SETTINGS` lists every setting; `shared/guideChecklist.js CHECKLIST` is the first-run checklist on Home.
 - `tools/check-guide.mjs` fails the build if any page, record type, module, licence feature, admin right, team type, built-in role, setting read in the code, link, image or field description is undocumented.
 - Training pack upkeep: `tools/check-guide.mjs` fails if `training.md`'s `reviewed:` isn't the newest What's new entry (so every release reviews the training), or if a name in a training article's `demo:` front matter is no longer in `shared/practiceData.js`.
+- **Release notes:** one Markdown file per release in `docs/releases/<version>.md`.
+    - Front matter: `version` (`YYYY.MM.DD`, `.2` for a second release that day), `date`, `title`, `summary`, and optionally `pr` (pull request numbers) and `commits` (`<from>...<to>`, a GitHub compare range).
+    - Body sections: `## New features`, `## Improvements`, `## Bug fixes`, `## Notes`.
+    - `shared/releases.js` parses, sorts (`compareVersions`) and checks them (`releaseProblems`). `web/src/lib/releases.js` bundles them, so they work offline. The newest version is the app version (`APP_VERSION`, shown in the sidebar and sent with problem reports).
+    - Pages: `/help/releases` (newest in full, earlier ones listed) and `/help/releases/:version`.
+    - Home shows a one-off **RaceOps has been updated** note when the device's last seen version (`localStorage raceops.release.seen`) differs.
+    - `releaseLinks()` builds GitHub links (compare range, or the day's commits; pull requests) from the platform setting `general.release_repo_url` (`cleanRepoUrl()` accepts only `https://github.com/<owner>/<repo>`; sent to devices in `publicSettings()`).
+    - `tools/check-guide.mjs` fails on a malformed release file, or when the newest What's new line isn't in the newest release's notes.
 - Screenshots: `tools/guide_shots.py` against a test server. Videos: `tools/training_videos.py` (needs ffmpeg), into `docs/guide/video/` with posters in `docs/guide/img/`.
 - `helpImages` collects `img/…` and `video/…` references; the check fails if a referenced file is missing.
 
@@ -661,7 +669,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 | Guide coverage | `node tools/check-guide.mjs` | in `npm run build` (and so in `docker build`) |
 | Design document coverage | `node tools/check-design.mjs` | in `npm run build` |
 | Web build | `cd web && npm run build` | Vite production build |
-| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e39.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=… UPLOAD_DIR=… BACKUP_DIR=…` (both under `/var/tmp/raceops-test`) `BACKUP_KEY=… BACKUP_CLOUD_MOCK=1`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
+| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e41.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=… UPLOAD_DIR=… BACKUP_DIR=…` (both under `/var/tmp/raceops-test`) `BACKUP_KEY=… BACKUP_CLOUD_MOCK=1`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
 | Dependency audit | `npm audit` (server and web) | before each release |
 
 Local development: Postgres on `localhost:5432` (db/user `raceops`), `cd server && npm i && node src/index.js`, `cd web && npm i && npm run dev` (Vite proxies `/api` to `:8080`).

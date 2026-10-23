@@ -62,12 +62,8 @@ Production secrets never go into staging. Staging has its own `JWT_SECRET`, data
 ## 4. Source control and versioning
 
 - **Trunk-based.** `main` is always releasable. Work happens on short-lived branches (`feature/…`, `fix/…`) merged by pull request once CI passes. Small changes may go straight to `main` while you're the only developer, as long as CI runs.
-- **Semantic versions.** Each production release is a Git tag `vMAJOR.MINOR.PATCH`:
-  - MINOR for features;
-  - PATCH for fixes;
-  - MAJOR for a change that needs action from admins, such as a new required environment variable or a contract migration.
-- **Bump `server/package.json`** (and `web/package.json`) to the release version in the release commit. **Platform admin → System & activity** then shows what's running. Inject the Git commit too (build argument `GIT_SHA` → environment variable), so the System page shows the exact commit.
-- **Release notes:** `docs/guide/whats-new.md` already serves as user-facing notes. Add a short `CHANGELOG.md` entry for admin-facing changes (new environment variables, migrations, manual steps).
+- **Versions are release dates:** `YYYY.MM.DD`, with `.2`, `.3` … for further releases the same day. The version is set by the newest file in `docs/releases`, and the app shows it at the bottom of the sidebar and in the release notes. Tag each production release `v<version>` (e.g. `v2026.10.24`) so it's easy to find and roll back to. Optionally inject the Git commit too (build argument `GIT_SHA` → environment variable), so **System & activity** shows the exact commit.
+- **Release notes:** every release adds `docs/releases/<version>.md` with a summary, the date, **New features**, **Improvements**, **Bug fixes** and **Notes**. Notes cover admin-facing steps: new environment variables, settings to set, migrations, anything the team must do. The app shows them under **Help & guide → Release notes**. With **Platform admin → Settings → Code repository** set, each release links to its code changes and pull requests. `docs/guide/whats-new.md` keeps one line per change, linking to the guide. The guide check fails if the newest What's new line isn't in the newest release's notes.
 - **Tests in version control.** The Playwright suites are in `tests/e2e/`, with `server.sh` (fresh test server) and `run.sh`. They're what CI runs, and the acceptance tests for a rebuild (DESIGN.md §19).
 
 ## 5. Build and deployment pipeline
@@ -172,7 +168,7 @@ A simpler first step that needs no GitOps: keep deploying by hand in Portainer, 
 
 1. Staging runs the release candidate and has been signed off. Sign-off covers the release's features, login, sync on an installed phone, offline edit then reconnect, and the e2e run is green.
 2. The training pack is current: the guide check passes (it requires `reviewed:` in `docs/guide/training.md` to match the newest What's new entry), the training videos were re-recorded if their screens changed, and the e2e suite for the practice team is green. On staging, reset a practice team and run the exercises for the roles the release touches.
-3. Confirm the release's `CHANGELOG.md` manual steps, such as new environment variables added to the production stack **before** deploying.
+3. Confirm the release notes' **Notes** (`docs/releases/<version>.md`), and do their manual steps, such as adding new environment variables to the production stack, **before** deploying.
 4. Take a backup: **Platform admin → Backups → Back up now** to the off-host destination (and, belt and braces, `pg_dump -Fc` → `pre-1.6.0.dump`, copied off the host).
 5. Announce if needed: **Platform admin → Settings → announcement banner** (e.g. "Update tonight 9pm, about 2 minutes").
 6. Update the production image tag and redeploy. Migrations and form upgrades run on start. Watch the logs for `Applying migration` and `RaceOps listening`.

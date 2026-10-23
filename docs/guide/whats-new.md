@@ -8,10 +8,11 @@ for: everyone
 covers: option:whats-new
 related: help-guide, getting-started
 ---
-Every RaceOps update adds a line here, and the articles it links to are updated in the same release.
+Every RaceOps update adds a line here, and the articles it links to are updated in the same release. For each release's new features, improvements, bug fixes and notes, see [Release notes](/help/release-notes) (**Help & guide → Release notes**).
 
 ## October 2026
 
+- **Release notes.** **Help & guide → Release notes** lists every release, newest first, with its summary and date, new features, improvements, bug fixes and notes. The bottom of the sidebar shows your version, and Home tells you once when the app has been updated. Platform admins can link each release to its code on GitHub. [Release notes](/help/release-notes)
 - **Multi-day events.** Tick **Runs over more than one day** on an event or shared calendar date, then set each day: its date, a name such as *Night 1* or *Finals*, a start time, and whether it was rained out. Days can have gaps. It stays one event: the event page has a tab per day, setup sheets pick their day, and the calendar, month view and iCal feeds show each day. [Multi-day events](/help/events-sessions#multi-day-events)
 - **Engine tunes and engine checks.** **Engine tunes** keeps each engine's tune in versions, with one active: pill settings by ADR or density altitude, the ending tune and the fuel system. Setup sheets show the pills for tonight's weather and **Use this jetting** fills them in. Engine builders can share a tune with the owner's team. **In the Workshop → Engine checks** records the between-race engine service, and flags weak springs, rising leak-down, lash off the tune and plug readings. [Engine tune sheets](/help/engine-tunes), [Workshop engine checks](/help/engine-checks)
 - **Workshop setup sheets.** **In the Workshop → Workshop setups** records how each car is set up on the shop floor: reference conditions, front and rear suspension and geometry, tyres and wheels, wings, drivetrain and weights. Link one to an event as its baseline, and the track sheets start from it. [Workshop setup sheets](/help/workshop-setups)

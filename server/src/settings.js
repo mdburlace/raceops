@@ -37,6 +37,7 @@ export function publicSettings() {
   return {
     app_name: s.general.app_name || 'RaceOps',
     support_email: s.general.support_email || '',
+    release_repo_url: s.general.release_repo_url || '',
     announcement: announcementActive(s.general.announcement) ? s.general.announcement : null,
     lists: s.lists,
     weather: weatherEnabled(),

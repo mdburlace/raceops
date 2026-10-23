@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useSession } from '../lib/session.jsx';
 import { SyncBadge, useHeightVar } from './ui.jsx';
 import { teamType } from '@shared/shop.js';
+import { APP_VERSION } from '../lib/releases.js';
 
 export const I = {
   home: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
@@ -252,7 +253,8 @@ export default function Layout() {
           {link({ to: '/help', label: 'Help & guide', icon: I.help })}
           {link({ to: `/feedback${loc.pathname.startsWith('/feedback') ? '' : `?from=${encodeURIComponent(loc.pathname)}`}`, label: 'Feedback & roadmap', icon: I.idea, badge: notices?.feedback_updates || 0 })}
         </nav>
-        <div className="sidebar-foot"><span className="muted small">{user?.name} · {membership?.role.name}</span></div>
+        <div className="sidebar-foot"><span className="muted small">{user?.name} · {membership?.role.name}</span>
+          <Link to="/help/releases" className="muted small app-version" onClick={() => setDrawer(false)} title="Release notes">Version {APP_VERSION}</Link></div>
       </aside>
       {drawer && <div className="scrim" onClick={() => setDrawer(false)} />}
       <div className="main-col">

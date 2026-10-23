@@ -7,6 +7,7 @@ import { api, token } from '../lib/api.js';
 import { useSession } from '../lib/session.jsx';
 import { getSyncStatus } from '../lib/sync.js';
 import { KIND, LANE, LANES, STATUS, OPEN_STATUSES, FILE_ACCEPT, FILE_LIMITS, FILE_KINDS_TEXT, fileType, fmtSize } from '@shared/feedback.js';
+import { APP_VERSION } from '../lib/releases.js';
 
 export const fmtWhen = (t) => (t ? new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
 export const fileSrc = (id) => `/api/feedback/files/${id}?token=${encodeURIComponent(token() || '')}`;
@@ -31,6 +32,7 @@ function deviceContext() {
     online: navigator.onLine,
     sync: `${s.state}${s.pending ? `, ${s.pending} waiting` : ''}${s.error ? ` (${s.error})` : ''}`,
     time: new Date().toISOString(),
+    version: APP_VERSION,
   };
 }
 
@@ -197,7 +199,7 @@ function SendForm({ onSent }) {
               }} />
             <span className="small muted">Screenshots, a screen recording, a PDF, a spreadsheet or a log file — anything that helps explain it.</span></label>
           {files.length > 0 && <p className="small" data-testid="fb-picked">{files.map((f) => `${f.name} (${fmtSize(f.size)})`).join(' · ')}</p>}
-          {bug && <p className="small muted">We’ll include your device, browser, screen size and sync status so we can reproduce it. Team: {membership?.tenant_name}.</p>}
+          {bug && <p className="small muted">We’ll include your device, browser, screen size, sync status and app version so we can reproduce it. Team: {membership?.tenant_name}.</p>}
           {err && <div className="notice error small">{err}</div>}
           <div className="row-actions">
             <button type="button" className="btn primary" disabled={busy || v.title.trim().length < 4 || !(v.description.trim() || v.steps.trim())} onClick={send}>

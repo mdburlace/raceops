@@ -34,6 +34,16 @@ Tables of roles, permissions, plans, settings, calculators, themes and shock adj
 
 Writing style: plain Australian English, short sentences, bold for things on screen, "you" for the reader.
 
+## Release notes — every release adds them
+
+Each release adds `docs/releases/<version>.md` (shown in Help & guide → Release notes). The version is the release date,
+`YYYY.MM.DD`, or `YYYY.MM.DD.2` for a second release that day. Front matter: `version`, `date`, `title`, `summary` (one or
+two sentences), and once known `pr` (pull request numbers) and `commits` (`<from>...<to>`). Then these sections, each a
+bullet list, leaving out any with nothing in it: `## New features`, `## Improvements`, `## Bug fixes`, `## Notes` (anything
+admins or teams must know or do: new environment variables, settings, closing and reopening the app, known limits).
+Write for the people who use the app, in the same style as the guide. The newest What's new line must be in the newest
+release's notes; `node tools/check-guide.mjs` checks this and the file format.
+
 ## Training pack — every release must keep it current
 
 The training pack (`docs/guide/training*.md`, Help & guide → Training) is reviewed **in the same change** as every
