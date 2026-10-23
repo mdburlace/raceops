@@ -82,13 +82,15 @@ export function useOnline() {
 
 export function SyncBadge() {
   const s = useSyncExternalStore(subscribeSync, getSyncStatus);
-  const label = s.state === 'offline' ? 'Offline'
+  const nav = useNavigate();
+  const label = s.stuck ? 'Can’t sync' : s.state === 'offline' ? 'Offline'
     : s.state === 'syncing' ? 'Syncing…'
       : s.state === 'error' ? 'Sync error'
         : s.pending ? `${s.pending} to sync` : 'Synced';
   return (
-    <button type="button" className={`sync-badge sb-${s.state}${s.pending ? ' has-pending' : ''}`} onClick={() => syncNow()}
-      title={s.error || (s.lastSync ? `Last synced ${fmtDateTime(s.lastSync)}` : 'Tap to sync')}>
+    <button type="button" className={`sync-badge sb-${s.state}${s.pending ? ' has-pending' : ''}`} onClick={() => (s.stuck ? nav('/profile') : syncNow())}
+      title={s.stuck ? "This device can't sync although the server is answering. Tap to open Profile & device and use Repair this device."
+        : s.error || (s.lastSync ? `Last synced ${fmtDateTime(s.lastSync)}` : 'Tap to sync')}>
       <span className="dot" />{label}{s.state === 'offline' && s.pending ? ` · ${s.pending} queued` : ''}
     </button>
   );

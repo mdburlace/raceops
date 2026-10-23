@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `014_feedback.sql` |
-| Last updated | October 2026 (round and track on event lists) |
+| Last updated | October 2026 (no-store API responses, Repair this device) |
 
 ---
 
@@ -376,9 +376,11 @@ Returns up to 2000 records with `seq > since` for that team **plus all global re
 
 ### 8.4 Other sync behaviour
 
-- Sync runs on start, on each local change, when the connection returns, when the app comes back to the foreground, and every 30 seconds. The header badge shows **Synced / Syncing / Waiting to sync / Offline**.
+- Sync runs on start, on each local change, when the connection returns, when the app comes back to the foreground, and every 30 seconds. The header badge shows **Synced / Syncing / Waiting to sync / Offline / Can’t sync**.
 - Attachments are online-only (`/api/t/:tid/attachments`), and need the record to have synced first.
 - A change to the user's role, the team's plan, feature overrides or entitlements triggers a **full re-download** (`fullResync`: clean local records dropped, cursor reset to 0). A pull already running when it starts is discarded (a reset generation counter), so it can't save its old cursor over the reset.
+- **No caching of the API.** Every `/api` response carries `Cache-Control: no-store` (a middleware ahead of all routes; public iCal feeds set their own value, which replaces it), and the client's `api()` fetches with `cache: 'no-store'`. A browser that once cached a redirect for an API URL replayed it locally (`ERR_TOO_MANY_REDIRECTS`) and stayed **Offline** while other devices worked.
+- **Stuck detection and Repair this device.** After two sync attempts in a row fail with no response while `navigator.onLine` is true, the client checks `GET /api/health` (no-store); if it answers, sync status gets `stuck: true`, the badge reads **Can’t sync** and links to **Profile & device**. `repairDevice()` calls `POST /api/device/clear-cache` (public, no state change; responds with `Clear-Site-Data: "cache"` so the browser empties its HTTP cache for the origin), then unregisters the service worker, deletes Cache Storage, drops clean local records and resets the cursor (dirty records and the session are kept), and reloads. If the endpoint can't be reached it changes nothing, so the offline app shell survives.
 - Old installed apps keep running until reopened (service worker `autoUpdate`), so **the server must keep accepting older clients' payloads** (see §21).
 
 ---
@@ -781,7 +783,7 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 
 ## Appendix D — API routes
 
-Public: `GET /api/health`, `GET /api/status`, `POST /api/setup`, `POST /api/auth/login`, `GET|POST /api/invites/:token[/accept]`, `GET /api/share/:token`, `GET /api/public/calendar/:token[.ics]`, `GET /api/public/shared/:type/:id[.ics]`.
+Public: `GET /api/health`, `POST /api/device/clear-cache`, `GET /api/status`, `POST /api/setup`, `POST /api/auth/login`, `GET|POST /api/invites/:token[/accept]`, `GET /api/share/:token`, `GET /api/public/calendar/:token[.ics]`, `GET /api/public/shared/:type/:id[.ics]`.
 
 Signed in: `GET|PATCH /api/me`; feedback `GET /api/feedback/mine|roadmap|similar`, `POST /api/feedback`, `POST /api/feedback/seen`, `POST /api/feedback/:id/files|reply|withdraw|vote`, `GET /api/feedback/files/:fid`.
 

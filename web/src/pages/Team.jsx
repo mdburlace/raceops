@@ -4,7 +4,7 @@ import { Empty, PageHeader, Section, useOnline } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
-import { fullResync, getSyncStatus, subscribeSync, syncNow } from '../lib/sync.js';
+import { fullResync, getSyncStatus, repairDevice, subscribeSync, syncNow } from '../lib/sync.js';
 import { TeamAiSection } from '../components/Ai.jsx';
 import { ACTIONS, ADMIN_PERMISSIONS, AREAS, MODULES, moduleActions } from '@shared/catalog.js';
 import { Appearance } from '../components/Appearance.jsx';
@@ -268,10 +268,20 @@ export function Profile() {
             <dt>Waiting to sync</dt><dd>{sync.pending}</dd>
             <dt>Last synced</dt><dd>{sync.lastSync ? fmtDateTime(sync.lastSync) : '—'}</dd>
           </dl>
+          {sync.stuck && (
+            <div className="notice">The server is answering, but this device still can't sync. Something stale is stored on
+              this device — tap <b>Repair this device</b> to fix it.</div>
+          )}
           <div className="inline-row">
             <button type="button" className="btn" disabled={!online} onClick={() => syncNow()}>Sync now</button>
             <button type="button" className="btn ghost" disabled={!online} onClick={() => fullResync(tid)}>Re-download all data</button>
+            <button type="button" className={`btn ${sync.stuck ? 'primary' : 'ghost'}`} disabled={!online} onClick={() => {
+              const kept = sync.pending ? ` Your ${sync.pending} change${sync.pending === 1 ? '' : 's'} waiting to sync will be kept.` : '';
+              if (!window.confirm(`Repair this device? This clears the app's stored files and cached data on this device, then reloads and downloads your team's data again. You stay signed in.${kept}`)) return;
+              act(() => repairDevice(tid), 'Repairing…');
+            }}>Repair this device</button>
           </div>
+          <p className="muted small">Use <b>Repair this device</b> if the app shows <b>Offline</b> on this device while it works on others.</p>
         </Section>
         <Section title="Your details">
           <div className="inline-row">
