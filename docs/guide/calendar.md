@@ -153,7 +153,7 @@ The boxes at the top add up the year: meetings planned, meetings you ran, featur
 
 **List** shows the year as a list with the controls. **Month** shows each month as a grid with your race days marked. Your choice is remembered for you.
 
-A meeting over more than one day is one entry. The list shows its days, e.g. *Thu 4 & Sat 6 Dec 2026*. The month grid marks only the days it runs, and a rained-out or cancelled day is crossed out. Tap a day to open the event on that day. See [Multi-day events](/help/events-sessions#multi-day-events).
+A meeting over more than one day is one entry, marked **2 days** (or however many). Under it is a line for each day: its date, its name (or *Day 1 of 2*), its start time, and **Rained out** or **Cancelled** if it didn't run. A line down the left joins the days to their event. Tap a day's line to open the event on that day. The month grid marks only the days it runs, and a rained-out or cancelled day is crossed out. Tap a day there to open it too. See [Multi-day events](/help/events-sessions#multi-day-events).
 
 ## Sharing with every team
 

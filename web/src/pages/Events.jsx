@@ -8,6 +8,7 @@ import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
 import { orderForNew, orderSessions } from '../lib/sessions.js';
 import { EntryResult } from './Calendar.jsx';
+import DayLines from '../components/DayLines.jsx';
 
 /** Number of days an event runs (1 for single-day). */
 export const eventDays = (ev) => Math.max(1, eventDayList(ev?.data?.values).length);
@@ -37,14 +38,15 @@ export function currentDay(tabs, t = today()) {
 export function EventRow({ e, data, n }) {
   const s = data.byId[v(e, 'series')];
   return (
-    <Link to={`/events/${e.id}`} className="list-row">
+    <Link to={`/events/${e.id}`} className="list-row event-row" data-event={e.id}>
       <span className="date-block">
         <b>{new Date(`${v(e, 'date')}T00:00:00`).getDate() || '–'}</b>
         <small>{v(e, 'date') ? new Date(`${v(e, 'date')}T00:00:00`).toLocaleString(undefined, { month: 'short', year: '2-digit' }) : ''}</small>
       </span>
       <span className="grow">
         <span className="row-title">{v(e, 'name')}{eventDays(e) > 1 ? <span className="pill pill-info days-pill">{eventDays(e)} days</span> : null}</span>
-        <span className="row-sub">{[eventDays(e) > 1 && dateRange(e), roundAndTrack(v(e, 'round'), eventTrack(e, data)), s && titleOf(s), !s && v(e, 'event_type'), data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')])].filter(Boolean).join(' · ')}</span>
+        <span className="row-sub">{[roundAndTrack(v(e, 'round'), eventTrack(e, data)), s && titleOf(s), !s && v(e, 'event_type'), data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')])].filter(Boolean).join(' · ')}</span>
+        <DayLines values={e.data?.values} />
       </span>
       <span className="row-meta">{n ? `${n} sheet${n > 1 ? 's' : ''}` : ''}</span>
     </Link>

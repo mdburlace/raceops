@@ -91,7 +91,7 @@ demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — 
 
 ## Exercise 10: A two-night meeting (5 min)
 
-1. Open **Events** and find *Valley Spring Classic*. It shows **2 days** and both dates, with a night off between them.
+1. Open **Events** and find *Valley Spring Classic*. It shows **2 days**, with a line under it for each day: *Practice & prelims* and *Finals*, with a night off between them.
 2. Open it. There's a tab for each day: **Practice & prelims** and **Finals**, each with its date.
 3. Press **Finals**, then **+ Add session** and add a **Feature** sheet. Save it.
 4. Open the sheet again and look at **Day**: it lists both days by name and date.

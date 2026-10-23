@@ -51,7 +51,16 @@ The event's date and end date are set from the days. Days are listed by date, wh
 
 **On the event,** each day gets its own tab, named after the day (or *Day 1*, *Day 2*…) with its date. While the meeting is on, it opens on today's day. A sheet you add goes on the tab you're on. On a setup sheet, **Day** lists the event's days, so you can move a sheet to another day.
 
-**Elsewhere,** the calendar's month view marks each day the event runs, not the days in between. Lists show the days, e.g. *Thu 4 & Sat 6 Dec 2026*. Your published calendar and its **Subscribe** link have one entry per day. The weather on a setup sheet starts at that day's date and start time.
+**In lists** (**Events**, **Calendar**, the shared calendars, a series' rounds, a track's events, **At the Track** and the printed calendar), the event is one row marked **2 days** (or however many). Under it there's a line for each day, joined to the event by a line down the left:
+
+- the day's date, e.g. *Sat 14 Nov*;
+- its name, e.g. *Finals*, or *Day 1 of 2* if it hasn't got one;
+- its start time;
+- **Rained out** or **Cancelled**, with the day crossed out.
+
+Days already past are greyed, and today's day says *today*. On the **Calendar** and a series' rounds, tap a day's line to open the event on that day.
+
+**Elsewhere,** the calendar's month view marks each day the event runs, not the days in between. Your published calendar and its **Subscribe** link have one entry per day. The weather on a setup sheet starts at that day's date and start time.
 
 **Taking a day off:** a day that has setup sheets can't be removed, and you can't untick **Runs over more than one day** while a later day has sheets. Open each sheet, change its **Day**, then remove the day.
 

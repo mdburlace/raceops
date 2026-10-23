@@ -67,7 +67,10 @@ with sync_playwright() as pw:
     latest = page.locator('.release-card.latest')
     expect(latest).to_have_attribute('data-release', LATEST['version'])
     expect(latest).to_contain_text('This version'); expect(latest).to_contain_text(LATEST['summary'])
-    expect(latest.locator('.release-sec h3').first).to_have_text('New features')
+    # its sections, in the standard order (any with nothing in them left out)
+    heads = latest.locator('.release-sec h3').all_text_contents()
+    order = ['New features', 'Improvements', 'Bug fixes', 'Notes']
+    assert heads and all(h in order for h in heads) and heads == sorted(heads, key=order.index), heads
     expect(page.locator('.release-row')).to_have_count(len(REL) - 1)
     # the newest release has no commit range yet: its link lists that day's commits
     code = latest.locator('a:has-text("Code changes on GitHub")')
