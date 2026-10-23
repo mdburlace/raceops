@@ -378,4 +378,7 @@ export const PHASE3_UPGRADES = [
   // wings in Assets sit on top or at the front
   { target: 'asset', key: 'position', patch: { options: ['LF', 'RF', 'LR', 'RR', 'Front', 'Rear', 'Top', 'N/A'] } },
   ...SHOP_UPGRADES,
+  // an event's baseline from the workshop: the workshop setup sheet the car was set up to (for that car)
+  { target: 'event', section: 'event', after: 'round', field: { key: 'shop_setup', label: 'Workshop setup', type: 'ref', ref: 'shop_setup', matchCar: true,
+    help: 'The workshop setup sheet the car was set up to for this event. Setup sheets at the track can start from it.' } },
 ];

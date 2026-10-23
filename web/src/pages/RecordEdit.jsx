@@ -11,6 +11,8 @@ import { InitialClash, ShockVsInitial } from '../components/DynoInitial.jsx';
 import { convertFuel, fuelUnit, withFuelUnits } from '@shared/fuel.js';
 import { ArrangeSections, SheetNav, SheetTools, useSheetLayout } from '../components/SheetNav.jsx';
 import { changedFields } from '@shared/setupLayout.js';
+import { SHOP_SETUP_SKIP, toTrackValues } from '@shared/workshopSetup.js';
+import { ShopSetupLinks } from './WorkshopSetups.jsx';
 import { JobExtras } from './Shop.jsx';
 import { nextJobNo, shopSettings } from '@shared/shop.js';
 import { FIELD_CALCS, cornerPercents } from '@shared/calcs.js';
@@ -29,13 +31,14 @@ export const TYPE_LABEL = {
   schedule: 'Maintenance schedule', measurement: 'Measurement', track_check: 'Between-rounds check',
   gear: 'Gear set', gear_list: 'Gear list', tire: 'Tire', track: 'Track', team_track: 'Team track', contact: 'Contact',
   supplier: 'Supplier', contact_link: 'Contact role', series: 'Series', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
-  customer: 'Customer', job: 'Job',
+  customer: 'Customer', job: 'Job', shop_setup: 'Workshop setup',
 };
 
 // New records pre-filled from the latest record with the same car / engine.
 const CARRY = {
   setup: { match: 'car', skip: ['event', 'car', 'session', 'crew_chief', 'day', 'baseline', 'baseline_name'], label: 'session' },
   engine_build: { match: 'engine', skip: ['engine', 'date', 'build_type', 'engine_laps', 'builder', 'notes'], label: 'build' },
+  shop_setup: { match: 'car', skip: ['car', ...SHOP_SETUP_SKIP], label: 'workshop setup' },
 };
 
 function afterSave(type, rec) {
@@ -63,6 +66,7 @@ function afterSave(type, rec) {
     case 'dyno_run': return '/workshop/dyno';
     case 'engine_build': return '/engines';
     case 'review': return '/team/reviews';
+    case 'shop_setup': return '/workshop/setups';
     default: return '/';
   }
 }
@@ -118,6 +122,7 @@ export default function RecordEdit() {
   const [choosing, setChoosing] = useState(false);
   const [pickBaseline, setPickBaseline] = useState('');
   const [pickSession, setPickSession] = useState('');
+  const [pickShopState, setPickShopState] = useState('');
   const [dirty, setDirty] = useState(false);
   const [stage, setStage] = useState('all'); // setup: All / Before / After the session
   const [changesOnly, setChangesOnly] = useState(false);
@@ -162,7 +167,7 @@ export default function RecordEdit() {
     const cfg = CARRY[type];
     if (cfg && params.get('from') && data.byId[params.get('from')]) {
       const src = data.byId[params.get('from')];
-      Object.assign(init, carryValues(f, src, cfg.skip)); setCarried(src);
+      Object.assign(init, src.type === 'shop_setup' ? toTrackValues(formFor(data, 'shop_setup', src.data.form_id), src.data.values, f) : carryValues(f, src, cfg.skip)); setCarried(src);
       if (type === 'setup') init.copied_from = src.id; // changes are shown against this session
     } else if (type === 'setup') {
       setChoosing(true); // ask where to start from
@@ -208,7 +213,7 @@ export default function RecordEdit() {
         for (const [key, x] of Object.entries(from)) if (x && !next[key]) next[key] = x;
       }
       // setup: four corner weights fill in total, left, rear and cross
-      if (type === 'setup' && k === 'corner_weights') {
+      if ((type === 'setup' || type === 'shop_setup') && k === 'corner_weights') {
         const p = cornerPercents(val);
         if (p) Object.assign(next, { total_weight: String(Math.round(p.total)), left_pct: p.left.toFixed(1), rear_pct: p.rear.toFixed(1), cross_pct: p.cross.toFixed(1) });
       }
@@ -235,10 +240,19 @@ export default function RecordEdit() {
   const chosenSession = pickSession || prevSession?.id || earlier[0]?.id || '';
   const lastEvent = data && type === 'setup' && values?.car
     ? sortSetupsDesc(data.list('setup').filter((s) => s.id !== id && v(s, 'car') === values.car && v(s, 'event') !== values.event), data)[0] : null;
+  // a track sheet can start from a workshop setup: matching fields, front/rear merged into the four corners
+  const sourceValues = (src) => (src.type === 'shop_setup'
+    ? toTrackValues(formFor(data, 'shop_setup', src.data.form_id), src.data.values, form)
+    : carryValues(form, src, cfg.skip));
   const startFrom = (src) => {
-    if (src) { setValues((s0) => ({ ...s0, ...carryValues(form, src, cfg.skip), ...(type === 'setup' ? { copied_from: src.id } : {}) })); setCarried(src); setDirty(true); }
+    if (src) { setValues((s0) => ({ ...s0, ...sourceValues(src), ...(type === 'setup' ? { copied_from: src.id } : {}) })); setCarried(src); setDirty(true); }
     setChoosing(false);
   };
+  const eventShop = data && type === 'setup' && values?.event ? data.byId[v(data.byId[values.event], 'shop_setup')] : null;
+  const shopSetups = data && type === 'setup' && values?.car && canType('shop_setup', 'view')
+    ? data.list('shop_setup').filter((s) => v(s, 'car') === values.car).sort((a, b) => String(v(b, 'date') || b.created_at).localeCompare(String(v(a, 'date') || a.created_at))) : [];
+  const [pickShop, setPickShop] = [pickShopState, setPickShopState];
+  const chosenShop = pickShop || eventShop?.id || shopSetups[0]?.id || '';
   const copyOptions = useMemo(() => (data && cfg && matchVal
     ? sortSetupsDesc(data.list(type).filter((s) => v(s, cfg.match) === matchVal && s.id !== id), data).slice(0, 30)
     : []), [data, type, matchVal, id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -306,8 +320,8 @@ export default function RecordEdit() {
     setFuelView(null); setDirty(true);
   };
   const base = type === 'setup' ? (values.copied_from && data.byId[values.copied_from]) || prevSession : null;
-  const baseLabel = base ? (v(base, 'event') === values.event ? v(base, 'session') || 'the copied session' : titleOf(base, data)) : '';
-  const changed = type === 'setup' && base ? changedFields(form, values, base.data?.values || {}) : {};
+  const baseLabel = base ? (base.type === 'shop_setup' ? `workshop setup “${v(base, 'name') || ''}”` : v(base, 'event') === values.event ? v(base, 'session') || 'the copied session' : titleOf(base, data)) : '';
+  const changed = type === 'setup' && base ? changedFields(form, values, base.type === 'shop_setup' ? sourceValues(base) : base.data?.values || {}) : {};
   const layout = type === 'setup' ? { ...sheet, stage, changesOnly, changed } : null;
   const sectionShown = (sec) => sec.fields.some((f) => isVisible(f, values) && f.type !== 'heading'
     && (stage === 'all' || (stage === 'after') === (f.stage === 'after')) && (!changesOnly || changed[f.key]));
@@ -315,10 +329,11 @@ export default function RecordEdit() {
   const copySelect = cfg && !readOnly ? (
     <select value="" aria-label="Copy from" onChange={(e) => {
       const src = data.byId[e.target.value];
-      if (src) { setValues((s) => ({ ...s, ...carryValues(form, src, cfg.skip), ...(type === 'setup' ? { copied_from: src.id } : {}) })); setCarried(src); setDirty(true); }
+      if (src) { setValues((s) => ({ ...s, ...sourceValues(src), ...(type === 'setup' ? { copied_from: src.id } : {}) })); setCarried(src); setDirty(true); }
     }}>
       <option value="">{matchVal ? 'Copy from…' : `Pick a ${cfg.match} first`}</option>
       {baselines.length > 0 && <optgroup label="Baselines">{baselines.map((b) => <option key={b.id} value={b.id}>{baselineLabel(b)}</option>)}</optgroup>}
+      {shopSetups.length > 0 && <optgroup label="Workshop setups">{shopSetups.map((b) => <option key={b.id} value={b.id}>{v(b, 'name') || 'Workshop setup'}{b.id === eventShop?.id ? ' (this event’s)' : ''}</option>)}</optgroup>}
       {type === 'setup' ? (
         <>
           {thisEvent.length > 0 && <optgroup label="This event">{thisEvent.map((s) => <option key={s.id} value={s.id}>{inEventLabel(s)}</option>)}</optgroup>}
@@ -332,9 +347,9 @@ export default function RecordEdit() {
     </select>
   ) : null;
   const startedText = carried
-    ? <span>Started from <b>{v(carried, 'baseline') ? `baseline “${v(carried, 'baseline_name') || titleOf(carried, data)}”` : titleOf(carried, data)}</b>{type === 'setup' ? ' — hot values, travel, race, feedback and notes left blank.' : ' — measurements copied; check every value.'}</span>
+    ? <span>Started from <b>{carried.type === 'shop_setup' ? `workshop setup “${v(carried, 'name') || 'Workshop setup'}”` : v(carried, 'baseline') ? `baseline “${v(carried, 'baseline_name') || titleOf(carried, data)}”` : titleOf(carried, data)}</b>{type === 'setup' ? ' — hot values, travel, race, feedback and notes left blank.' : ' — measurements copied; check every value.'}</span>
     : <span className="muted">Copy settings from a previous {cfg?.label}{type === 'setup' ? ' or baseline' : ''}:</span>;
-  const choosingStart = type === 'setup' && choosing && !readOnly && (thisEvent.length || earlier.length || baselines.length > 0);
+  const choosingStart = type === 'setup' && choosing && !readOnly && (thisEvent.length || earlier.length || baselines.length > 0 || shopSetups.length > 0);
 
   // calendar entries (events): Save and Cancel sit at the top of the form
   const topActions = !readOnly && type === 'event';
@@ -384,11 +399,20 @@ export default function RecordEdit() {
         </div>
       )}
 
-      {type === 'setup' && choosing && !readOnly && (thisEvent.length || earlier.length || baselines.length > 0) && (
+      {choosingStart && (
         <div className="card start-from">
           <h3>Start this sheet from…</h3>
           <p className="muted small">Copies the setup as starting values. Hot pressures and stagger, shock travel, race results, conditions & feedback, notes and photos are not copied.</p>
           <div className="start-options">
+            {shopSetups.length > 0 && (
+              <div className={`start-opt as-div${eventShop && !thisEvent.length ? ' primary' : ''}`} data-testid="start-shop">
+                <b>Workshop setup</b>
+                <select aria-label="Workshop setup" value={chosenShop} onChange={(e) => setPickShop(e.target.value)}>
+                  {shopSetups.map((b) => <option key={b.id} value={b.id}>{v(b, 'name') || 'Workshop setup'}{b.id === eventShop?.id ? ' (this event’s)' : ''}{v(b, 'date') ? ` · ${fmtDate(v(b, 'date'))}` : ''}</option>)}
+                </select>
+                <button type="button" className={`btn small${eventShop && !thisEvent.length ? ' primary' : ''}`} disabled={!chosenShop} onClick={() => startFrom(data.byId[chosenShop])}>Use workshop setup</button>
+              </div>
+            )}
             {(thisEvent.length > 0 || earlier.length > 0) && (
               <div className="start-opt primary as-div copy-session">
                 <b>Copy a session</b>
@@ -449,6 +473,7 @@ export default function RecordEdit() {
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />
       {type === 'engine_build' && <EngineChecks values={values} />}
       {type === 'job' && <JobExtras id={id} values={values} isNew={isNew} />}
+      {type === 'shop_setup' && !isNew && <ShopSetupLinks rec={rec} values={values} />}
 
       {type === 'dyno_run' && <DynoChart runs={[{ id: id || 'new', name: values.label || 'This run', values, form }]} />}
 

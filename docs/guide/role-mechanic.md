@@ -34,6 +34,7 @@ Add new shocks with their **position** and **adjustable type**, so they show at 
 
 | I want to… | Go to |
 |---|---|
+| Record how the car is set up on the setup pad | [Workshop setup sheets](/help/workshop-setups) |
 | Get back something I deleted by mistake | [Recently deleted](/help/recently-deleted) |
 | Record a new shock's or bar's numbers when we buy it | [Shock and bar dyno](/help/dyno) — **Initial measurement** |
 | See which parts are due in the next few meetings | [Analytics](/help/analytics) — **Engines & parts** |

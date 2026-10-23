@@ -12,8 +12,8 @@
 | Product | RaceOps — race team and engine shop manager (self-hosted, multi-tenant PWA) |
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
-| Last schema migration | `016_recently_deleted.sql` |
-| Last updated | October 2026 (backups and restore, team data export, recently deleted) |
+| Last schema migration | `017_workshop_setups.sql` |
+| Last updated | October 2026 (workshop setup sheets) |
 
 ---
 
@@ -170,6 +170,7 @@ shared/                   code used by server AND web
   calcs.js, gearLists.js, fuel.js, dyno.js, bars.js, sessions.js, analytics.js, advisor.js, weather.js, tracks.js,
   engineChecks.js, enginePack.js, shop.js, setupLayout.js, themes.js, calendar.js
   practiceData.js         demo data for practice teams (training)
+  workshopSetup.js        the workshop setup sheet form, and mapping it onto a track setup sheet
   guide.js, guideData.js, guideChecklist.js   user guide parser, generated tables, first-run checklist
   seed/tracks.json, track_updates.json, guides.json   seed data for the shared directory
 tests/
@@ -491,6 +492,7 @@ Each module is a set of record types, base forms, pages and (sometimes) shared c
 | Setups (`setups`) | `setup`, `tuning_guide` | One sheet per session; new sheets copy from the last session or a baseline (`nocopy` fields excluded); shocks, bars, tyres (`tires`) and wheels per corner from inventory or typed, top and front wings (`top_wing`, `front_wing`, `front_wicker`); shocks with adjusters from `ADJUSTERS`; feedback tags; advisor (`shared/advisor.js`) ranks past sheets by similar conditions and tuning-guide rules |
 | At-track checks (`trackside`) | `track_check` | Between-round checklist per session |
 | Gears & tyres (`gears`) | `gear`, `gear_list`, `tire` | Quick-change gear lists (seeded), owned sets, gear calculator, tyre stock and stagger combinations |
+| Workshop setups (`shopsetups`) | `shop_setup` | The car as set up on the shop floor (`shared/workshopSetup.js`): reference conditions, front and rear suspension (split LF/RF and LR/RR), tyres and wheels, wings, drivetrain, weights. An event's `shop_setup` (ref, `matchCar`) is its baseline; a track `setup` starts from it with `toTrackValues()`: same-key fields copy, fields with `maps` (e.g. `front_bars` → `bars`, `front_turns` → `blocked`) merge into the track sheet's four-corner field, shop-only fields stay; `copied_from` points at the workshop setup and changes are shown against its mapped values. New workshop setups copy the car's latest (CARRY). |
 | Maintenance (`maintenance`) | `maintenance`, `schedule` | Checklists; schedules by races, laps, days or hours |
 | Assets (`assets`) | `asset`, `measurement` | Parts with status, position, life limit and measurements; engines are assets (`category = Engine`) |
 | Dyno (`dyno`) | `dyno_run` | Shock runs (`dyno_kind: shock`, test speeds, sweeps, adjuster type) and bar tests (`bar`); **Initial measurement** flag (auto on first test); overlays; shock fade from the initial run (`shared/dyno.js`, `bars.js`) |
@@ -655,7 +657,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 | Guide coverage | `node tools/check-guide.mjs` | in `npm run build` (and so in `docker build`) |
 | Design document coverage | `node tools/check-design.mjs` | in `npm run build` |
 | Web build | `cd web && npm run build` | Vite production build |
-| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e37.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=… UPLOAD_DIR=… BACKUP_DIR=…` (both under `/var/tmp/raceops-test`) `BACKUP_KEY=… BACKUP_CLOUD_MOCK=1`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
+| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e38.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=… UPLOAD_DIR=… BACKUP_DIR=…` (both under `/var/tmp/raceops-test`) `BACKUP_KEY=… BACKUP_CLOUD_MOCK=1`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
 | Dependency audit | `npm audit` (server and web) | before each release |
 
 Local development: Postgres on `localhost:5432` (db/user `raceops`), `cd server && npm i && node src/index.js`, `cd web && npm i && npm run dev` (Vite proxies `/api` to `:8080`).
@@ -836,6 +838,7 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | `014_feedback.sql` | `feedback_items`, `feedback_votes`, `feedback_comments`, `feedback_files` |
 | `015_backups.sql` | `backup_targets`, `backup_plans`, `backup_runs`; `backup.manage` for roles with `team.manage` |
 | `016_recently_deleted.sql` | `records.deleted_at`, `deleted_by` (back-filled); `tenants.deleted_retention_days`, `retention_request`; `trash.manage` for roles with `team.manage` |
+| `017_workshop_setups.sql` | `shopsetups` rights for existing roles: full for roles that edit setups, view/edit for roles that edit maintenance or assets, view for roles that view setups |
 
 ## Appendix C — Record types
 
@@ -851,6 +854,7 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | gears | `gear`, `gear_list`, `tire` |
 | maintenance | `maintenance`, `schedule` |
 | assets | `asset`, `measurement` |
+| shopsetups | `shop_setup` |
 | dyno | `dyno_run` |
 | engines | `engine_build` |
 | jobs | `job` |
@@ -872,4 +876,4 @@ Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tra
 
 Public: `/login`, `/invite/:token`, `/s/:token`, `/c/:token`, `/cal/:type/:id`, `/print/calendar`, `/print/guide`, `/print/job/:id`.
 
-Signed in: `/` (home), `/track`, `/workshop`, `/engines`, `/team`, `/team/members`, `/team/reports`, `/team/reviews`, `/team/stats`, `/roles`, `/forms`, `/forms/:id`, `/cars`, `/events`, `/events/:id`, `/series`, `/series/:id`, `/setups`, `/compare`, `/track/advisor`, `/track/advisor/guides[/:id]`, `/track/checks`, `/track/gears`, `/tracks`, `/tracks/:id`, `/calendar`, `/maintenance`, `/assets`, `/assets/:id`, `/workshop/dyno`, `/engines/linked/:id`, `/link-engine/:code`, `/jobs`, `/customers`, `/customers/:id`, `/contacts`, `/contacts/:id`, `/suppliers`, `/calculators`, `/analytics`, `/ask`, `/help`, `/help/:id`, `/feedback`, `/profile`, `/r/:type/:id` (generic record editor), `/admin`, `/admin/teams|plans|users|directory|lists|settings|system|ai|calendar|feedback|backups|deleted`, `/team/backups`, `/deleted`.
+Signed in: `/` (home), `/track`, `/workshop`, `/engines`, `/team`, `/team/members`, `/team/reports`, `/team/reviews`, `/team/stats`, `/roles`, `/forms`, `/forms/:id`, `/cars`, `/events`, `/events/:id`, `/series`, `/series/:id`, `/setups`, `/compare`, `/track/advisor`, `/track/advisor/guides[/:id]`, `/track/checks`, `/track/gears`, `/tracks`, `/tracks/:id`, `/calendar`, `/maintenance`, `/assets`, `/assets/:id`, `/workshop/dyno`, `/engines/linked/:id`, `/link-engine/:code`, `/jobs`, `/customers`, `/customers/:id`, `/contacts`, `/contacts/:id`, `/suppliers`, `/calculators`, `/analytics`, `/ask`, `/help`, `/help/:id`, `/feedback`, `/profile`, `/r/:type/:id` (generic record editor), `/admin`, `/admin/teams|plans|users|directory|lists|settings|system|ai|calendar|feedback|backups|deleted`, `/team/backups`, `/deleted`, `/workshop/setups`.

@@ -7,6 +7,7 @@
 // (LF/RF/LR/RR group; input: number|text|asset), calc (formula over other numeric
 // keys), check (checklist item with freq), heading (sub-heading inside a section).
 
+import { WORKSHOP_FORMS } from './workshopSetup.js';
 const CORNERS = ['LF', 'RF', 'LR', 'RR'];
 const REARS = ['LR', 'RR'];
 
@@ -261,4 +262,4 @@ const measurementForm = {
 export { PHASE2_FORMS } from './baseForms2.js';
 import { PHASE2_FORMS } from './baseForms2.js';
 import { PHASE3_FORMS } from './baseForms3.js';
-export const BASE_FORMS = [carForm, eventForm, setupForm, maintenanceForm, assetForm, scheduleForm, measurementForm, ...PHASE2_FORMS, ...PHASE3_FORMS];
+export const BASE_FORMS = [carForm, eventForm, setupForm, maintenanceForm, assetForm, scheduleForm, measurementForm, ...PHASE2_FORMS, ...PHASE3_FORMS, ...WORKSHOP_FORMS];

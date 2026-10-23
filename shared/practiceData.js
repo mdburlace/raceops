@@ -6,7 +6,7 @@
 
 export const PRACTICE = {
   car: 'Car 17', spareCar: 'Car 71', engine: '410 #3', series: 'Club Championship',
-  tonight: 'Valley Speedway — Club night', next: 'Lakeside Raceway — Club Championship',
+  tonight: 'Valley Speedway — Club night', next: 'Lakeside Raceway — Club Championship', shopSetup: 'Lakeside baseline',
   rrShock: 'RR Penske 8760', customer: 'Sam Hart', customerEngine: 'Hart 410', job: 'J-1001',
 };
 
@@ -103,7 +103,24 @@ export function practiceData({ form, today = new Date(), uuid }) {
     stagger_cold: '5.5', wing_angle: '13', track_conditions: ['Tacky'], driver_feel: ['Loose exit'], driver_comments: 'Loose off turn 2, good drive into 3.',
   }));
   add('track_check', { event: tonight.id, car: car.id, after_session: 'Heat 1', c_pressures: { done: true }, c_lugs: { done: true }, c_fuel: { done: true, value: '2' }, issues: 'Small oil weep on the RR shock.' });
-  add('event', { name: 'Lakeside Raceway — Club Championship', series: series.id, round: '9', date: day(7), track: 'Lakeside Raceway', car: car.id, intent: 'Planned' });
+  // the car as set up in the workshop for next week (the baseline for round 9)
+  const pick = (o, cs) => Object.fromEntries(cs.map((c) => [c, o[c]]));
+  const shop = add('shop_setup', {
+    car: car.id, name: 'Lakeside baseline', date: day(-2), purpose: 'Big, fast tracks like Lakeside',
+    fuel_load: '15', fuel_load_unit: 'US gal', driver_weight: '78 kg driver in the seat', chassis_type: 'Standard rail',
+    block_heights: { LF: '4', RF: '4.25', LR: '4.5', RR: '4.75' },
+    front_bars: pick(Object.fromEntries(Object.entries(bars).map(([c, x]) => [c, ref(x)])), ['LF', 'RF']), arm_length: { LF: '13', RF: '13.5' },
+    front_turns: { LF: '2', RF: '1' }, front_ride_height: { LF: '9.25', RF: '9.5' }, toe: '1/16 out (tyre faces)', caster: { LF: '5', RF: '6' }, camber: { LF: '1', RF: '-2' }, axle_lead: '0.25',
+    front_square: { LF: '30.5', RF: '30.5' }, front_shocks: pick(Object.fromEntries(Object.entries(shocks).map(([c, x]) => [c, ref(x)])), ['LF', 'RF']),
+    front_clicks: { LF: 'Comp 4 · Reb 6', RF: 'Comp 6 · Reb 8' },
+    rear_bars: pick(Object.fromEntries(Object.entries(bars).map(([c, x]) => [c, ref(x)])), ['LR', 'RR']), rear_turns: { LR: '0', RR: '1.5' },
+    rear_ride_height: { LR: '4.5', RR: '4.75' }, rear_square: { LR: '41', RR: '41' }, jacobs_ladder: 'Frame hole 2 / strap hole 3',
+    rear_shocks: pick(Object.fromEntries(Object.entries(shocks).map(([c, x]) => [c, ref(x)])), ['LR', 'RR']), rear_clicks: { RR: 'LS comp 3 · HS comp 2 · Reb 8' },
+    pressure_cold: { LF: '12', RF: '14', LR: '9', RR: '17' }, stagger_front: '1.5', stagger_cold: '6',
+    top_wing: ref(topWing), wing_angle: '12', wing_position: '3', wicker: '1"', front_wing: ref(frontWing), nose_wing: '8', front_wicker: '1/2"',
+    engine: ref(eng), timing: '38°',
+  });
+  add('event', { name: 'Lakeside Raceway — Club Championship', series: series.id, round: '9', date: day(7), track: 'Lakeside Raceway', car: car.id, intent: 'Planned', shop_setup: shop.id });
 
   // ---- workshop: schedules and a recent service
   add('schedule', { name: 'RR shock rebuild', applies_to: 'Asset', asset: shocks.RR.id, interval: '10', interval_unit: 'Races', last_done: day(-120),

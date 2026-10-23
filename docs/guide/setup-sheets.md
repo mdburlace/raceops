@@ -8,7 +8,7 @@ for: module:setups
 team: race
 pages: /setups, /r/setup/*
 covers: type:setup, module:setups, setting:baseline
-related: setup-sheet-layout, shocks-on-setup, fuel-planner, weather, feedback-debrief, setup-advisor, import-files
+related: workshop-setups, setup-sheet-layout, shocks-on-setup, fuel-planner, weather, feedback-debrief, setup-advisor, import-files
 ---
 Each session at an event has one setup sheet. Fields have an **ⓘ** beside the label: tap it to see what to enter and where to get the number.
 
@@ -21,6 +21,7 @@ Add a session to an event (see [Events and sessions](/help/events-sessions)). Th
 - **Copy a session.** Lists this event's sessions in running order, then the car's earlier events. The default is the session just before this one.
 - **Last time out.** The car's sheet from its previous event.
 - **Baseline.** A setup you've saved as a starting point.
+- **Workshop setup.** How the car was set up in the shop. The event's own workshop setup is chosen first. See [Workshop setup sheets](/help/workshop-setups).
 - **Blank sheet.**
 
 Setup and weather are copied as starting values. These are **not** copied, because they belong to the session that ran:

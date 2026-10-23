@@ -45,6 +45,7 @@ export const MODULES = [
   { key: 'gears', label: 'Gears & tires', types: ['gear', 'gear_list', 'tire'], area: 'track', feature: 'gears' },
   { key: 'maintenance', label: 'Car maintenance', types: ['maintenance', 'schedule'], area: 'workshop' },
   { key: 'assets', label: 'Assets', types: ['asset', 'measurement'], area: 'workshop' },
+  { key: 'shopsetups', label: 'Workshop setup sheets', types: ['shop_setup'], area: 'workshop' },
   { key: 'dyno', label: 'Shock & bar dyno', types: ['dyno_run'], area: 'workshop', feature: 'dyno' },
   { key: 'engines', label: 'Engine builds', types: ['engine_build'], area: 'engines' },
   // engine shop work for customers (shown to teams set up as an engine shop)
@@ -158,7 +159,7 @@ export const DEFAULT_ROLES = [
     permissions: [
       ...areas('track', 'workshop', 'engines'),
       ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view']),
-      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs'], ['view', 'edit']),
+      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs', 'shopsetups'], ['view', 'edit']),
       ...mod(['customers'], ['view']),
     ],
   },

@@ -12,6 +12,7 @@ Every RaceOps update adds a line here, and the articles it links to are updated 
 
 ## October 2026
 
+- **Workshop setup sheets.** **In the Workshop → Workshop setups** records how each car is set up on the shop floor: reference conditions, front and rear suspension and geometry, tyres and wheels, wings, drivetrain and weights. Link one to an event as its baseline, and the track sheets start from it. [Workshop setup sheets](/help/workshop-setups)
 - **Recently deleted.** Deleted something by mistake? **Recently deleted** (in the sidebar) puts it back. Everyone can recover what they made or deleted; team managers can recover anything in the team; platform admins anything at all. Deleted items are kept for 90 days unless your platform admin sets otherwise. [Recently deleted](/help/recently-deleted)
 - **Export your team's data.** **Team Management → Backups & export** exports the team's records as CSV spreadsheets, XML or JSON, with or without attached files, to download or to one of your destinations. [Team backups and export](/help/backups-team)
 - **Backups and restore.** Platform admins can back up the whole server, now or on a schedule, to a server folder, S3-compatible storage, Google Drive, Dropbox or OneDrive, and restore everything, bring one team back as it was, or move RaceOps to a new server. Each team can back up its own data, set its own schedule and destination, and put the team back as it was. [Backups and restore](/help/backups-platform), [Team backups](/help/backups-team)

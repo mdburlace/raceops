@@ -27,6 +27,7 @@ import { LinkEngine, LinkedEngineDetail, SharePage } from './pages/Sharing.jsx';
 import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
 import { AdminBackups, TeamBackups } from './pages/Backups.jsx';
 import { AdminDeleted, RecentlyDeleted } from './pages/Deleted.jsx';
+import { WorkshopSetups } from './pages/WorkshopSetups.jsx';
 import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
 
 /** A fresh record page per record — moving between records never carries one's state into another. */
@@ -102,6 +103,7 @@ function Routed() {
         <Route path="assets" element={<AreaGate area="workshop" module="assets"><AssetList /></AreaGate>} />
         <Route path="assets/:id" element={<AreaGate area="workshop" module="assets"><AssetDetail /></AreaGate>} />
         <Route path="workshop/dyno" element={<AreaGate area="workshop" module="dyno"><Dyno /></AreaGate>} />
+        <Route path="workshop/setups" element={<AreaGate area="workshop" module="shopsetups"><WorkshopSetups /></AreaGate>} />
         {/* Engines */}
         <Route path="engines" element={<AreaGate area="engines" module="engines"><Engines /></AreaGate>} />
         <Route path="jobs" element={<AreaGate area="engines" module="jobs"><JobList /></AreaGate>} />

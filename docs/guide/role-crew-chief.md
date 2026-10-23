@@ -45,6 +45,7 @@ No signal? Keep going. Everything saves on the phone and syncs later. [Work offl
 
 | I want to… | Go to |
 |---|---|
+| Start the night from how the car left the shop | [Workshop setup sheets](/help/workshop-setups) |
 | Get back something I deleted by mistake | [Recently deleted](/help/recently-deleted) |
 | Fix a wrong date on a shared series | [Calendar](/help/calendar) — **Suggest a change** |
 | Put the series rounds on our calendar for the right car | [Calendar](/help/calendar) — **Enter a series** |

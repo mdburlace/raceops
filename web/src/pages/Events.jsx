@@ -176,6 +176,7 @@ export function EventDetail() {
   const back = encodeURIComponent(`/events/${id}${days > 1 ? `?day=${day}` : ''}`);
   const venue = data.byId[v(ev, 'venue')];
   const baselines = data.list('setup').filter((s) => v(s, 'baseline'));
+  const shop = data.byId[v(ev, 'shop_setup')];
   const series = data.byId[v(ev, 'series')];
   const newSheet = (carId, session, from) => {
     const order = orderForNew(daySetups.filter((s) => v(s, 'car') === carId), presets, session);
@@ -201,6 +202,9 @@ export function EventDetail() {
       <Section key={c.id} title={primary ? `${titleOf(c)} — sessions${days > 1 ? ` · Day ${day}` : ''}` : `${titleOf(c)} (earlier sheets)`} className={`event-car${primary ? '' : ' other-car'}`}
         actions={(
           <span className="row-actions">
+            {primary && canEdit && !reorder && shop && v(shop, 'car') === c.id && (
+              <button type="button" className="btn small" onClick={() => newSheet(c.id, nextSession, shop.id)} title="A new sheet for the next session, starting from the car's workshop setup">Start from workshop setup</button>
+            )}
             {primary && canEdit && !reorder && baselines.length > 0 && (
               <select className="baseline-pick" aria-label={`Start ${titleOf(c)} from a baseline`} value=""
                 onChange={(e) => e.target.value && newSheet(c.id, nextSession, e.target.value)}>
@@ -235,6 +239,7 @@ export function EventDetail() {
       </PageHeader>
       <div className="event-meta">
         {car && <span className="chip static car-chip">Car: {titleOf(car)}</span>}
+        {shop && <Link className="chip" to={`/r/shop_setup/${shop.id}`} data-testid="event-shop-setup">Workshop setup: {v(shop, 'name')}</Link>}
         {venue && <Link className="chip" to={`/tracks/${venue.id}`}>Track: {v(venue, 'name')}</Link>}
         {series && <Link className="chip" to={`/series/${series.id}`}>{titleOf(series)}{v(ev, 'round') ? ` · Round ${v(ev, 'round')}` : ''}</Link>}
         {!series && <span className="chip static">Stand-alone event</span>}

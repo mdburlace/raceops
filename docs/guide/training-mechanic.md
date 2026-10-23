@@ -7,7 +7,7 @@ summary: Hands-on exercises in the practice team — between-round checks, what'
 for: module:maintenance, module:assets
 covers: option:training-mechanic
 related: training, role-mechanic, between-round-checks, maintenance, assets, dyno, gears
-demo: Car 17, Valley Speedway — Club night, Small oil weep on the RR shock, Oil and filter change, RR shock rebuild, RR Penske 8760, Spare Penske, Hoosier
+demo: Car 17, Lakeside baseline, Valley Speedway — Club night, Small oil weep on the RR shock, Oil and filter change, RR shock rebuild, RR Penske 8760, Spare Penske, Hoosier
 ---
 **Time:** about 45 minutes. **You need:** the practice team, signed in as a mechanic.
 
@@ -77,8 +77,21 @@ demo: Car 17, Valley Speedway — Club night, Small oil weep on the RR shock, Oi
 
 **When it's right:** on a setup sheet, *RR-15* is listed first at the RR corner. See [Shocks, bars, tyres, wheels and wings on the setup sheet](/help/shocks-on-setup).
 
+## Exercise 9: The car's workshop setup (10 min)
+
+1. Go to **In the Workshop → Workshop setups** and open *Lakeside baseline* for Car 17.
+2. Read the **Baseline & reference conditions**: the fuel load and block heights the measurements were taken with.
+3. Go back and press **New workshop setup** for Car 17. It starts from *Lakeside baseline*.
+4. Name it *Valley tacky*. Change the **Ride height** at the LF to *9* and the **Top wing angle** to *14*. Press **Save**.
+5. Open *Valley tacky* and, under **Use for an event…**, choose *Valley Speedway — Club night* and press **Link**.
+
+**When it's right:** the event page for tonight shows **Workshop setup: Valley tacky**. See [Workshop setup sheets](/help/workshop-setups).
+
 ## Check yourself
 
+<details><summary>Why record the fuel load and block heights on a workshop setup?</summary>
+Because every other measurement depends on them. With a different fuel load or different blocks, ride heights and corner weights change, and the numbers no longer compare with last time.
+</details>
 <details><summary>Where do races and laps for a schedule come from?</summary>
 From setup sheets: each sheet for that car (or with that part picked) adds its laps and race meeting.
 </details>

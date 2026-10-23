@@ -7,7 +7,7 @@ summary: How to learn RaceOps hands-on — the practice team, the path for your 
 for: everyone
 covers: option:training, option:practice-team, setting:practice
 related: training-quick-start, training-trainers, training-cards
-reviewed: Recently deleted
+reviewed: Workshop setup sheets
 demo: Car 17, Car 71, 410 #3, RR Penske 8760, Club Championship, Valley Speedway — Club night, Sam Hart, Hart 410, J-1001
 ---
 RaceOps training is hands-on. You learn by doing real jobs on a **practice team** full of demo data, so nothing you try can upset your real team.
@@ -40,7 +40,7 @@ A practice team is an ordinary RaceOps team loaded with demo data:
 - **Cars:** Car 17 (410 sprint) and Car 71 (360 sprint).
 - **Parts on Car 17:** the engine *410 #3*, shocks, torsion bars, wheels, top and front wings, and tyres. The *RR Penske 8760* shock is nearly due for a rebuild.
 - **Racing:** the *Club Championship* series, with eight rounds already raced (two setup sheets each), tonight's meeting *Valley Speedway — Club night* with **Heat 1** done, and round 9 next week.
-- **Workshop:** maintenance schedules (one due), a recent service and a between-round check with an issue noted.
+- **Workshop:** a workshop setup for Car 17 (*Lakeside baseline*, linked to round 9), maintenance schedules (one due), a recent service and a between-round check with an issue noted.
 - **Engine shop:** a customer, *Sam Hart*, his engine *Hart 410*, and job *J-1001* in progress.
 
 While you're in the practice team, a **Practice team** banner shows at the top of every screen. If your login belongs to more than one team, switch with the team list at the top of the sidebar.

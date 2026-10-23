@@ -8,7 +8,7 @@ for: module:setups
 team: race
 covers: option:training-crew-chief
 related: training, role-crew-chief, setup-sheets, setup-sheet-layout, setup-advisor, compare-search
-demo: Car 17, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick
+demo: Car 17, Lakeside baseline, Lakeside Raceway, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick
 ---
 **Time:** about 45 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
 
@@ -71,6 +71,14 @@ demo: Car 17, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, S
 3. Go to **Setup sheets → Baselines**.
 
 **When it's right:** *Valley tacky* is listed. Next time, you can start a sheet from it.
+
+## Exercise 8: Start next week from the workshop setup (5 min)
+
+1. Open next week's event, *Lakeside Raceway — Club Championship* (round 9). It shows **Workshop setup: Lakeside baseline**.
+2. Press **Start from workshop setup**.
+3. Look at the **Chassis** and **Shocks** sections.
+
+**When it's right:** the new sheet says it started from workshop setup *Lakeside baseline*, and the bars, shocks, ride heights, pressures and wing angle are filled in from it. See [Workshop setup sheets](/help/workshop-setups).
 
 ## Check yourself
 

@@ -93,6 +93,7 @@ export function useNav() {
     ] },
     { area: 'workshop', label: 'In the Workshop', icon: I.shop, show: canArea('workshop'), links: [
       racing && canModule('maintenance') && { to: '/maintenance', label: 'Car maintenance', icon: I.wrench },
+      racing && canModule('shopsetups') && { to: '/workshop/setups', label: 'Workshop setups', icon: I.sheet },
       canModule('assets') && { to: '/assets', label: 'Assets', icon: I.box },
       canModule('dyno') && { to: '/workshop/dyno', label: 'Shock & bar dyno', icon: I.wave },
       { to: '/calculators?area=workshop', label: 'Calculators', icon: I.calc },

@@ -111,6 +111,7 @@ export function titleOf(rec, data) {
     case 'job': return `${vals.job_no || 'Job'}${data?.byId[vals.customer] ? ` · ${titleOf(data.byId[vals.customer])}` : ''}`;
     case 'tuning_guide': return vals.name || 'Tuning guide';
     case 'fixture': return `${vals.name || 'Calendar date'}${vals.date ? ` · ${fmtDate(vals.date)}` : ''}`;
+    case 'shop_setup': return `${vals.name || 'Workshop setup'}${data?.byId[vals.car] ? ` · ${titleOf(data.byId[vals.car])}` : ''}`;
     case 'season_plan': return `${titleOf(data?.byId[vals.series], data)}${data?.byId[vals.car] ? ` · ${titleOf(data.byId[vals.car])}` : ''}`;
     default: return rec.type;
   }

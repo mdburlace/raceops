@@ -91,6 +91,7 @@ export const FIELD_INFO = {
     notes: ['Anything else worth remembering about this session.'],
   },
   event: {
+    shop_setup: ['The workshop setup sheet the car was set up to for this event (In the Workshop → Workshop setups). Setup sheets at the track can start from it.'],
     fixture: ['The date on the shared series or track calendar this event was added from. If that date moves, the calendar tells you and offers to update this event.'],
     intent: ['Whether the team plans to go: Planned, Tentative (maybe), or Not going. Not going keeps the date on your calendar without counting it or publishing it.'],
     outcome: ['What happened, filled in after the meeting: raced the feature, didn’t make the feature, withdrew during the event, didn’t attend, or the event was cancelled.'],
@@ -397,6 +398,56 @@ export const FIELD_INFO = {
     participation: ['Full series adds every round to your calendar. Partial series lets you tick the rounds you’ll run.'],
   },
 };
+
+// Workshop setup sheets: the shop-floor baseline. Fields shared with the track sheet use its descriptions.
+const SHOP = 'Measure on the setup pad, with the fuel load, driver weight and block heights recorded under Baseline & reference conditions.';
+const same = (...keys) => Object.fromEntries(keys.map((k) => [k, FIELD_INFO.setup[k]]).filter(([, x]) => x));
+FIELD_INFO.shop_setup = {
+  ...same('tires', 'tire_spec', 'pressure_cold', 'wheels', 'top_wing', 'wing_angle', 'wing_position', 'wicker', 'front_wing', 'nose_wing', 'front_wicker',
+    'engine', 'gear', 'gear_orientation', 'nozzles', 'main_jet', 'ls_bypass', 'hs_bypass', 'corner_weights', 'total_weight', 'left_pct', 'rear_pct', 'cross_pct',
+    'lr_radius_rod', 'bump_type', 'bump_packers'),
+  car: ['The car this workshop setup is for.'],
+  name: ['A name that says what this setup is for, e.g. “Valley tacky baseline” or “Season opener”.'],
+  date: ['When the car was set up to this on the shop floor.'],
+  set_by: ['Who set the car up and took the measurements.'],
+  purpose: ['When to use it: the kind of track or conditions it suits, e.g. “tacky 1/3-mile tracks”.'],
+  fuel_load: ['Fuel in the tank while measuring. Measure with the same load every time (many teams use 15 gallons), because fuel weight changes ride heights and corner weights.'],
+  fuel_load_unit: ['US gallons or litres, for the fuel load.'],
+  driver_weight: ['The driver’s weight with gear on, or the ballast in the seat if the driver isn’t in the car. A different weight changes every measurement.'],
+  chassis_type: ['Standard rail or raised rail. A raised-rail chassis sits differently, so its block heights aren’t the same as a standard rail’s.'],
+  block_heights: [`Height of the tech blocks under each corner, used to level the frame before the torsion bars are loaded. ${CORNER}`, SHOP],
+  front_bars: ['Torsion bar at each front corner. Pick it from your bars (those meant for that corner and this car come first), or type it in. Becomes the LF and RF bars on a track setup sheet.', 'Bars are kept under In the Workshop → Assets.'],
+  front_bar_spec: ['Bar material, diameter and brand, e.g. “Titanium .900 Sander”, if it isn’t in the bar’s asset record.'],
+  arm_length: ['Torsion arm length at each front corner, e.g. 13.5 in on the RF.'],
+  front_turns: ['Turns on the torsion stop (adjuster) bolts, added to or taken off the zero point. Becomes the LF and RF “Blocked” settings on a track setup sheet.'],
+  front_ride_height: ['Front ride height, from the floor to the centre of the torsion bar on each side. Becomes the LF and RF ride heights on a track setup sheet.', SHOP],
+  toe: ['Toe-in or toe-out, measured across the tyre faces or hub to hub. Write which, e.g. “1/16 out (tyre faces)”.'],
+  caster: ['Caster angle at each front wheel, in degrees.', 'Caster/camber gauge on the hub.'],
+  camber: ['Camber angle at each front wheel, in degrees (negative = top of the tyre in).', 'Caster/camber gauge on the hub.'],
+  axle_lead: ['How far the front axle leads or trails square (positive = right side ahead), in inches.'],
+  front_square: ['Distance from the front axle centre to a fixed reference point on the chassis, each side. Equal both sides means the axle is square.'],
+  front_shocks: ['Shock fitted at each front corner. Pick it from your shocks to link its dyno runs and service life. Becomes the LF and RF shocks on a track setup sheet.'],
+  front_valving: ['The shock’s valving: compression and rebound stacks or the part number’s valving code.'],
+  front_clicks: ['Clicks on adjustable shocks, e.g. “C 4 / R 6”. Becomes the LF and RF adjuster settings on a track setup sheet.'],
+  rear_bars: ['Torsion bar at each rear corner, picked from your bars or typed in. Becomes the LR and RR bars on a track setup sheet.', 'Bars are kept under In the Workshop → Assets.'],
+  rear_bar_spec: ['Bar material and diameter, if it isn’t in the bar’s asset record.'],
+  rear_turns: ['Turns on the rear adjuster bolts from the zero point. Becomes the LR and RR “Blocked” settings on a track setup sheet.'],
+  rear_ride_height: ['Distance from the axle housing to the frame rail (or the floor) at each rear corner. Becomes the LR and RR ride heights on a track setup sheet.', SHOP],
+  rear_square: ['Distance from the rear axle centre to a fixed reference point on the chassis, each side. Equal both sides means the axle is square.'],
+  radius_rods: ['Length of each radius rod and the holes used at the frame and the birdcages.'],
+  jacobs_ladder: ['The holes used for the Jacob’s ladder on the frame and on the strap. It sets the rear roll centre.'],
+  rear_shocks: ['Shock fitted at each rear corner, picked from your shocks. Becomes the LR and RR shocks on a track setup sheet.'],
+  rear_valving: ['The rear shocks’ valving: compression and rebound stacks or valving code.'],
+  rear_clicks: ['Clicks on adjustable rear shocks. Becomes the LR and RR adjuster settings on a track setup sheet.'],
+  tie_downs: ['Tie-down set-up on each rear shock (strap, chain or limiter, and its length), or “None”.'],
+  stagger_front: ['Front stagger: the difference in rollout between the RF and LF tyres, measured with a tape.', 'Rollout tape round each tyre at the pressure you’ll run.'],
+  stagger_cold: ['Rear stagger: the difference in rollout between the RR and LR tyres, measured cold with a tape. Becomes the stagger cold on a track setup sheet.', 'Rollout tape round each tyre at the pressure you’ll run.'],
+  wheel_spacing: ['Distance from the frame to the inside edge of each rear wheel’s lip.'],
+  front_spacers: ['The spacer stack on each front spindle, e.g. “1/2 in inside, 1/4 in outside”.'],
+  wing_offset: ['Any side-to-side offset built into the top wing (or its mount), e.g. “2 in left”.'],
+  timing: ['Ignition timing, in degrees before top dead centre.'],
+};
+
 
 /** Descriptions for everyday fields that mean the same on every form (used when a form has none of its own). */
 export const COMMON_INFO = {

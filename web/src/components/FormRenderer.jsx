@@ -269,7 +269,8 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
       return <RefSearch id={common.id} recs={recs} value={value} data={data} onChange={onChange} />;
     }
     case 'ref': {
-      let opts = data.list(field.ref).filter((r) => !field.category || v(r, 'category') === field.category || r.id === value).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
+      let opts = data.list(field.ref).filter((r) => (!field.category || v(r, 'category') === field.category || r.id === value)
+        && (!field.matchCar || !values?.car || v(r, 'car') === values.car || r.id === value)).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
       if (field.ref === 'track') {
         // the team's own tracks first, then the rest of the directory; closed venues last
         const ours = new Set(data.list('team_track').filter((l) => v(l, 'link') !== 'Hidden').map((l) => v(l, 'track')));

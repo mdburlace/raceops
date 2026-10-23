@@ -14,7 +14,7 @@ Print these and keep them where the work happens: in the trailer, on the worksho
 
 **Before the first session**
 - Open tonight's event: **At the Track → Events**.
-- Pick the session beside **+ Add session**, press it, then **Copy this session** (or start from **Last time out** or a baseline).
+- Pick the session beside **+ Add session**, press it, then **Copy this session** (or start from the **Workshop setup**, **Last time out** or a baseline).
 - Set pressures, wing and shocks. **Save**. The sheet saves on the phone, even with no signal.
 
 **Between sessions**
@@ -34,6 +34,7 @@ Print these and keep them where the work happens: in the trailer, on the worksho
 |---|---|
 | A setup for one session | **At the Track → Events** → the event → the session's sheet |
 | A starting setup to reuse | Any sheet → tick **Save as a baseline setup** |
+| How the car is set up in the shop | **In the Workshop → Workshop setups**, then link it to the event |
 | A quick check between rounds | **At the Track → Between-round checks** |
 | A part with a life (shock, bar, wheel, wing, engine…) | **In the Workshop → Assets** |
 | A tyre | **Gears & tires → Tires** |
