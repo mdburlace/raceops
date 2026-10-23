@@ -42,6 +42,8 @@ export const I = {
   calc: 'M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM8 6h8v3H8zM8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01',
   palette: 'M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.1-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10zM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01M17 11h.01',
   idea: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3',
+  backup: 'M7 18a4.5 4.5 0 0 1-.7-8.9A6 6 0 0 1 17.8 8 4.5 4.5 0 0 1 17 18M12 11v9M9 14l3-3 3 3',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6',
   spark: 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 15l.6 1.4L7 17l-1.4.6L5 19l-.6-1.4L3 17l1.4-.6z',
 };
 export const Icon = ({ d, size = 20 }) => (
@@ -64,6 +66,8 @@ export const ADMIN_LINKS = [
   { to: '/admin/lists', label: 'Pick-lists', icon: I.list },
   { to: '/admin/ai', label: 'AI assistant', icon: I.spark },
   { to: '/admin/settings', label: 'Settings', icon: I.sliders },
+  { to: '/admin/backups', label: 'Backups', icon: I.backup },
+  { to: '/admin/deleted', label: 'Recently deleted', icon: I.trash },
   { to: '/admin/system', label: 'System & activity', icon: I.server },
 ];
 
@@ -109,6 +113,7 @@ export function useNav() {
       teamFull && { to: '/team/members', label: 'Members & invites', icon: I.users },
       (can('roles.manage') || membership?.role.is_owner) && { to: '/roles', label: 'Roles & permissions', icon: I.key },
       teamFull && { to: '/forms', label: 'Forms', icon: I.form },
+      teamFull && can('backup.manage') && { to: '/team/backups', label: 'Backups & export', icon: I.backup },
       canModule('reports') && { to: '/team/reports', label: 'Reports', icon: I.chart },
       canModule('reports') && { to: '/team/stats', label: 'Crew Chief stats', icon: I.star },
       canModule('reviews') && { to: '/team/reviews', label: 'Performance reviews', icon: I.user },
@@ -239,6 +244,7 @@ export default function Layout() {
           })}
           <div className="nav-sep" />
           {link({ to: '/profile', label: 'Profile & device', icon: I.user })}
+          {link({ to: '/deleted', label: 'Recently deleted', icon: I.trash })}
           {link({ to: '/help', label: 'Help & guide', icon: I.help })}
           {link({ to: `/feedback${loc.pathname.startsWith('/feedback') ? '' : `?from=${encodeURIComponent(loc.pathname)}`}`, label: 'Feedback & roadmap', icon: I.idea, badge: notices?.feedback_updates || 0 })}
         </nav>

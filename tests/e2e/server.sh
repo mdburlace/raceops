@@ -12,6 +12,7 @@
 #   PGHOSTPORT    localhost:5432                                  host:port the server connects to
 #   RACEOPS_URL   http://localhost:8080                           where the server listens (port taken from it)
 #   MAIL_OUTBOX   /var/tmp/outbox                                 where test emails are written
+#   TEST_DATA     /var/tmp/raceops-test                           uploads and backups (emptied on every start)
 #
 # Needs: Node 22, psql, curl, and a built web app (cd web && npm ci && npm run build).
 set -euo pipefail
@@ -23,6 +24,7 @@ DB_PASSWORD="${DB_PASSWORD:-raceops}"
 PGHOSTPORT="${PGHOSTPORT:-localhost:5432}"
 RACEOPS_URL="${RACEOPS_URL:-http://localhost:8080}"
 MAIL_OUTBOX="${MAIL_OUTBOX:-/var/tmp/outbox}"
+TEST_DATA="${TEST_DATA:-/var/tmp/raceops-test}"
 PORT="$(echo "$RACEOPS_URL" | sed -E 's#^.*:([0-9]+)/?$#\1#')"
 OUT="$HERE/out"; mkdir -p "$OUT"
 
@@ -38,12 +40,14 @@ END \$\$;
 DROP DATABASE IF EXISTS $TEST_DB WITH (FORCE);
 CREATE DATABASE $TEST_DB OWNER raceops;
 SQL
-rm -rf "$MAIL_OUTBOX"
+rm -rf "$MAIL_OUTBOX" "$TEST_DATA"
+mkdir -p "$TEST_DATA/uploads" "$TEST_DATA/backups"
 
 cd "$ROOT/server"
 DATABASE_URL="postgres://raceops:$DB_PASSWORD@$PGHOSTPORT/$TEST_DB" PORT="$PORT" \
 AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 GITHUB_PROVIDER=mock GITHUB_REPO=example/raceops \
 MAIL_TRANSPORT=file MAIL_OUTBOX="$MAIL_OUTBOX" APP_URL="$RACEOPS_URL" \
+UPLOAD_DIR="$TEST_DATA/uploads" BACKUP_DIR="$TEST_DATA/backups" BACKUP_KEY=test-backup-passphrase BACKUP_CLOUD_MOCK=1 \
   nohup node src/index.js > "$OUT/server.log" 2>&1 &
 echo $! > "$OUT/server.pid"
 

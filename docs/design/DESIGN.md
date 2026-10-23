@@ -12,8 +12,8 @@
 | Product | RaceOps — race team and engine shop manager (self-hosted, multi-tenant PWA) |
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
-| Last schema migration | `014_feedback.sql` |
-| Last updated | October 2026 (files on feedback and ideas) |
+| Last schema migration | `016_recently_deleted.sql` |
+| Last updated | October 2026 (backups and restore, team data export, recently deleted) |
 
 ---
 
@@ -156,6 +156,12 @@ server/
   src/mail.js             SMTP email (nodemailer), admin, team and single-user recipients
   src/feedback.js         feedback & ideas: bug reports, requests, roadmap and votes, admin pipeline, GitHub issues for Claude
   src/practice.js         practice teams for training: seed demo data, reset
+  src/backup.js           full and team backups, restores, schedules, backup routes (§19.4)
+  src/backupFile.js       the backup file format: streaming writer/reader, encryption, sealed credentials
+  src/backupTargets.js    backup destinations: server folder, S3 (SigV4), Google Drive, Dropbox, OneDrive, OAuth
+  src/backupCli.js        command-line backup / inspect / restore
+  src/exportData.js       team data export: CSV (ZIP), XML, JSON, with files; a small ZIP writer
+  src/recycle.js          recently deleted: listing, recovery, retention, the hourly clean-up
 shared/                   code used by server AND web
   catalog.js              areas, modules, record types, permissions, plans, default roles
   platform.js             default platform settings, plans merge, licence state, AI models and prices, pick-lists
@@ -191,7 +197,7 @@ web/
 `Dockerfile` has two stages:
 
 1. **web** (`node:22-alpine`): copies `shared/`, installs `web/` dependencies with `npm ci`, copies `web/`, `docs/`, `tools/` and `server/src` (the guide check reads server code to find settings and pages), then `npm run build` — which runs `tools/check-guide.mjs` and `tools/check-design.mjs` **before** `vite build`. A guide or design document that is behind the code fails the image build.
-2. **runtime** (`node:22-alpine`): `NODE_ENV=production PORT=8080 UPLOAD_DIR=/data/uploads`; installs server production dependencies; copies `shared/`, `server/` and the built `web/dist`; runs as user `node`; `HEALTHCHECK` calls `GET /api/health`; `CMD node server/src/index.js`.
+2. **runtime** (`node:22-alpine`): `NODE_ENV=production PORT=8080 UPLOAD_DIR=/data/uploads BACKUP_DIR=/data/backups`; installs server production dependencies; copies `shared/`, `server/` and the built `web/dist`; runs as user `node`; `HEALTHCHECK` calls `GET /api/health`; `CMD node server/src/index.js`.
 
 The runtime image contains the full **server** source and the **built** web app, not the web source.
 
@@ -202,7 +208,7 @@ The runtime image contains the full **server** source and the **built** web app,
 | Service | Image | Volumes | Notes |
 |---|---|---|---|
 | `db` | `postgres:16-alpine` | `raceops_db:/var/lib/postgresql/data` | DB `raceops`, user `raceops`, password `POSTGRES_PASSWORD`; healthcheck `pg_isready` |
-| `app` | built from `Dockerfile`, tagged `raceops:latest` | `raceops_uploads:/data/uploads` | waits for db healthy; port `${APP_PORT:-8080}:8080`; all settings from environment (Appendix A) |
+| `app` | built from `Dockerfile`, tagged `raceops:latest` | `raceops_uploads:/data/uploads`, `raceops_backups:/data/backups` | waits for db healthy; port `${APP_PORT:-8080}:8080`; all settings from environment (Appendix A) |
 
 ### 5.3 Start-up sequence (`server/src/index.js`)
 
@@ -216,7 +222,8 @@ The runtime image contains the full **server** source and the **built** web app,
 8. `ensureBaseForms()` — for every team: add missing base forms, apply form upgrades, add standard gear lists.
 9. `ensureGlobalTracks()` — seed/refresh the shared track directory from `shared/seed/tracks.json` (keyed by a hash of the file in `schema_migrations`) and apply `track_updates.json` corrections.
 10. `ensureGlobalGuides()` — add shared tuning guides from `shared/seed/guides.json`.
-11. Listen on `PORT`.
+11. `configureBackups()` and `startSchedules()` — backup work folder; runs left "running" by a restart are marked failed; the schedule check runs every minute (first after 20 s).
+12. Listen on `PORT`.
 
 All start-up tasks are idempotent, so a restart is always safe.
 
@@ -230,8 +237,9 @@ Browsers only allow the service worker and "Add to Home Screen" over HTTPS, so p
 |---|---|---|
 | All business data, users, settings, audit, AI usage, requests | Postgres volume `raceops_db` | `pg_dump` (see §19) |
 | Attachments (photos, PDFs) and feedback files | volume `raceops_uploads` (`/data/uploads/<uuid>`, `/data/uploads/feedback/<uuid>`) | file copy of the volume |
+| Backups made to a server folder, safety backups, downloads (a day) | volume `raceops_backups` (`/data/backups/<folder>/…`, `/data/backups/safety/`, `/data/backups/.work/`) | copy elsewhere: use a cloud destination too |
 | Secrets and settings | Portainer stack environment | password manager / secure export |
-| Sign-in lockouts, background jobs, settings cache | process memory | not persisted (by design) |
+| Sign-in lockouts, background jobs, settings cache, backup jobs and OAuth sign-ins in progress | process memory | not persisted (by design) |
 
 ---
 
@@ -242,11 +250,11 @@ Browsers only allow the service worker and "Add to Home Screen" over HTTPS, so p
 | Table | Purpose | Key columns |
 |---|---|---|
 | `users` | Accounts | `id uuid`, `email unique`, `name`, `password_hash` (bcrypt), `is_platform_admin`, `disabled`, `last_login_at`, `prefs jsonb` (theme, sidebar, units, `email_notices`) |
-| `tenants` | Teams | `id`, `name`, `racing_type`, `settings jsonb` (team type, season start, units, shop settings, calendar publish, AI opt-out…), `plan`, `features jsonb` (per-team overrides), `status` (`active`/`suspended`), `seats`, `licence_expires date`, `admin_notes`, `ai_budget_usd` |
+| `tenants` | Teams | `id`, `name`, `racing_type`, `settings jsonb` (team type, season start, units, shop settings, calendar publish, AI opt-out…), `plan`, `features jsonb` (per-team overrides), `status` (`active`/`suspended`), `seats`, `licence_expires date`, `admin_notes`, `ai_budget_usd`, `deleted_retention_days` (NULL = platform default, 0 = forever), `retention_request jsonb` |
 | `roles` | Per-team roles | `tenant_id`, `name` (unique per team), `permissions jsonb` (array of permission keys), `is_owner` |
 | `memberships` | User ↔ team | PK `(user_id, tenant_id)`, `role_id` |
 | `invites` | Invite links | `tenant_id`, `email`, `role_id`, `token unique`, `expires_at`, `accepted_at` |
-| `records` | **All syncable business data** | `id uuid` (client-generated), `tenant_id` (NULL = shared/global), `type`, `data jsonb`, `deleted`, `created_by`, `updated_by`, `created_at`, `updated_at`, `client_updated_at`, `seq bigint` from sequence `record_seq` |
+| `records` | **All syncable business data** | `id uuid` (client-generated), `tenant_id` (NULL = shared/global), `type`, `data jsonb`, `deleted`, `deleted_at`, `deleted_by`, `created_by`, `updated_by`, `created_at`, `updated_at`, `client_updated_at`, `seq bigint` from sequence `record_seq` |
 | `record_history` | Every write attempt | `record_id`, `tenant_id`, `type`, `op` (create/update/delete), `outcome` (applied/superseded), `data`, `user_id`, `client_updated_at` |
 | `attachments` | Files on records | `tenant_id`, `record_id`, `filename`, `mime`, `size`, `storage_path` (relative to `UPLOAD_DIR`), `caption`, `uploaded_by` |
 | `schema_migrations` | Applied migrations and seed markers | `name` PK |
@@ -263,6 +271,9 @@ Browsers only allow the service worker and "Add to Home Screen" over HTTPS, so p
 | `feedback_items` | Bug reports and requests from users, ideas from platform admins — one pipeline | `ref` (serial, shown as #n), `source` (user/admin), `kind` (bug/enhancement/feature/change), `title`, `description`, `steps`, `expected`, `acceptance`, `areas jsonb` (functionality area keys), `page`, `context jsonb` (device, browser, sync), `priority`, `status` (draft/new/approved/in_progress/done/declined/duplicate/withdrawn), `lane` (now/next/later), `public`, `public_summary`, `duplicate_of`, `decision_note`, `release`, `tenant_id`, `user_id`, `decided_by/at`, `sent_at/by`, `github_issue`, `github_url`, `github_state`, `seen` |
 | `feedback_votes` | One vote per user per roadmap item | PK `(item_id, user_id)` |
 | `feedback_comments` | Questions and answers on an item | `item_id`, `user_id`, `from_admin`, `body` |
+| `backup_targets` | Backup destinations; `tenant_id` NULL = the platform's | `name`, `kind` (local/s3/gdrive/dropbox/onedrive), `config jsonb` (folder, bucket, endpoint, region, prefix, path_style, Drive `folder_id`), `secret` (sealed keys or refresh token), `last_ok_at`, `last_error` |
+| `backup_plans` | Schedules: `scope` full / teams (platform default for every team) / team | `tenant_id`, `target_id` (team plan NULL = platform storage), `frequency` (off/daily/weekly/monthly), `at_hour`, `weekday`, `monthday`, `keep`, `next_run_at`, `last_run_at`; unique per scope+team |
+| `backup_runs` | Every backup made | `scope` (full/team), `kind`, `trigger` (manual/scheduled/pre-restore/download), `tenant_id`/`tenant_name`, `target_id`/`target_name`, `status` (running/ok/failed/removed), `file_name`, `remote_ref`, `size`, `encrypted`, `counts`, `error`, `created_by` |
 | `feedback_files` | Files attached to an item (screenshots, recordings, documents) | `item_id`, `filename`, `mime`, `size`, `storage_path` (`feedback/<uuid>` under `UPLOAD_DIR`) |
 
 ### 6.2 The `records` document
@@ -454,6 +465,12 @@ Conventions:
 | `calendarPlus.js` | `/api/public/shared/:type/:id(.ics)`, `/api/t/:tid/notices…`, officials, request replies, admin officials/ask/duplicates/merge/history/feeds/mail | calendar extras (§12) |
 | `mail.js` | — | `sendMail`, `mailAdmins`, `mailTeam`, `mailUser` |
 | `feedback.js` | `/api/feedback/*` (any signed-in user), `/api/admin/feedback/*` | feedback & ideas (§11.1) |
+| `backup.js` | `/api/admin/backups/*`, `/api/t/:tid/backup/*`, public `/api/backup/oauth/callback`, `/api/backup/ops/:id`, `/api/setup/restore` | backups, restores, schedules, destinations (§19.4) |
+| `backupFile.js` | — | backup file format, encryption, `seal`/`unseal` for stored credentials |
+| `backupTargets.js` | — | destination drivers and OAuth (§15) |
+| `backupCli.js` | command line | `backup`, `team`, `inspect`, `restore` |
+| `exportData.js` | used by `POST /api/t/:tid/backup/export` | team data export (§19.5) |
+| `recycle.js` | `/api/t/:tid/deleted*`, `/api/admin/deleted*` | recently deleted (§19.6) |
 | `practice.js` | `/api/t/:tid/practice/reset`; `makePractice()` called from `POST /api/admin/tenants` | practice teams (§11.2) |
 
 The full route list is in [Appendix D](#appendix-d--api-routes).
@@ -500,7 +517,7 @@ Not team data, so it lives in its own tables (§6.1), not in `records`, and is o
 
 - A practice team is an ordinary tenant with `tenants.settings.practice = true` and team type `both`. A platform admin creates one by ticking **Practice team** on **Create a team** (`POST /api/admin/tenants` with `practice: true`); the server calls `makePractice()`, which sets the flag and seeds it in the same transaction. The audit entry records `practice`.
 - `practiceData({ form, today, uuid })` returns the demo records (cars, engines, shocks, bars, wheels, wings, tyres, a contact and supplier, the *Club Championship* series with eight past rounds and two setup sheets each, tonight's event with a Heat 1 sheet and a between-round check, next week's round 9, three schedules, a weekly maintenance, an engine build, and an engine shop customer, engine and job J-1001). Dates are relative to `today`, so the data always looks current. `seedPractice()` maps each record to the team's form for its type and writes record history.
-- `POST /api/t/:tid/practice/reset` (owner, `team.manage` or platform admin; practice teams only, else 400) soft-deletes every record except `form` and `gear_list` (bumping `seq`, so devices drop them on sync), deletes the team's calendar requests and team notices, and re-seeds. Forms and roles are kept.
+- `POST /api/t/:tid/practice/reset` (owner, `team.manage` or platform admin; practice teams only, else 400) removes every record except `form` and `gear_list` for good (with their attachments and history, so they don't fill Recently deleted), sets a new `data_epoch` (devices download the team again), deletes the team's calendar requests and team notices, and re-seeds. Forms and roles are kept.
 - Practice teams can't send calendar requests (`calendarRequests.js` returns 400), so trainees never reach the shared-calendar admins.
 - Web: a **Practice team** banner in `Layout` (links to `/help/training`), and a **Practice team** box with **Reset practice data** on the Team page.
 - The training pack itself is guide content (`section: training`: `training*.md`): start page, quick start, trainer's guide and rollout plan, quick reference cards (printed with `/print/guide?ids=training-cards`, one card per page), and exercises per role with "Check yourself" questions and sign-off tasks. Videos are WebM files in `docs/guide/video/`, embedded as `![…](video/<name>.webm)` and rendered as `<video>` with the poster `img/<name>.webp`; they are made by `tools/training_videos.py` (Playwright recording with a caption bar and pointer, re-encoded with ffmpeg to VP9) and are not precached by the PWA (online only).
@@ -578,6 +595,9 @@ The largest cross-team workflow. Shared (global) `series` and `fixture` records 
 | Sign-in lockouts | `ratelimit.js` | cleared | limits would apply per instance |
 | Background jobs (AI reads, imports) | `jobs.js` | in-flight jobs lost; the app says "try again" | polling must reach the instance that ran the job |
 | Feed check timer | `calendarPlus.js` | restarts (first run after 2 min) | every instance would check feeds |
+| Backup jobs (`ops`), work in progress (`busy`), maintenance flag, OAuth sign-ins in progress | `backup.js` | jobs lost (their runs are marked failed at start); a sign-in in progress must be started again | maintenance and progress are per instance |
+| Recently deleted clean-up (hourly, first after a minute) | `recycle.js` | restarts | guarded by advisory lock 73515 |
+| Backup schedule check (every minute) | `backup.js` | restarts after 20 s; a missed time runs at the next check | guarded by a Postgres advisory lock (73514), so only one instance runs schedules |
 
 **The app must run as exactly one instance.** Scaling out needs these moved to Postgres (or Redis) first — see `ROLLOUT.md`.
 
@@ -591,6 +611,10 @@ The largest cross-team workflow. Shared (global) `series` and `fixture` records 
 | Open-Meteo | Track weather | `WEATHER_PROVIDER` (`open-meteo`/`off`/`mock`), `OPEN_METEO_API_KEY` for paid plans | weather panel shows an error; rest unaffected |
 | SMTP | Notification emails | `SMTP_*`, `APP_URL` | logged, never breaks a request |
 | GitHub REST API | Feedback items sent to Claude as issues | `GITHUB_TOKEN` (fine-grained, Issues read/write), `GITHUB_REPO`, `GITHUB_ISSUE_LABELS`, `CLAUDE_MENTION`, `GITHUB_API_URL`; `GITHUB_PROVIDER=mock` for tests | 20 s timeout; clear messages for a refused token or missing repo; the brief can always be copied instead |
+| S3-compatible storage (AWS S3, Backblaze B2, Wasabi, Cloudflare R2, MinIO) | Backup destinations | per destination: endpoint, region, bucket, prefix, path-style, access key (sealed) | hand-rolled Signature V4 (`UNSIGNED-PAYLOAD`, checked against AWS's published test vectors), single PUT up to 5 GB, ListObjectsV2; errors shown on the destination and emailed for scheduled runs |
+| Google Drive API v3 | Backup destinations | `GOOGLE_CLIENT_ID/SECRET`, scope `drive.file`, `APP_URL` for the redirect | OAuth code flow (offline, refresh token sealed); folder created on first use; resumable upload; refused refresh → "connect it again" |
+| Dropbox API v2 | Backup destinations | `DROPBOX_APP_KEY/SECRET` (App folder app), `APP_URL` | offline refresh token; `files/upload` ≤ 140 MB, upload sessions (64 MB chunks) above |
+| Microsoft Graph (OneDrive) | Backup destinations | `ONEDRIVE_CLIENT_ID/SECRET`, `ONEDRIVE_TENANT`, scope `Files.ReadWrite.AppFolder offline_access` | app folder (`special/approot`); upload sessions in 10 MiB chunks; rotated refresh tokens stored |
 | Public web / iCal | Calendar import and feeds | `CALENDAR_FEED_HOURS`, `CALENDAR_FETCH_PRIVATE` (tests) | 20 s timeout; private addresses refused; Facebook/Instagram refused with advice |
 
 AI rules: all calls are server-side; each checks the `ai` licence feature, the role's `ai.view`, the team's opt-out and the monthly allowance (`tenants.ai_budget_usd` or the platform default). Only the visible table is sent when extracting dyno data. Long reads run as background jobs.
@@ -605,6 +629,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 - **Data isolation:** all tenant queries filter by `tenant_id`; sync pulls only the team's records and global records of viewable types.
 - **Uploads:** stored under random uuids outside the web root; served with `nosniff`, a restrictive CSP and `Content-Disposition`; size-limited.
 - **Feedback files:** an allow-list of extensions (no HTML, SVG, scripts or programs), size- and count-limited, stored under random uuids, served only to the person who sent the item and platform admins. The `Content-Type` comes from the extension, never the upload; only pictures, PDFs and videos are served `inline` (`?download` forces a download), everything else as `attachment`, always with `nosniff` and a restrictive CSP. Admin names and emails, device context and GitHub details are stripped from what submitters see.
+- **Backups:** files encrypted with AES-256-GCM, key from `BACKUP_KEY` by scrypt with a per-file salt; cloud keys and refresh tokens sealed with AES-256-GCM (key from `BACKUP_KEY`, or `JWT_SECRET` when unset) and never returned to the browser. OAuth uses single-use random `state` values held for 10 minutes. Team routes need `backup.manage`; a team only sees and restores its own backups and destinations, and can't restore from full backups. Restored file paths are checked to stay inside the uploads folder. Every destination change, backup and restore is audited.
 - **SSRF:** server-side fetching refuses private, loopback, link-local and CGNAT addresses.
 - **Secrets:** environment variables only (Portainer stack); never in the repo, logs or devices. `x-powered-by` is off.
 - **Audit:** `admin_audit` (admin actions, lockouts), `record_history` (every data write), `ai_usage`.
@@ -630,7 +655,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 | Guide coverage | `node tools/check-guide.mjs` | in `npm run build` (and so in `docker build`) |
 | Design document coverage | `node tools/check-design.mjs` | in `npm run build` |
 | Web build | `cd web && npm run build` | Vite production build |
-| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e35.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=…`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
+| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e37.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=… UPLOAD_DIR=… BACKUP_DIR=…` (both under `/var/tmp/raceops-test`) `BACKUP_KEY=… BACKUP_CLOUD_MOCK=1`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
 | Dependency audit | `npm audit` (server and web) | before each release |
 
 Local development: Postgres on `localhost:5432` (db/user `raceops`), `cd server && npm i && node src/index.js`, `cd web && npm i && npm run dev` (Vite proxies `/api` to `:8080`).
@@ -649,8 +674,9 @@ Local development: Postgres on `localhost:5432` (db/user `raceops`), `cd server 
 
 | What | How | Frequency | Keep |
 |---|---|---|---|
-| Database | `docker exec <db> pg_dump -U raceops -Fc raceops > raceops-YYYYMMDD.dump` | daily, and before every production deploy | 14 daily, 8 weekly, 12 monthly |
-| Uploads | archive the `raceops_uploads` volume (`tar` or `restic`) | daily | as above |
+| Database and uploads | **Platform admin → Backups**: scheduled full backup to a destination off the host (S3-compatible storage or a cloud drive), encrypted with `BACKUP_KEY` | daily | 14 (the schedule's **Keep**) |
+| Database (belt and braces) | `docker exec <db> pg_dump -U raceops -Fc raceops > raceops-YYYYMMDD.dump` | before every production deploy | last 3 |
+| `BACKUP_KEY` | password manager, away from the server | on change | always — backups can't be opened without it |
 | Source | GitHub + a mirror (second remote) + `git bundle create raceops.bundle --all` stored with backups | every release | all releases |
 | Images | registry (GHCR) tags per release | every release | all releases |
 | Secrets and stack config | password manager entry: stack environment, Portainer stack file, pfSense config backup (XML) | on change | latest + previous |
@@ -661,14 +687,16 @@ Backups must be copied **off the Docker host** (NAS and offsite/cloud). Test a r
 
 **A. App container broken or bad release.** Redeploy the previous image tag. If the release ran a migration that isn't backward compatible, restore the pre-deploy database dump (B).
 
-**B. Database lost or corrupted.**
+**B0. Restore from a RaceOps backup (preferred).** On the running server: **Platform admin → Backups → Restore… → Everything** (or one team). On a new or empty server: deploy with the same `BACKUP_KEY`, then the first-run screen's **Restore a backup**, or `node server/src/backupCli.js restore <file> --yes` and restart. Devices notice the new `data_epoch` and download their team again.
+
+**B. Database lost or corrupted (pg_dump route).**
 1. Stop the `app` service.
 2. Recreate the `db` service with an empty volume.
 3. `pg_restore -U raceops -d raceops --clean --if-exists raceops-YYYYMMDD.dump`.
 4. Start `app` (migrations bring the schema up to the image's version).
 5. Devices re-sync. Changes made offline after the backup are pushed again from devices that still hold them.
 
-**C. Docker host lost.** Build a new host with Docker and Portainer. Recreate the stack from the saved stack file and environment. Restore the database (B) and the uploads volume. Point the proxy backend at the new host. The hostname and certificate are unchanged, so installed apps keep working.
+**C. Docker host lost.** Build a new host with Docker and Portainer. Recreate the stack from the saved stack file and environment (same `BACKUP_KEY`). Restore the latest full backup from its cloud destination (B0) — or the database (B) and the uploads volume. Point the proxy backend at the new host. The hostname and certificate are unchanged, so installed apps keep working.
 
 **D. Repository lost.**
 1. Restore from the mirror or the latest `git bundle` (`git clone raceops.bundle raceops`).
@@ -680,6 +708,29 @@ Backups must be copied **off the Docker host** (NAS and offsite/cloud). Test a r
 **Targets:** RPO 24 hours (daily backups; devices often hold newer changes), RTO 4 hours for A–C.
 
 ---
+
+### 19.4 Backup and restore design (`backup.js`, `backupFile.js`, `backupTargets.js`)
+
+- **File** (`.raceops`): `RACEOPS1`, a flag byte, then (when encrypted) a 16-byte scrypt salt, a 12-byte nonce, the AES-256-GCM ciphertext and the 16-byte tag at the very end. Inside is gzip of newline-delimited JSON: a header (`scope` full/team, `created_at`, `app_version`, `migration`, `tenant`, `run_id`), then for each table `{"type":"table"}` and one `{"r": row_to_json}` per row, then files as `{"type":"file"}` and base64 chunks, then `{"type":"end","counts"}`. Written and read as streams; `verify()` decrypts the whole file before any restore.
+- **Full backup:** one `REPEATABLE READ READ ONLY` transaction, every public table except `schema_migrations` in foreign-key order (from `pg_constraint`), read through cursors (1,000 rows a fetch), then every file under `UPLOAD_DIR`.
+- **Team backup:** the team's rows from `tenants`, `roles`, `memberships`, `records`, `record_history`, `attachments`, `engine_shares`, `engine_links` (shop side), `calendar_officials`, `calendar_requests` (and their messages), `team_notices`, plus `_users` (id, email and name of the people its data mentions), then its attachment files. Backup settings, the licence and other teams aren't included.
+- **Full restore:** checks the file, and that its `migration` isn't newer than the server's; takes a safety backup into `BACKUP_DIR/safety`; sets **maintenance** (every API answers 503 except health, status and job progress); then one transaction: `TRUNCATE … RESTART IDENTITY CASCADE`, rows inserted 500 at a time with `json_populate_recordset` (only the columns the backup has, so newer columns take their defaults), self-references set afterwards, sequences moved past the restored ids (`record_seq` never goes backwards), and a new `data_epoch` on every team. Files are staged under `UPLOAD_DIR/.restore-*` and swapped in after the commit; then settings are reloaded and base forms, tracks and guides re-checked.
+- **Team restore** (from a team backup, or one team out of a full backup): a safety backup of the team, then one transaction. Name, racing type and settings come back (licence, plan, seats and the practice flag stay); the backup's roles come back and roles people hold now stay; members stay as they are (a team brought back to a server where it doesn't exist gets its members matched by email, and the restoring admin as owner); the team's data tables are replaced; records get new `seq` values; references to users the server doesn't know become NULL; the team gets a new `data_epoch`.
+- **Devices:** `GET /sync` returns the team's `epoch`. A device that last saw a different one drops its synced copy (keeping unsent changes) and pulls from 0.
+- **Schedules:** `nextRun()` works in server local time (`TZ`). Each minute, due plans are moved to their next time first, then run. `teams` backs up every team without its own active plan. After a scheduled run, older scheduled runs beyond **Keep** for the same scope, team and destination are deleted from the destination (`status = removed`). Downloads and uploaded restore files are kept a day.
+- **Jobs:** backups and restores run in the background. `POST` answers `{ op }` and the page polls `GET /api/backup/ops/:id` (the random job id is the key, so it keeps answering while a full restore holds the users table). One job per team at a time; a full backup or restore excludes everything else.
+
+### 19.5 Team data export (`exportData.js`)
+
+`POST /api/t/:tid/backup/export {format: csv|xml|json, files, target_id}` (role with `backup.manage`) runs as a background job and is listed in `backup_runs` with `kind = 'export'` (it can't be restored). It reads the team's non-deleted records (forms excluded) and its attachments. CSV: a ZIP with one file per record type (UTF-8 with BOM), columns in the order of the team's form for that type with the form's labels as headings, then any other keys; links to other records (uuids of team or shared records, `{asset}` values) show the linked record's name; small objects such as per-corner values become `LF: …; RF: …`; `files.csv` and `README.txt`. XML: `<raceops-export><records type><record id><field name [ref]>`, nested fields and `<item>`s. JSON: `{format, version, team, exported_at, records: {type: [{id, ...values, _created…}]}, fields, files}`. With files, the ZIP adds `files/<id>-<name>`. The ZIP writer is in the module (deflate, no ZIP64).
+
+### 19.6 Recently deleted (`recycle.js`)
+
+- Every delete stamps `deleted_at` (trigger `records_deleted_stamp`, whatever the code path; undeleting clears it); a delete through sync also records `deleted_by`. Migration 016 back-filled both from `updated_at`/`updated_by`. Merged shared-directory duplicates (`data.merged_into`) aren't listed.
+- `GET /api/t/:tid/deleted[?mine=1]`: a role with `trash.manage` (owners always; the migration gave it to roles with `team.manage`) sees everything deleted in the team, others only records they created or deleted, always limited to types they can view. `POST /deleted/recover {ids}`: managers recover anything; others their own, if their role can edit the type. Recovery clears the delete, bumps `seq` and writes a `recover` history row, so devices pull it back.
+- Retention: `settings.general.deleted_retention_days` (default 90; null = forever) for every team; `tenants.deleted_retention_days` overrides it (NULL default, 0 forever). Teams ask through `POST /deleted/retention-request` (stored in `tenants.retention_request`, platform admins emailed); platform admins decide on `/api/admin/deleted` (`PUT retention`, `PUT retention/:tid`, `POST retention/:tid/decline`), and the team is emailed.
+- The hourly clean-up hard-deletes records past their team's retention (5,000 a run), with their attachments (files removed) and history.
+- Platform admins: `GET /api/admin/deleted?team=all|shared|<id>`, `POST /api/admin/deleted/recover` (any team, and shared directory records).
 
 ## 20. Maintaining this document
 
@@ -756,6 +807,14 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | `CALENDAR_FETCH_PRIVATE` | — | tests only | `1` allows fetching private addresses |
 | `MAIL_TRANSPORT` | — | tests only | `file` writes emails to `MAIL_OUTBOX` |
 | `MAIL_OUTBOX` | `/tmp/raceops-outbox` | tests only | Folder for `file` emails |
+| `BACKUP_KEY` | — | strongly recommended | Passphrase that encrypts backups and stored cloud credentials; restores need the same value |
+| `BACKUP_DIR` | `/data/backups` (image) | | Server-folder destinations, safety backups, work files |
+| `BACKUP_UPLOAD_MB` | `2048` | | Largest backup file accepted for a restore upload |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | for Google Drive destinations | OAuth app registration (redirect `<APP_URL>/api/backup/oauth/callback`) |
+| `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` | — | for Dropbox destinations | App-folder app |
+| `ONEDRIVE_CLIENT_ID` / `ONEDRIVE_CLIENT_SECRET` | — | for OneDrive destinations | Entra app registration |
+| `ONEDRIVE_TENANT` | `common` | | Microsoft sign-in tenant |
+| `BACKUP_CLOUD_MOCK` | — | tests only | `1` keeps cloud destinations in a local folder and fakes the sign-in |
 
 ## Appendix B — Migrations
 
@@ -775,6 +834,8 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | `012_calendar_requests.sql` | `calendar_requests` |
 | `013_calendar_plus.sql` | requests `source`, nullable tenant; `calendar_request_messages`, `calendar_officials`, `team_notices`, `calendar_feeds` |
 | `014_feedback.sql` | `feedback_items`, `feedback_votes`, `feedback_comments`, `feedback_files` |
+| `015_backups.sql` | `backup_targets`, `backup_plans`, `backup_runs`; `backup.manage` for roles with `team.manage` |
+| `016_recently_deleted.sql` | `records.deleted_at`, `deleted_by` (back-filled); `tenants.deleted_retention_days`, `retention_request`; `trash.manage` for roles with `team.manage` |
 
 ## Appendix C — Record types
 
@@ -799,16 +860,16 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 
 ## Appendix D — API routes
 
-Public: `GET /api/health`, `POST /api/device/clear-cache`, `GET /api/status`, `POST /api/setup`, `POST /api/auth/login`, `GET|POST /api/invites/:token[/accept]`, `GET /api/share/:token`, `GET /api/public/calendar/:token[.ics]`, `GET /api/public/shared/:type/:id[.ics]`.
+Public: `GET /api/health`, `POST /api/device/clear-cache`, `GET /api/status`, `POST /api/setup`, `POST /api/setup/restore` (only while no users exist), `GET /api/backup/oauth/callback`, `GET /api/backup/ops/:id`, `POST /api/auth/login`, `GET|POST /api/invites/:token[/accept]`, `GET /api/share/:token`, `GET /api/public/calendar/:token[.ics]`, `GET /api/public/shared/:type/:id[.ics]`.
 
 Signed in: `GET|PATCH /api/me`; feedback `GET /api/feedback/mine|roadmap|similar`, `POST /api/feedback`, `POST /api/feedback/seen`, `POST /api/feedback/:id/files|reply|withdraw|vote`, `DELETE /api/feedback/:id/files/:fid`, `GET /api/feedback/files/:fid[?download]`.
 
-Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `PATCH|DELETE /roles/:id`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; practice `POST /practice/reset`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
+Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `PATCH|DELETE /roles/:id`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; practice `POST /practice/reset`; backups (`backup.manage`) `GET /backup`, `PUT /backup/plan`, `POST /backup/run|upload|restore`, `GET /backup/runs/:id/download`, `DELETE /backup/runs/:id`, `POST /backup/targets`, `PATCH|DELETE /backup/targets/:id`, `POST /backup/targets/:id/connect|test`, `GET /backup/targets/:id/files`, `POST /backup/export`; recently deleted `GET /deleted`, `POST /deleted/recover|retention-request`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
 
-Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tracks/export|import|reseed`, `settings`, `settings/general`, `settings/lists/:key`, `overview`, `audit`, `system`, `system/upgrade-forms`, `ai`, `ai/test`, `calendar/data`, `calendar/fixtures/:id`, `calendar/series/:id`, `calendar/requests[/:id/decide|ask]`, `calendar/officials[/:id]`, `calendar/duplicates`, `calendar/merge`, `calendar/history/:id[/restore]`, `calendar/feeds[/:id[/check]]`, `mail`, `mail/test`, `feedback` (list by view, create idea), `feedback/:id` (get, patch, delete), `feedback/:id/files|decide|claude|github`, `DELETE feedback/:id/files/:fid`.
+Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tracks/export|import|reseed`, `settings`, `settings/general`, `settings/lists/:key`, `overview`, `audit`, `system`, `system/upgrade-forms`, `ai`, `ai/test`, `calendar/data`, `calendar/fixtures/:id`, `calendar/series/:id`, `calendar/requests[/:id/decide|ask]`, `calendar/officials[/:id]`, `calendar/duplicates`, `calendar/merge`, `calendar/history/:id[/restore]`, `calendar/feeds[/:id[/check]]`, `mail`, `mail/test`, `feedback` (list by view, create idea), `feedback/:id` (get, patch, delete), `feedback/:id/files|decide|claude|github`, `DELETE feedback/:id/files/:fid`, `backups` (overview), `backups/plans/:scope`, `backups/run`, `backups/teams/:tid/run`, `backups/runs/:id[/download]`, `backups/upload|inspect|restore`, `backups/targets[/:id[/connect|test|files]]`, `deleted`, `deleted/recover`, `deleted/retention[/:tid[/decline]]`.
 
 ## Appendix E — Web routes
 
 Public: `/login`, `/invite/:token`, `/s/:token`, `/c/:token`, `/cal/:type/:id`, `/print/calendar`, `/print/guide`, `/print/job/:id`.
 
-Signed in: `/` (home), `/track`, `/workshop`, `/engines`, `/team`, `/team/members`, `/team/reports`, `/team/reviews`, `/team/stats`, `/roles`, `/forms`, `/forms/:id`, `/cars`, `/events`, `/events/:id`, `/series`, `/series/:id`, `/setups`, `/compare`, `/track/advisor`, `/track/advisor/guides[/:id]`, `/track/checks`, `/track/gears`, `/tracks`, `/tracks/:id`, `/calendar`, `/maintenance`, `/assets`, `/assets/:id`, `/workshop/dyno`, `/engines/linked/:id`, `/link-engine/:code`, `/jobs`, `/customers`, `/customers/:id`, `/contacts`, `/contacts/:id`, `/suppliers`, `/calculators`, `/analytics`, `/ask`, `/help`, `/help/:id`, `/feedback`, `/profile`, `/r/:type/:id` (generic record editor), `/admin`, `/admin/teams|plans|users|directory|lists|settings|system|ai|calendar|feedback`.
+Signed in: `/` (home), `/track`, `/workshop`, `/engines`, `/team`, `/team/members`, `/team/reports`, `/team/reviews`, `/team/stats`, `/roles`, `/forms`, `/forms/:id`, `/cars`, `/events`, `/events/:id`, `/series`, `/series/:id`, `/setups`, `/compare`, `/track/advisor`, `/track/advisor/guides[/:id]`, `/track/checks`, `/track/gears`, `/tracks`, `/tracks/:id`, `/calendar`, `/maintenance`, `/assets`, `/assets/:id`, `/workshop/dyno`, `/engines/linked/:id`, `/link-engine/:code`, `/jobs`, `/customers`, `/customers/:id`, `/contacts`, `/contacts/:id`, `/suppliers`, `/calculators`, `/analytics`, `/ask`, `/help`, `/help/:id`, `/feedback`, `/profile`, `/r/:type/:id` (generic record editor), `/admin`, `/admin/teams|plans|users|directory|lists|settings|system|ai|calendar|feedback|backups|deleted`, `/team/backups`, `/deleted`.

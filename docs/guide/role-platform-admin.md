@@ -32,7 +32,7 @@ See [Platform admin](/help/platform-admin) for every page.
 
 ## Keep the server healthy
 
-- Back up both volumes: the database and uploads.
+- Back up everything from **Platform admin → Backups**: a schedule to a destination away from the server, encrypted with BACKUP_KEY (keep a copy of the passphrase off the server). See [Backups and restore](/help/backups-platform).
 - Keep secrets (API keys) in the Portainer stack's environment, never in files.
 - Set up email (`SMTP_HOST` and friends, and `APP_URL`) so admins and teams hear about requests. Check it under **Settings → Email notifications**.
 - **System & activity** shows the version, migrations and the admin audit log.

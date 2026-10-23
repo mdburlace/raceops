@@ -43,6 +43,8 @@ Engine shops: also [set rates, tax and terms](/help/shop-settings).
 | Add a crew member | [Invite your crew](/help/members-invites) |
 | Stop someone editing setups | [Roles and permissions](/help/roles-permissions) |
 | Rename the team or change its type | [Team page and settings](/help/team-settings) |
+| Back up the team, put it back as it was, or export its data | [Team backups and export](/help/backups-team) |
+| Get back something deleted by mistake | [Recently deleted](/help/recently-deleted) |
 | Switch weather to metric | [Track weather](/help/weather) |
 | See every setting | [All settings and options](/help/all-settings) |
 | Turn AI off | [AI assistant](/help/ai-assistant) |

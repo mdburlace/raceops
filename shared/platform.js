@@ -28,6 +28,7 @@ export const DEFAULT_GENERAL = {
   invite_days: 14,
   announcement: { text: '', level: 'info', until: null },
   support_email: '',
+  deleted_retention_days: 90, // how long deleted records are kept for recovery; null = forever
 };
 
 export const ANNOUNCE_LEVELS = { info: 'Information', warn: 'Warning', critical: 'Critical' };

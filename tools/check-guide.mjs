@@ -97,7 +97,7 @@ const walk = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })
 for (const d of ['web/src', 'server/src', 'shared']) walk(path.join(ROOT, d));
 const found = new Map();
 const note = (key, file) => { if (!found.has(key)) found.set(key, path.relative(ROOT, file)); };
-const IGNORE_TEAM = new Set(['general', 'ai']); // platform settings objects, not team settings
+const IGNORE_TEAM = new Set(['general', 'ai', 'data_epoch']); // platform settings objects, and data_epoch (set by restores, not a setting anyone changes)
 for (const [file, text] of src) {
   if (file.endsWith('guideData.js')) continue;
   for (const m of text.matchAll(/\.settings\??\.([a-z_]+)/g)) if (!IGNORE_TEAM.has(m[1])) note(`team:${m[1]}`, file);

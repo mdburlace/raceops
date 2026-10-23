@@ -58,11 +58,25 @@ services:
       GITHUB_REPO: ${GITHUB_REPO:-}
       GITHUB_ISSUE_LABELS: ${GITHUB_ISSUE_LABELS:-raceops-feedback}
       CLAUDE_MENTION: ${CLAUDE_MENTION:-@claude}
+      # Backups: the passphrase that encrypts them (keep a copy away from the server — restores need it)
+      BACKUP_KEY: ${BACKUP_KEY:-}
+      BACKUP_DIR: ${BACKUP_DIR:-/data/backups}
+      BACKUP_UPLOAD_MB: ${BACKUP_UPLOAD_MB:-2048}
+      # Cloud backup destinations (optional): app registrations, see README → Backups and restore
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      DROPBOX_APP_KEY: ${DROPBOX_APP_KEY:-}
+      DROPBOX_APP_SECRET: ${DROPBOX_APP_SECRET:-}
+      ONEDRIVE_CLIENT_ID: ${ONEDRIVE_CLIENT_ID:-}
+      ONEDRIVE_CLIENT_SECRET: ${ONEDRIVE_CLIENT_SECRET:-}
+      ONEDRIVE_TENANT: ${ONEDRIVE_TENANT:-common}
     volumes:
       - raceops_uploads:/data/uploads
+      - raceops_backups:/data/backups
     ports:
       - "${APP_PORT:-8080}:8080"
 
 volumes:
   raceops_db:
   raceops_uploads:
+  raceops_backups:

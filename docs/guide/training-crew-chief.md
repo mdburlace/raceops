@@ -80,6 +80,9 @@ Hot pressures and hot stagger, shock travel, the race result, conditions and fee
 <details><summary>Why pick the shocks and bars from the list instead of typing them?</summary>
 Picked parts collect the session's laps and race meetings, so their service life and history are kept up to date.
 </details>
+<details><summary>You deleted the wrong setup sheet. Can you get it back?</summary>
+Yes. Open <b>Recently deleted</b> in the sidebar and press <b>Recover</b> on it. You can recover what you made or deleted yourself; for anyone else's, ask your team manager.
+</details>
 <details><summary>You have no signal at the track. Can you still save a sheet?</summary>
 Yes. It saves on your phone and syncs when you're back in signal. The badge shows <b>Waiting to sync</b> until then.
 </details>

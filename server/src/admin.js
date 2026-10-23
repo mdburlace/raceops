@@ -15,6 +15,8 @@ import { mountCalendarAdmin } from './calendar.js';
 import { mountCalendarRequestsAdmin, syncEvents, updateRecord } from './calendarRequests.js';
 import { mountFeedbackAdmin } from './feedback.js';
 import { makePractice } from './practice.js';
+import { mountBackupAdmin } from './backup.js';
+import { mountRecycleAdmin } from './recycle.js';
 import { mountCalendarPlusAdmin } from './calendarPlus.js';
 import { fetchCalendar } from './calendar.js';
 import { TEAM_TYPES } from '../../shared/shop.js';
@@ -42,6 +44,9 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
   const A = express.Router();
   app.use('/api/admin', A);
   A.use((req, _res, next) => next(req.user?.is_platform_admin ? undefined : new HttpError(403, 'Platform admin only')));
+
+  mountBackupAdmin(A); // full and team backups, destinations, schedules, restores
+  mountRecycleAdmin(A); // recently deleted items across every team, and how long they're kept
 
   // ---------- teams & licences ----------
   const TEAMS_SQL = `
@@ -349,6 +354,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
       invite_days: Math.min(90, Math.max(1, Number(b.invite_days ?? cur.invite_days) || 14)),
       support_email: String(b.support_email ?? cur.support_email).trim().slice(0, 120),
       announcement: { text: String(a.text || '').slice(0, 500), level: ANNOUNCE_LEVELS[a.level] ? a.level : 'info', until: dateOrNull(a.until) },
+      deleted_retention_days: cur.deleted_retention_days, // changed on Platform admin → Recently deleted
     };
     await saveSetting('general', general, req.user.id);
     await audit(req.user.id, 'settings.general', null, general);

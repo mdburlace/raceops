@@ -23,6 +23,8 @@ Platform admins run the RaceOps server for every team. The first account created
 | **AI assistant** | Turn AI on, choose the models, set the monthly allowance per team and the token prices, test the connection, and see spend per team. |
 | **Feedback & ideas** | Problem reports and requests from users, and your own ideas. Review them into **Now**, **Next** or **Later**, publish the roadmap, and send work to Claude. See [Feedback and ideas](/help/feedback-admin). |
 | **Settings** | App name, support email, invite link lifetime, default plan and seats for new teams, and an **announcement banner** with an optional end date. **Email notifications** shows whether email is set up, with **Send me a test email**. |
+| **Backups** | Full backups of the whole server and the schedule for team backups, destinations (server folder, S3-compatible storage, Google Drive, Dropbox, OneDrive), and restoring everything or one team. See [Backups and restore](/help/backups-platform). |
+| **Recently deleted** | Recover anything deleted in any team or the shared directory, and set how long deleted items are kept (for every team, or per team). See [Recently deleted](/help/recently-deleted). |
 | **System & activity** | Version, uptime, database and uploads, migrations, record counts, re-check base forms, and the full admin audit log. |
 
 ## Plans and features

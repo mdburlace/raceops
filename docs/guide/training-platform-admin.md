@@ -51,12 +51,24 @@ Trainees often spot things worth improving.
 
 See [Feedback and ideas (platform admin)](/help/feedback-admin).
 
+## Exercise 6: Back up everything (10 min)
+
+1. Go to **Platform admin → Backups**.
+2. Press **+ Add destination**: name it *Server folder*, kind **Server folder**, folder *training*. Press **Save**.
+3. Under **Full backup**, choose *Server folder* and press **Back up now**.
+4. Under **Team backups**, set **Every week**, a time, and *Server folder*. Press **Save schedule**.
+
+**When it's right:** the full backup is in the list as **Done** and **Encrypted** (if BACKUP_KEY is set), and teams see **Platform storage** on their **Backups** page. See [Backups and restore](/help/backups-platform).
+
 ## When the group's done
 
 Reset the practice team (**Team Management → Members & invites → Practice team → Reset practice data**) for the next group. You can also remove trainees from it.
 
 ## Check yourself
 
+<details><summary>The server's disk fails. What do you need to get RaceOps back?</summary>
+A full backup kept somewhere other than that server (a cloud destination, or a downloaded copy), and the server's BACKUP_KEY. Install RaceOps on the new server with the same BACKUP_KEY and restore the backup on its first-run screen.
+</details>
 <details><summary>Can a practice team's data reach a real team?</summary>
 No. It's a separate team. Only the shared directories (tracks, shared calendars) are common to every team, and practice teams don't add to them.
 </details>

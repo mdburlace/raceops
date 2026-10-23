@@ -29,6 +29,8 @@ import { mountJobs } from './jobs.js';
 import { convertLegacySuggestions, mountCalendarRequests, pendingRequests } from './calendarRequests.js';
 import { feedbackNotices, mountFeedback } from './feedback.js';
 import { mountPractice } from './practice.js';
+import { mountRecycle, startPurge } from './recycle.js';
+import { configure as configureBackups, maintenanceGuard, mountBackupPublic, mountBackupTeam, startSchedules } from './backup.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -47,6 +49,7 @@ app.use(compression());
 // and a cached answer (a redirect especially) can leave one device stuck "Offline". Routes that are meant to be
 // cached (public calendar feeds) set their own Cache-Control, which replaces this.
 app.use('/api', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+app.use(maintenanceGuard); // a full restore is running: everything else waits
 app.use(express.json({ limit: '10mb' }));
 
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -380,6 +383,7 @@ app.post('/api/invites/:token/accept', h(async (req, res) => {
 mountPublicShare(app); // no-login engine pages for engine shop customers
 mountPublicCalendar(app); // no-login published team calendars and their iCal feeds
 mountPublicShared(app); // no-login pages and iCal feeds for each shared series and track
+mountBackupPublic(app); // cloud sign-in callback, backup progress, restore on a brand-new server
 app.use('/api', requireAuth);
 
 app.get('/api/me', h(async (req, res) => {
@@ -431,6 +435,8 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
     // the public calendar link is only changed through /calendar/publish
     const { rows: [cur] } = await q('SELECT settings FROM tenants WHERE id=$1', [req.tid]);
     if (cur?.settings?.calendar_publish) settings.calendar_publish = cur.settings.calendar_publish; else delete settings.calendar_publish;
+    // set only by restores (devices download the team again when it changes)
+    if (cur?.settings?.data_epoch) settings.data_epoch = cur.settings.data_epoch; else delete settings.data_epoch;
   } else settings = null;
   const { rows: [t] } = await q(
     `UPDATE tenants SET name=COALESCE($2,name), settings=COALESCE($3,settings) WHERE id=$1 RETURNING *`,
@@ -446,6 +452,8 @@ mountCalendarRequests(T);
 mountCalendarPlus(T);
 mountJobs(T);
 mountPractice(T);
+mountBackupTeam(T);
+mountRecycle(T);
 
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {
@@ -458,7 +466,9 @@ T.get('/sync', h(async (req, res) => {
        FROM records WHERE (tenant_id=$1 OR tenant_id IS NULL) AND seq > $2 AND type = ANY($3) ORDER BY records.seq LIMIT ${limit}`,
     [req.tid, since, types]);
   const last = rows.length ? Number(rows[rows.length - 1].seq) : since;
-  res.json({ records: rows.map((r) => ({ ...r, seq: Number(r.seq) })), since: last, more: rows.length === limit });
+  // changes when the team is restored from a backup: devices then drop their copy and download it again
+  const { rows: [t] } = await q("SELECT settings->>'data_epoch' AS epoch FROM tenants WHERE id=$1", [req.tid]);
+  res.json({ records: rows.map((r) => ({ ...r, seq: Number(r.seq) })), since: last, more: rows.length === limit, epoch: t?.epoch || null });
 }));
 
 // --- Sync: push (last save wins by client timestamp; every attempt is kept in history) ---
@@ -505,12 +515,14 @@ async function applyChange(c, req, ch) {
   let row;
   if (!cur) {
     ({ rows: [row] } = await c.query(
-      `INSERT INTO records(id,tenant_id,type,data,deleted,created_by,updated_by,client_updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$6,$7) RETURNING *`,
+      `INSERT INTO records(id,tenant_id,type,data,deleted,created_by,updated_by,client_updated_at,deleted_at,deleted_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$6,$7, CASE WHEN $5 THEN now() END, CASE WHEN $5 THEN $6::uuid END) RETURNING *`,
       [id, owner, type, JSON.stringify(data), !!deleted, req.user.id, clientTs]));
   } else {
     ({ rows: [row] } = await c.query(
       `UPDATE records SET data=$2, deleted=$3, updated_by=$4, client_updated_at=$5, updated_at=now(),
+              deleted_at = CASE WHEN $3 THEN COALESCE(deleted_at, now()) END,
+              deleted_by = CASE WHEN $3 THEN COALESCE(deleted_by, $4) END,
               seq=nextval('record_seq') WHERE id=$1 RETURNING *`,
       [id, JSON.stringify(data), !!deleted, req.user.id, clientTs]));
   }
@@ -737,4 +749,7 @@ await loadSettings();
 await ensureBaseForms();
 await ensureGlobalTracks();
 await ensureGlobalGuides();
+configureBackups({ UPLOAD_DIR, afterFullRestore: async () => { await ensureBaseForms(); await ensureGlobalTracks(); await ensureGlobalGuides(); } });
+startSchedules();
+startPurge({ UPLOAD_DIR });
 app.listen(PORT, () => console.log(`RaceOps listening on :${PORT}`));

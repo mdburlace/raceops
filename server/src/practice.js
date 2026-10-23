@@ -1,6 +1,7 @@
 // Practice teams: a team loaded with demo data (shared/practiceData.js) for training. A platform admin
 // creates one (Teams & licences → Practice team); its owner, or anyone who can edit team settings, can
-// reset it to the original demo data. Resetting soft-deletes the team's records, so devices sync the change.
+// reset it to the original demo data. Resetting removes the team's records for good and changes its data_epoch,
+// so every device downloads the team again.
 import crypto from 'node:crypto';
 import { HttpError } from './auth.js';
 import { tx } from './db.js';
@@ -38,8 +39,13 @@ export function mountPractice(T) {
     const n = await tx(async (c) => {
       const { rows: [t] } = await c.query('SELECT settings FROM tenants WHERE id=$1', [req.tid]);
       if (!t?.settings?.practice) throw new HttpError(400, 'Only a practice team can be reset.');
-      await c.query(`UPDATE records SET deleted=true, updated_by=$2, updated_at=now(), client_updated_at=now(), seq=nextval('record_seq')
-                      WHERE tenant_id=$1 AND type NOT IN ('form','gear_list') AND NOT deleted`, [req.tid, req.user.id]);
+      // a reset isn't a deletion anyone needs to recover: the demo data goes for good (not to Recently deleted),
+      // and a new data_epoch makes every device drop its copy and download the team again
+      const gone = `SELECT id FROM records WHERE tenant_id=$1 AND type NOT IN ('form','gear_list')`;
+      await c.query(`DELETE FROM attachments WHERE tenant_id=$1 AND record_id IN (${gone})`, [req.tid]);
+      await c.query(`DELETE FROM record_history WHERE tenant_id=$1 AND record_id IN (${gone})`, [req.tid]);
+      await c.query(`DELETE FROM records WHERE tenant_id=$1 AND type NOT IN ('form','gear_list')`, [req.tid]);
+      await c.query(`UPDATE tenants SET settings = COALESCE(settings,'{}'::jsonb) || jsonb_build_object('data_epoch', gen_random_uuid()::text) WHERE id=$1`, [req.tid]);
       await c.query(`DELETE FROM calendar_requests WHERE tenant_id=$1`, [req.tid]);
       await c.query(`DELETE FROM team_notices WHERE tenant_id=$1`, [req.tid]);
       return seedPractice(c, req.tid, req.user.id);

@@ -67,9 +67,28 @@ async function pull(tid) {
   const gen = resets.get(tid) || 0;
   const stale = () => (resets.get(tid) || 0) !== gen;
   let since = await getMeta(`since:${tid}`, 0);
+  let checked = false;
   for (;;) {
     const res = await api(`/t/${tid}/sync?since=${since}`);
     if (stale()) return;
+    // the team was restored from a backup: drop this device's copy (keeping unsent changes) and download it again
+    if (!checked && res.epoch) {
+      checked = true;
+      const had = await getMeta(`epoch:${tid}`, null);
+      if (had !== res.epoch) {
+        // a device that synced before (since > 0) and hasn't seen this epoch drops its copy, even if it never saw one.
+        // The epoch is saved only after the copy is gone, so an interrupted sync tries again next time.
+        if (since > 0) {
+          await db.records.where('[tenant_id+dirty]').equals([tid, 0]).delete();
+          since = 0;
+          await setMeta(`since:${tid}`, 0);
+          await setMeta(`epoch:${tid}`, res.epoch);
+          window.dispatchEvent(new CustomEvent('raceops:restored', { detail: { tid } }));
+          continue;
+        }
+        await setMeta(`epoch:${tid}`, res.epoch);
+      }
+    }
     await db.transaction('rw', db.records, async () => {
       const locals = await db.records.bulkGet(res.records.map((r) => r.id));
       const puts = res.records.filter((r, i) => !(locals[i]?.dirty && locals[i].client_updated_at > new Date(r.client_updated_at).toISOString()))

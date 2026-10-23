@@ -1,6 +1,6 @@
 # RaceOps — Environments, Release and Production Roll-out
 
-> Companion to [DESIGN.md](DESIGN.md). It covers how code moves from a developer's machine to production through non-production environments, how builds are deployed to each one, and whether production should stay on Docker. Update it whenever the build, test or deployment process changes.
+> Companion to [DESIGN.md](DESIGN.md). Last updated: October 2026 (built-in backups). It covers how code moves from a developer's machine to production through non-production environments, how builds are deployed to each one, and whether production should stay on Docker. Update it whenever the build, test or deployment process changes.
 
 ---
 
@@ -13,7 +13,7 @@
 | Versioning | `server/package.json` stays at `1.0.0`; no tags. | You can't tell what's deployed or go back to a known version. |
 | Tests | 29 Playwright suites in `tests/e2e/`, run by hand with `tests/e2e/run.sh`. | They don't run automatically on every change yet. |
 | Database changes | Migrations run on container start. No backup step before a deploy. | A bad migration can only be undone from whatever backup exists. |
-| Backups | Two Docker volumes, backed up by hand. | No tested restore. |
+| Backups | Built in (**Platform admin → Backups**): full backups now or on a schedule to a server folder, S3-compatible storage or a cloud drive, encrypted with `BACKUP_KEY`; teams back up their own data. | Restores untested until staging is refreshed from a production backup. Cloud destinations need app registrations (README). |
 
 ## 2. Principles
 
@@ -48,8 +48,8 @@ Why these four: DEV and TEST catch code problems cheaply. STAGING catches the pr
 
 Refresh staging from production on demand (and at least before each release):
 
-1. `pg_dump -Fc` from production (the nightly backup will do).
-2. Restore into the staging database.
+1. Take production's latest full backup (**Platform admin → Backups → Download**, or the file from its cloud destination).
+2. On staging (with production's `BACKUP_KEY`), restore it: **Restore… → Everything**, or `backupCli.js restore <file> --yes`. This also proves the backups work.
 3. Run an anonymising script (keep it in `tools/anonymise.sql`):
    - Set every user's email to `user-<id>@staging.invalid`, except named testers.
    - Reset every password to one known staging password.
@@ -173,7 +173,7 @@ A simpler first step that needs no GitOps: keep deploying by hand in Portainer, 
 1. Staging runs the release candidate and has been signed off. Sign-off covers the release's features, login, sync on an installed phone, offline edit then reconnect, and the e2e run is green.
 2. The training pack is current: the guide check passes (it requires `reviewed:` in `docs/guide/training.md` to match the newest What's new entry), the training videos were re-recorded if their screens changed, and the e2e suite for the practice team is green. On staging, reset a practice team and run the exercises for the roles the release touches.
 3. Confirm the release's `CHANGELOG.md` manual steps, such as new environment variables added to the production stack **before** deploying.
-4. Take a database dump: `pg_dump -Fc` → `pre-1.6.0.dump`, copied off the host.
+4. Take a backup: **Platform admin → Backups → Back up now** to the off-host destination (and, belt and braces, `pg_dump -Fc` → `pre-1.6.0.dump`, copied off the host).
 5. Announce if needed: **Platform admin → Settings → announcement banner** (e.g. "Update tonight 9pm, about 2 minutes").
 6. Update the production image tag and redeploy. Migrations and form upgrades run on start. Watch the logs for `Applying migration` and `RaceOps listening`.
 7. Smoke test:
@@ -229,10 +229,10 @@ The licence system already supports per-team feature overrides (`tenants.feature
 |---|---|---|
 | Uptime check (Uptime Kuma or similar) on `/api/health` | yes | yes, with alert to phone/email |
 | Container restart alert | optional | yes |
-| Nightly `pg_dump` + uploads backup, copied off the host | weekly | daily (DESIGN.md §19.2) |
+| Scheduled full backup to a destination off the host (**Platform admin → Backups**) | weekly | daily, keep 14 (DESIGN.md §19.2) |
 | Restore test | is the restore test: staging refresh = restore of production backup | quarterly |
 | Log retention | 7 days | 30 days (Docker `json-file` with `max-size`/`max-file`, or ship to Loki) |
-| Backup-failed alert | — | yes |
+| Backup-failed alert | — | yes: scheduled backup failures email the platform admins (needs SMTP); also watch **Backups** for failed runs |
 
 Using the production backup to refresh staging tests the backups every time staging is refreshed.
 
@@ -291,7 +291,7 @@ When that time comes, the steps in order are:
 | 1 | ~~Put the e2e suites in version control~~ (done: `tests/e2e/`); add `CHANGELOG.md`; start version tags and bump versions | small | Tests are safe and runnable by CI; you know what's deployed |
 | 2 | GitHub Actions CI: checks, build, e2e, push to GHCR (`sha-…`, `edge`) | medium | Every change is tested the same way; images are built once |
 | 3 | `image: ${RACEOPS_IMAGE}` in compose; production pinned to a version tag; manual re-pull in Portainer | small | No more building on production; one-click rollback |
-| 4 | Automated nightly backups (database + uploads) to NAS and offsite, with an alert on failure | small | Recoverable from host loss |
+| 4 | ~~Automated nightly backups (database + uploads) offsite, with an alert on failure~~ (done: **Platform admin → Backups** with a schedule and failure emails); set `BACKUP_KEY` and a cloud destination in production | small | Recoverable from host loss |
 | 5 | Staging stack: separate VM, hostname, Mailpit, staging AI workspace, anonymised data refresh script | medium | Real-world rehearsal before production; tested restores |
 | 6 | GitOps: `deploy/*.env`, Portainer Git stacks with auto-update; production promotion by pull request | small–medium | Audited, repeatable deployments |
 | 7 | Client version handshake (`min_client_version`) and `GIT_SHA` on the System page | small | Safe contract changes; exact traceability |

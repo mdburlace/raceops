@@ -5,3 +5,5 @@ server/uploads/
 *.log
 tests/e2e/out/
 __pycache__/
+server/backups/
+*.raceops

@@ -16,14 +16,14 @@ RUN cd web && npm run build
 
 # ---- runtime: API + static web app ----
 FROM node:22-alpine
-ENV NODE_ENV=production PORT=8080 UPLOAD_DIR=/data/uploads
+ENV NODE_ENV=production PORT=8080 UPLOAD_DIR=/data/uploads BACKUP_DIR=/data/backups
 WORKDIR /app
 COPY server/package.json server/package-lock.json ./server/
 RUN cd server && npm ci --omit=dev
 COPY shared ./shared
 COPY server ./server
 COPY --from=web /app/web/dist ./web/dist
-RUN mkdir -p /data/uploads && chown -R node:node /data
+RUN mkdir -p /data/uploads /data/backups && chown -R node:node /data
 USER node
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD wget -qO- http://localhost:8080/api/health || exit 1

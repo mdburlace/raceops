@@ -66,6 +66,8 @@ export const ADMIN_PERMISSIONS = [
   { key: 'members.manage', label: 'Invite & manage members' },
   { key: 'roles.manage', label: 'Create & edit roles' },
   { key: 'team.manage', label: 'Edit team settings' },
+  { key: 'backup.manage', label: 'Back up, restore & export team data' },
+  { key: 'trash.manage', label: 'Recover anyone’s deleted items' },
 ];
 
 export const AREA_PERMISSIONS = AREAS.map((a) => ({ key: `area.${a.key}`, label: `Enter “${a.label}”` }));

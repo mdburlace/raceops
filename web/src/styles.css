@@ -1520,3 +1520,15 @@ a.sc-label { color: inherit; font-weight: 600; }
   .print-cards .md h2 { page-break-before: always; break-before: page; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .print-cards .md h2:first-of-type { page-break-before: auto; break-before: auto; }
 }
+
+/* backups */
+.table .row-sub { display: block; }
+.card h4 { margin: 16px 0 6px; }
+.restore-modes { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.restore-panel { border-color: var(--accent, #e85a20); }
+.sub-card { margin: 8px 0 12px; }
+.list-row .full-width { flex-basis: 100%; }
+.setup-restore { margin-top: 16px; }
+.setup-restore summary { cursor: pointer; font-weight: 600; }
+.list-row.static { flex-wrap: wrap; }
+.export-formats { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }

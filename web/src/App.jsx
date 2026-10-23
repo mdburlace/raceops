@@ -25,6 +25,8 @@ import { AdminCalendar, CalendarPage, CalendarPrint, PublicCalendar, PublicShare
 import { CustomerDetail, CustomerList, JobList, JobPrint } from './pages/Shop.jsx';
 import { LinkEngine, LinkedEngineDetail, SharePage } from './pages/Sharing.jsx';
 import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
+import { AdminBackups, TeamBackups } from './pages/Backups.jsx';
+import { AdminDeleted, RecentlyDeleted } from './pages/Deleted.jsx';
 import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
 
 /** A fresh record page per record — moving between records never carries one's state into another. */
@@ -111,6 +113,8 @@ function Routed() {
         <Route path="team" element={<AreaGate area="team"><TeamHub /></AreaGate>} />
         <Route path="calendar" element={<ModuleGate module="calendar"><CalendarPage /></ModuleGate>} />
         <Route path="team/members" element={<Team />} />
+        <Route path="team/backups" element={<TeamBackups />} />
+        <Route path="deleted" element={<RecentlyDeleted />} />
         <Route path="team/reports" element={<AreaGate area="team" module="reports"><Reports /></AreaGate>} />
         <Route path="team/stats" element={<AreaGate area="team" module="reports"><CrewStats /></AreaGate>} />
         <Route path="team/reviews" element={<AreaGate area="team" module="reviews"><Reviews /></AreaGate>} />
@@ -135,6 +139,8 @@ function Routed() {
         <Route path="admin/lists" element={<AdminGate><AdminLists /></AdminGate>} />
         <Route path="admin/settings" element={<AdminGate><AdminSettings /></AdminGate>} />
         <Route path="admin/system" element={<AdminGate><AdminSystem /></AdminGate>} />
+        <Route path="admin/backups" element={<AdminGate><AdminBackups /></AdminGate>} />
+        <Route path="admin/deleted" element={<AdminGate><AdminDeleted /></AdminGate>} />
         <Route path="admin/ai" element={<AdminGate><AdminAi /></AdminGate>} />
         <Route path="ask" element={<AskPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />

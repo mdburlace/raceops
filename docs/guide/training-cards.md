@@ -43,6 +43,8 @@ Print these and keep them where the work happens: in the trailer, on the worksho
 | An engine build | **Engine Builds** → the engine → build sheet |
 | A customer's job | **Engine Shop → Jobs → New job** |
 | Where you're racing this year | **Team Management → Calendar** |
+| Something deleted by mistake | **Recently deleted** (sidebar) |
+| A copy of the team's data, putting it back, or an export | **Team Management → Backups & export** |
 | A problem with RaceOps, or an idea | **Feedback & roadmap** |
 
 ## Offline and sync

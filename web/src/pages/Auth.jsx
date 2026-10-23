@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SetupRestore } from './Backups.jsx';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useSession } from '../lib/session.jsx';
@@ -63,6 +64,10 @@ export function Setup() {
         {err && <p className="error-text">{err}</p>}
         <button className="btn primary" disabled={busy}>{busy ? 'Creating…' : 'Create team'}</button>
       </form>
+      <details className="setup-restore">
+        <summary>Moving from another server? Restore a backup</summary>
+        <SetupRestore />
+      </details>
     </AuthCard>
   );
 }

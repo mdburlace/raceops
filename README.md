@@ -99,6 +99,44 @@ Any reverse proxy works: **pfSense** (below), **Nginx Proxy Manager**, **Traefik
 - **Accounts.** Platform admins can disable an account (it's signed out everywhere), reset a password, and see each person's last sign-in. Teams can be suspended or set to read-only (expired licence) from the admin area.
 - **Sessions** last `JWT_TTL` (60 days by default) so the app keeps working offline over a race weekend. Changing `JWT_SECRET` signs everyone out.
 
+### Backups and restore
+
+**Platform admin → Backups** makes full backups (everything: every table and every uploaded file) and sets a schedule for team backups; each team has **Team Management → Backups** for its own. Backups can go to a server folder, S3-compatible storage (AWS S3, Backblaze B2, Wasabi, Cloudflare R2, MinIO), Google Drive, Dropbox or OneDrive, now or on a schedule. A platform admin can restore everything, bring one team back as it was in any full backup, or move RaceOps to a new server; a team can put itself back from its own backups. See the guide articles *Backups and restore* and *Team backups*.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `BACKUP_KEY` | unset | Passphrase that encrypts every backup (AES-256-GCM) and the stored cloud keys and sign-ins. **Set it, and keep a copy away from the server**: a backup can only be restored on a server with the same `BACKUP_KEY`. Unset means backups aren't encrypted. |
+| `BACKUP_DIR` | `/data/backups` | Where server-folder destinations, safety backups and work files live. The stack mounts the `raceops_backups` volume here. |
+| `BACKUP_UPLOAD_MB` | `2048` | Largest backup file that can be uploaded to restore from. Your reverse proxy's upload limit applies too. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | unset | Turn on Google Drive destinations. |
+| `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` | unset | Turn on Dropbox destinations. |
+| `ONEDRIVE_CLIENT_ID` / `ONEDRIVE_CLIENT_SECRET` | unset | Turn on OneDrive destinations. |
+| `ONEDRIVE_TENANT` | `common` | Microsoft sign-in tenant: `common` (work and personal accounts), `consumers` or your organisation's tenant ID. |
+| `BACKUP_CLOUD_MOCK` | unset | `1` for automated tests only: cloud destinations are kept in a local folder and the sign-in is faked. |
+
+Google Drive, Dropbox and OneDrive each need a one-time **app registration**, so their sign-in page knows RaceOps. `APP_URL` must be set, and every registration uses the redirect address **`<APP_URL>/api/backup/oauth/callback`** (for example `https://raceops.example.com/api/backup/oauth/callback`).
+
+- **Google Drive** — [Google Cloud console](https://console.cloud.google.com/): create a project, enable the **Google Drive API**, set up the **OAuth consent screen** (External; add the scope `.../auth/drive.file`; publish it, or add your accounts as test users), then **Credentials → Create credentials → OAuth client ID → Web application** with the redirect address above. Put the client ID and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. RaceOps can only see files it creates.
+- **Dropbox** — [Dropbox App Console](https://www.dropbox.com/developers/apps): **Create app → Scoped access → App folder**. Under **Permissions** tick `files.content.write` and `files.content.read`, then under **Settings** add the redirect address. Put the **App key** and **App secret** in `DROPBOX_APP_KEY` and `DROPBOX_APP_SECRET`. Backups go to *Apps/<your app name>/* in each connected Dropbox. Apply for production status if more than 50 accounts will connect.
+- **OneDrive** — [Microsoft Entra admin centre](https://entra.microsoft.com/) → **App registrations → New registration**: supported accounts *Accounts in any organizational directory and personal Microsoft accounts*, redirect URI type **Web** with the address above. Under **API permissions** add Microsoft Graph delegated `Files.ReadWrite.AppFolder` and `offline_access`; under **Certificates & secrets** make a client secret. Put the **Application (client) ID** and the secret's value in `ONEDRIVE_CLIENT_ID` and `ONEDRIVE_CLIENT_SECRET`. Backups go to *Apps/<your app name>/* in each OneDrive.
+
+S3-compatible storage needs no registration: create a bucket and an access key limited to it, and enter them on the Backups page.
+
+**Command line.** For moving servers or when the app won't start, the same backups work from a shell in the container (it uses the container's settings):
+
+```bash
+docker compose exec app node server/src/backupCli.js backup /data/backups/manual.raceops   # full backup to a file
+docker compose exec app node server/src/backupCli.js inspect /data/backups/manual.raceops  # what's in it; checks it opens
+docker compose exec app node server/src/backupCli.js restore /data/backups/manual.raceops --yes   # replace everything, then restart the app
+```
+
+**Moving to new infrastructure:** deploy the stack on the new host with the same `BACKUP_KEY` (and app registrations), then restore a full backup on the first-run screen (**Moving from another server? Restore a backup**), or set it up and restore from a cloud destination under **Platform admin → Backups**. Point your hostname at the new host.
+
+### Recently deleted and team exports
+
+- **Recently deleted** (sidebar) puts back deleted records. Everyone can recover what they made or deleted; a role with **Recover anyone's deleted items** (owners, and roles that can edit team settings) can recover anything in the team; platform admins can recover anything, including shared directory records, under **Platform admin → Recently deleted**. Deleted records are kept 90 days by default, then removed for good (hourly) with their files and history. Platform admins set the default and any team's own time (or "until recovered"); teams ask for a change from their Recently deleted page.
+- **Export:** **Team Management → Backups & export → Export your data** gives the team's records as CSV spreadsheets (a ZIP), XML or JSON, optionally with attached files, to download or to one of the team's destinations.
+
 ### Pre-building the image (optional)
 
 ```bash
