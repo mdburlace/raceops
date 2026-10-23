@@ -46,6 +46,7 @@ No signal? Keep going. Everything saves on the phone and syncs later. [Work offl
 | I want to… | Go to |
 |---|---|
 | Pick the pills for tonight’s weather | [Engine tune sheets](/help/engine-tunes) — **At the track** |
+| Set up a two-night meeting, or one with a practice day | [Events and sessions](/help/events-sessions#multi-day-events) — **Runs over more than one day** |
 | Start the night from how the car left the shop | [Workshop setup sheets](/help/workshop-setups) |
 | Get back something I deleted by mistake | [Recently deleted](/help/recently-deleted) |
 | Fix a wrong date on a shared series | [Calendar](/help/calendar) — **Suggest a change** |

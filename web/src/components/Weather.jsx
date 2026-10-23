@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DEFAULT_UNITS, UNITS, UNIT_FIELDS, airData, readingsFromSheet, sheetValues } from '@shared/weather.js';
+import { dayDateOf, eventDayList } from '@shared/calendar.js';
 import { api } from '../lib/api.js';
 import { v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
@@ -29,12 +30,14 @@ export function withWeatherUnits(form, units) {
   })) } };
 }
 
+/** The sheet's day of the event at its start time (7 pm if none is set); now, when that day is today. */
 function defaultTime(event, day) {
   const now = new Date();
-  const date = v(event, 'date');
+  const ev = event?.data?.values;
+  const date = dayDateOf(ev, day);
   if (!date) return localInput(now);
-  const d = new Date(`${date}T19:00`);
-  d.setDate(d.getDate() + (Number(day) || 1) - 1);
+  const time = eventDayList(ev).find((x) => x.n === (Number(day) || 1))?.time || '19:00';
+  const d = new Date(`${date}T${time}`);
   return d.toDateString() === now.toDateString() ? localInput(now) : localInput(d);
 }
 

@@ -7,7 +7,7 @@ import net from 'node:net';
 import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { can, canType } from '../../shared/catalog.js';
-import { looksLikeICS, parseICS, toICS, seasonStart, seasonOf, seasonLabel } from '../../shared/calendar.js';
+import { eventDayList, moveDays, normaliseDays, looksLikeICS, parseICS, toICS, seasonStart, seasonOf, seasonLabel } from '../../shared/calendar.js';
 import { readCalendar } from './ai.js';
 import { audit } from './settings.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
@@ -89,7 +89,7 @@ async function publicCalendar(token) {
     const fx = byId[v.fixture];
     const cancelled = fx?.status === 'Cancelled' || v.outcome === 'Event cancelled';
     items.push({
-      id: r.id, name: v.name || 'Event', date: v.date, end_date: v.end_date || '',
+      id: r.id, name: v.name || 'Event', date: v.date, end_date: v.end_date || '', days: v.multi_day ? eventDayList(v) : undefined,
       track: venue?.name || v.track || '', location: [venue?.city || v.location, venue?.region].filter(Boolean).join(', '),
       series: series?.name || '', round: v.round || '', tentative: v.intent === 'Tentative', cancelled,
       car: opts.show_cars && car ? [car.number && `#${car.number}`, car.name].filter(Boolean).join(' ') : '',
@@ -118,7 +118,7 @@ export function mountPublicCalendar(app) {
     const ics = toICS({
       name: `${cal.team} — race calendar`,
       items: cal.items.map((i) => ({
-        uid: `${i.id}@raceops`, date: i.date, end_date: i.end_date,
+        uid: `${i.id}@raceops`, date: i.date, end_date: i.end_date, days: i.days,
         summary: `${i.tentative ? '(Tentative) ' : ''}${i.cancelled ? 'CANCELLED: ' : ''}${i.name}${i.track && !i.name.includes(i.track) ? ` — ${i.track}` : ''}`,
         location: [i.track, i.location].filter(Boolean).join(', '),
         description: [i.major, i.series && `${i.series}${i.round ? ` round ${i.round}` : ''}`, i.sanctioning && `Sanctioned by ${i.sanctioning}`, i.car && `Car: ${i.car}`, i.result && `Result: ${i.result}`, i.note].filter(Boolean).join('\n'),
@@ -219,7 +219,8 @@ export function mountCalendarAdmin(A) {
 
   // Add or change a shared date (id "new" adds one).
   A.put('/calendar/fixtures/:id', h(async (req, res) => {
-    const v = pickValues(req.body?.values, SHARED_FIXTURE_KEYS);
+    const raw = pickValues(req.body?.values, SHARED_FIXTURE_KEYS);
+    let v = normaliseDays(raw);
     need(v.name && /^\d{4}-\d{2}-\d{2}$/.test(v.date || ''), 400, 'A shared date needs a name and a date.');
     need(v.venue || v.track, 400, 'Pick a track or type its name.');
     if (req.body?.values?.source) v.source = String(req.body.values.source).slice(0, 300);
@@ -233,6 +234,7 @@ export function mountCalendarAdmin(A) {
       const { rows: [g] } = await c.query(`SELECT * FROM records WHERE id=$1 AND type='fixture' AND tenant_id IS NULL AND NOT deleted FOR UPDATE`, [req.params.id]);
       need(g, 404, 'That shared date no longer exists.');
       const keep = Object.fromEntries(['source', 'feed_uid'].filter((k) => g.data.values?.[k] && !v[k]).map((k) => [k, g.data.values[k]]));
+      v = normaliseDays(moveDays(g.data.values, raw)); // a new date span with the old days: the days move with it
       await updateRecord(c, g.id, 'fixture', null, { ...g.data, values: { ...v, ...keep } }, req.user.id);
       await syncEvents(c, g.id, v, req.user.id); // teams' entries follow the shared date
       mails = await notifyFollowers(c, { after: v, before: g.data.values || {} });

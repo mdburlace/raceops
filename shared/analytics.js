@@ -4,6 +4,7 @@
 import { changedFields, settingFields } from './setupLayout.js';
 import { toGal } from './fuel.js';
 import { curvesBySpeed } from './dyno.js';
+import { dayDateOf } from './calendar.js';
 
 export const num = (x) => {
   if (x === null || x === undefined || x === '') return null;
@@ -30,7 +31,7 @@ export function sessionRows(setups, events, tracks = {}) {
     const start = num(vals.start); const finish = num(vals.finish);
     const trackName = (ev.venue && tracks[ev.venue]) || ev.track || '';
     rows.push({
-      id: s.id, values: vals, event: vals.event, eventName: ev.name || '', date: ev.date || '', car: vals.car || '',
+      id: s.id, values: vals, event: vals.event, eventName: ev.name || '', date: dayDateOf(ev, vals.day), car: vals.car || '',
       track: ev.venue ? `id:${ev.venue}` : trackName ? `name:${nameKey(trackName)}` : '', trackName,
       session: vals.session || '', order: num(vals.order) ?? 0, day: num(vals.day) || 1,
       feature: isFeature(vals.session), heat: isHeat(vals.session),

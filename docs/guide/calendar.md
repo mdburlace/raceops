@@ -52,7 +52,7 @@ Dates on your calendar show **On our calendar — #12**. Use **Add another car**
 
 ### When a shared date changes
 
-When a shared date changes (a round moves, the track or name changes), your entry changes with it automatically. Your car, plan, result and notes stay as they are. A cancelled date shows **Cancelled**.
+When a shared date changes (a round moves, a day is added or rained out, the track or name changes), your entry changes with it automatically. Teams that add a multi-day date get the same days. Your car, plan, result and notes stay as they are. A cancelled date shows **Cancelled**.
 
 If you edited your own entry's date while offline, the entry shows **The shared calendar changed** with the old and new details. Press **Update ours** to bring it back into line.
 
@@ -116,7 +116,7 @@ If the series is your team's own and hasn't been shared yet, its rounds are the 
 
 Press **Edit** on any entry in **Our calendar**. The quick edit opens right under that entry, so you don't lose your place. You can change:
 
-- the **event name**, **date** and **end date**;
+- the **event name**, **date** and **end date**. For a meeting over more than one day, changing the date moves every day, and the end date adds or takes off days at the end. If the days have gaps between them, change them in **All details** (see [Multi-day events](/help/events-sessions#multi-day-events));
 - the **Series** it's a round of, and the **Round**. The list has your series and the shared ones. **Add a series** makes a new one;
 - the **Sanctioning body**, such as Speedway Australia. Picking a series fills it in from the series if it's empty;
 - **Major event**, with the **Major event name** (e.g. *Australian Sprintcar Title*).
@@ -153,6 +153,8 @@ The boxes at the top add up the year: meetings planned, meetings you ran, featur
 
 **List** shows the year as a list with the controls. **Month** shows each month as a grid with your race days marked. Your choice is remembered for you.
 
+A meeting over more than one day is one entry. The list shows its days, e.g. *Thu 4 & Sat 6 Dec 2026*. The month grid marks only the days it runs, and a rained-out or cancelled day is crossed out. Tap a day to open the event on that day. See [Multi-day events](/help/events-sessions#multi-day-events).
+
 ## Sharing with every team
 
 The shared series, tracks and dates are kept by the RaceOps platform admin, so every team sees the same ones. Teams help keep them complete and right. Everything you send is checked by a platform admin before it goes live. See [Shared calendars (platform admin)](/help/calendar-suggestions).
@@ -177,7 +179,7 @@ The admin can approve some dates and refuse others, with a reason for each.
 
 ### Suggest a date or a change
 
-- **Suggest a date** (in **Shared calendars**) adds a missing date. Fill in the event name, date, track, series, round and the classes running. Tick **Major event** for a title or classic and give it its **Major event name**. Add the **Sanctioning body** if it differs from the series. If you pick your team's own series, the series goes with the date.
+- **Suggest a date** (in **Shared calendars**) adds a missing date. Fill in the event name, date, track, series, round and the classes running. For a meeting over more than one day, tick **Runs over more than one day** and set each day: its date, and a name and start time if you know them. Tick **Major event** for a title or classic and give it its **Major event name**. Add the **Sanctioning body** if it differs from the series. If you pick your team's own series, the series goes with the date.
 - **Suggest a change** on a shared date corrects it, for example a new date or a cancellation. The form opens right under that date, with **Send for approval** and **Cancel** at the top. The date then shows **Your change — waiting for approval** until it's decided.
 - **Request a change** on a shared series' page or a shared track's page does the same for the series or track.
 

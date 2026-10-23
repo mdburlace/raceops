@@ -13,7 +13,7 @@ Print these and keep them where the work happens: in the trailer, on the worksho
 ## Race night
 
 **Before the first session**
-- Open tonight's event: **At the Track → Events**.
+- Open tonight's event: **At the Track → Events**. A meeting over more than one day has a tab per day; you're on today's.
 - Pick the session beside **+ Add session**, press it, then **Copy this session** (or start from the **Workshop setup**, **Last time out** or a baseline).
 - Set pressures, wing and shocks. **Save**. The sheet saves on the phone, even with no signal.
 - Pills: fill in the **ADR** in **Weather**, then in **Engine** press **Use this jetting** (from the motor's active tune).

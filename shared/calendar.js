@@ -68,6 +68,7 @@ export function eventFromFixture(fx, fixtureId, carId, seriesId, series = null) 
   const v = fx || {};
   const out = { name: v.name, date: v.date, fixture: fixtureId, car: carId, intent: 'Planned', event_type: seriesId ? 'Series' : 'Points race' };
   if (v.end_date) out.end_date = v.end_date;
+  if (v.multi_day && Array.isArray(v.days)) { out.multi_day = true; out.days = v.days.map((d) => ({ ...d })); }
   if (v.venue) out.venue = v.venue; else if (v.track) out.track = v.track;
   if (seriesId) out.series = seriesId;
   if (v.round) out.round = v.round;
@@ -77,12 +78,23 @@ export function eventFromFixture(fx, fixtureId, carId, seriesId, series = null) 
   return out;
 }
 
-/** Fields that differ between a team event and the shared date it came from (date moved etc). */
+/**
+ * Fields that differ between a team event and the shared date it came from (date moved etc).
+ * Each change has { key, label, was, now }; `patch` (when set) is what to copy onto the event to match,
+ * and a days change carries the days as rows (`was` / `now` are then date lists).
+ */
 export function fixtureChanges(ev, fx) {
   if (!ev || !fx) return [];
   const out = [];
-  if ((fx.date || '') !== (ev.date || '')) out.push({ key: 'date', label: 'Date', was: ev.date, now: fx.date });
-  if ((fx.end_date || '') !== (ev.end_date || '') && fx.end_date) out.push({ key: 'end_date', label: 'End date', was: ev.end_date, now: fx.end_date });
+  const dates = (v) => eventDayList(v).map((d) => `${d.date}${d.off ? '-' : ''}`).join(',');
+  if (fx.multi_day && dates(fx) !== dates(ev)) {
+    // the shared date's days changed (or were added): one change carries them all
+    out.push({ key: 'days', label: 'Days', was: eventDayList(ev), now: eventDayList(fx),
+      patch: { multi_day: true, days: fx.days, date: fx.date, end_date: fx.end_date } });
+  } else if (!fx.multi_day) {
+    if ((fx.date || '') !== (ev.date || '')) out.push({ key: 'date', label: 'Date', was: ev.date, now: fx.date });
+    if ((fx.end_date || '') !== (ev.end_date || '') && fx.end_date) out.push({ key: 'end_date', label: 'End date', was: ev.end_date, now: fx.end_date });
+  }
   if (fx.venue && fx.venue !== ev.venue) out.push({ key: 'venue', label: 'Track', was: ev.venue, now: fx.venue });
   if (fx.status && fx.status !== 'Scheduled') out.push({ key: 'status', label: 'Status', was: '', now: fx.status });
   return out;
@@ -129,6 +141,162 @@ export function seasonSummary(entries) {
   };
 }
 
+// ---------------------------------------------------------------- multi-day events
+// An event or shared date over more than one day keeps every day on the one record:
+// values.multi_day = true and values.days = [{ n, date, label, time, status }]. `n` is the day's number
+// for setup sheets and between-round checks (their `day` value); it is given once and never changes, so
+// moving a day's date, or adding a day, keeps every sheet on its day. `date` and `end_date` always hold
+// the first and last day, for everything that only needs the span (racing years, sorting, past or upcoming).
+// Older records (and imports) only have a date and an end date: their days are every day in between.
+export const MAX_DAYS = 14;
+/** A day that didn't run. Anything else (blank) means the day is on. */
+export const DAY_STATUS = ['Rained out', 'Cancelled'];
+export const isIsoDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
+const spanOf = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5) + 1;
+const short = (x, n) => String(x ?? '').trim().slice(0, n);
+
+function cleanDay(d) {
+  if (!d || !isIsoDate(d.date)) return null;
+  const n = Number(d.n);
+  const out = { n: Number.isInteger(n) && n > 0 ? n : 0, date: d.date };
+  if (short(d.label, 60)) out.label = short(d.label, 60);
+  if (/^\d{2}:\d{2}$/.test(String(d.time || ''))) out.time = d.time;
+  if (DAY_STATUS.includes(d.status)) out.status = d.status;
+  return out;
+}
+const sortDays = (rows) => rows.slice().sort((a, b) => a.date.localeCompare(b.date) || a.n - b.n);
+const withOff = (d) => ({ ...d, off: DAY_STATUS.includes(d.status) });
+
+/** Consecutive days from the date to the end date (two days when there's no end date), numbered 1, 2, 3… */
+export function seedDays(v) {
+  if (!isIsoDate(v?.date)) return [];
+  const end = isIsoDate(v.end_date) && v.end_date > v.date ? v.end_date : addDays(v.date, 1);
+  return Array.from({ length: Math.min(MAX_DAYS, spanOf(v.date, end)) }, (_, i) => ({ n: i + 1, date: addDays(v.date, i) }));
+}
+
+/** The days of an event or shared date in date order: [{ n, date, label?, time?, status?, off }]. One row for a one-day event. */
+export function eventDayList(v) {
+  if (!v) return [];
+  if (v.multi_day !== false) {
+    const rows = Array.isArray(v.days) ? v.days.map(cleanDay).filter(Boolean) : [];
+    if (rows.length) return sortDays(rows.map((d, i) => (d.n ? d : { ...d, n: 100 + i }))).map(withOff);
+    if (v.multi_day === true || (isIsoDate(v.end_date) && v.end_date > v.date)) {
+      const seeded = seedDays(v);
+      if (seeded.length) return seeded.map(withOff);
+    }
+  }
+  return isIsoDate(v.date) ? [{ n: 1, date: v.date, off: false }] : [];
+}
+
+/** Days that run (not rained out or cancelled). */
+export const daysOn = (v) => eventDayList(v).filter((d) => !d.off);
+
+/** True when the days follow one another with no gaps. */
+export function consecutiveDays(days) {
+  return days.every((d, i) => i === 0 || d.date === addDays(days[i - 1].date, 1));
+}
+
+/** Position (1, 2, 3…) of day number `n` in date order, or `n` itself when it isn't one of the days. */
+export function dayPosition(days, n) {
+  const i = days.findIndex((d) => d.n === (Number(n) || 1));
+  return i >= 0 ? i + 1 : Number(n) || 1;
+}
+
+/** The date of day number `day` of an event (a setup sheet's date). Falls back to counting on from the first date. */
+export function dayDateOf(ev, day) {
+  const n = Number(day) || 1;
+  const hit = eventDayList(ev).find((d) => d.n === n);
+  if (hit) return hit.date;
+  return isIsoDate(ev?.date) ? addDays(ev.date, n - 1) : '';
+}
+
+/**
+ * Tidy an event's or shared date's values before saving, so the days and the date span always agree:
+ * - multi-day on: days cleaned, numbered (new ones after the highest number in use), sorted, at most 14;
+ *   date = first day, end_date = last day. Fewer than two days left makes it a one-day event again.
+ * - multi-day off: days and end date go.
+ * - not set either way (older records, imports, a quick edit of the end date): a date-to-end-date run of
+ *   up to 14 days becomes multi-day with one row per day.
+ */
+export function normaliseDays(values) {
+  const v = { ...(values || {}) };
+  const legacy = v.multi_day === undefined && isIsoDate(v.date) && isIsoDate(v.end_date) && v.end_date > v.date && spanOf(v.date, v.end_date) <= MAX_DAYS;
+  if (v.multi_day === true || legacy) {
+    let rows = Array.isArray(v.days) ? v.days.map(cleanDay).filter(Boolean) : [];
+    if (!rows.length) rows = seedDays(v);
+    let top = Math.max(0, ...rows.map((r) => r.n));
+    const seen = new Set();
+    rows = rows.map((r) => {
+      const out = !r.n || seen.has(r.n) ? { ...r, n: ++top } : r;
+      seen.add(out.n);
+      return out;
+    });
+    rows = sortDays(rows).slice(0, MAX_DAYS);
+    if (rows.length >= 2) {
+      v.multi_day = true;
+      v.days = rows;
+      v.date = rows[0].date;
+      v.end_date = rows[rows.length - 1].date;
+      if (v.end_date === v.date) delete v.end_date;
+      return v;
+    }
+    if (rows.length === 1) v.date = rows[0].date;
+    v.multi_day = false;
+  }
+  if (v.multi_day === false) { delete v.days; delete v.end_date; }
+  return v;
+}
+
+/**
+ * A new date or end date for an event whose days run one after another (a quick edit): the days move with it.
+ * Each day keeps its number, name and start time by position; extra days get new numbers. A new date alone
+ * keeps the number of days. An end date on or before the date makes it a one-day event.
+ */
+export function respanDays(v, date, end) {
+  const old = eventDayList(v);
+  if (!isIsoDate(date)) return { ...v, date };
+  const last = end === undefined ? (old.length > 1 ? addDays(date, old.length - 1) : '') : end;
+  if (!isIsoDate(last) || last <= date) {
+    const out = { ...v, date, multi_day: false };
+    delete out.days; delete out.end_date;
+    return out;
+  }
+  let top = Math.max(0, ...old.map((d) => d.n));
+  const days = Array.from({ length: Math.min(MAX_DAYS, spanOf(date, last)) }, (_, i) => {
+    const { off, ...keep } = old[i] || {}; // eslint-disable-line no-unused-vars
+    return old[i] ? { ...keep, date: addDays(date, i) } : { n: ++top, date: addDays(date, i) };
+  });
+  return { ...v, multi_day: true, days, date, end_date: days[days.length - 1].date };
+}
+
+/**
+ * New values for a record that had `before`: when they carry the same days as before but a different date
+ * or end date (a change that only knows the date span, e.g. an older app, an API call or a feed), the days
+ * move to the new span (respanDays). Anything else is returned as it is.
+ */
+export function moveDays(before, after) {
+  if (!after?.multi_day || !Array.isArray(after.days) || !before) return after;
+  const key = (v) => JSON.stringify(eventDayList({ multi_day: true, days: v }).map((d) => [d.n, d.date]));
+  if (key(after.days) !== key(before.days)) return after;
+  if (after.date === before.date && (after.end_date || '') === (before.end_date || '')) return after;
+  return respanDays(after, after.date, after.end_date || after.date);
+}
+
+/** A shared date's or event's iCal entries: one per day for a multi-day meeting (the first keeps the meeting's id). */
+function icsParts(it) {
+  if (!Array.isArray(it.days) || it.days.length < 2) return [it];
+  const [local, host] = String(it.uid).split('@');
+  return it.days.map((d, i) => ({
+    ...it,
+    uid: i === 0 ? it.uid : `${local}-d${d.n}@${host || 'raceops'}`,
+    date: d.date,
+    end_date: '',
+    summary: `${d.off ? `${d.status === 'Cancelled' ? 'CANCELLED' : d.status.toUpperCase()}: ` : ''}${it.summary} — ${d.label || `Day ${i + 1}`}`,
+    description: [d.time && `Starts ${d.time}`, it.description].filter(Boolean).join('\n'),
+    status: d.off ? 'CANCELLED' : it.status,
+  }));
+}
+
 // ---------------------------------------------------------------- iCal out
 const icsEscape = (s) => String(s ?? '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/([,;])/g, '\\$1');
 const fold = (line) => {
@@ -144,13 +312,14 @@ export function addDays(date, n) {
   return d.toISOString().slice(0, 10);
 }
 /**
- * An iCalendar feed of all-day events. items: [{ uid, date, end_date, summary, location, description, url, status }].
+ * An iCalendar feed of all-day events. items: [{ uid, date, end_date, summary, location, description, url, status, days? }].
+ * An item with `days` (from eventDayList, two or more) becomes one entry per day.
  */
 export function toICS({ name, items, stamp = new Date() }) {
   const dt = stamp.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//RaceOps//Team calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     `X-WR-CALNAME:${icsEscape(name)}`];
-  for (const it of items) {
+  for (const it of items.flatMap(icsParts)) {
     if (!it.date) continue;
     lines.push('BEGIN:VEVENT', `UID:${it.uid}`, `DTSTAMP:${dt}`, `DTSTART;VALUE=DATE:${icsDate(it.date)}`,
       `DTEND;VALUE=DATE:${icsDate(addDays(it.end_date && it.end_date >= it.date ? it.end_date : it.date, 1))}`,

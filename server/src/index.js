@@ -27,6 +27,7 @@ import { fetchCalendar, mountCalendar, mountPublicCalendar } from './calendar.js
 import { mountCalendarPlus, mountPublicShared, startFeedChecks } from './calendarPlus.js';
 import { mountJobs } from './jobs.js';
 import { convertLegacySuggestions, mountCalendarRequests, pendingRequests } from './calendarRequests.js';
+import { moveDays, normaliseDays } from '../../shared/calendar.js';
 import { feedbackNotices, mountFeedback } from './feedback.js';
 import { mountPractice } from './practice.js';
 import { mountRecycle, startPurge } from './recycle.js';
@@ -485,11 +486,15 @@ T.post('/sync', h(async (req, res) => {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function applyChange(c, req, ch) {
-  const { id, type, data = {}, deleted = false } = ch || {};
+  const { id, type, data: incoming = {}, deleted = false } = ch || {};
   if (!UUID.test(id || '') || !RECORD_TYPES.includes(type)) return { id, status: 'invalid' };
   const ts = new Date(ch.client_updated_at || Date.now());
   const clientTs = isNaN(ts) ? new Date() : ts;
   const { rows: [cur] } = await c.query('SELECT * FROM records WHERE id=$1 FOR UPDATE', [id]);
+  // events and shared dates: the days and the date span always agree, whatever app version sent the change
+  // (an older app that only moved the date moves the days with it)
+  const data = (type === 'event' || type === 'fixture') && !deleted && incoming?.values
+    ? { ...incoming, values: normaliseDays(moveDays(cur?.data?.values, incoming.values)) } : incoming;
   const current = (r) => r && { ...r, seq: Number(r.seq), global: r.tenant_id === null };
   const isGlobal = cur ? cur.tenant_id === null : data?.scope === 'global';
 

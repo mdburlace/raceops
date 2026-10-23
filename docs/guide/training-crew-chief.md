@@ -3,14 +3,14 @@ id: training-crew-chief
 title: "Training: crew chief"
 section: training
 order: 10
-summary: Hands-on exercises in the practice team — read tonight's heat, set up the feature, use the advisor and Compare, find what worked, and save a baseline.
+summary: Hands-on exercises in the practice team — read tonight's heat, set up the feature, use the advisor and Compare, find what worked, save a baseline and run a two-night meeting.
 for: module:setups
 team: race
 covers: option:training-crew-chief
 related: training, role-crew-chief, engine-tunes, setup-sheets, setup-sheet-layout, setup-advisor, compare-search
-demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick
+demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick, Valley Spring Classic, Practice & prelims, Finals
 ---
-**Time:** about 45 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
+**Time:** about 50 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
 
 **The story:** it's club night at Valley Speedway. Car 17 has run **Heat 1** and the driver says it was loose off the corners. You set the car up for the **Feature**.
 
@@ -89,7 +89,21 @@ demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — 
 
 **When it's right:** **Main** shows *70* and **HS** shows *108 psi / 72*, and **Engine tune** shows *2026 v2*. See [Engine tune sheets](/help/engine-tunes).
 
+## Exercise 10: A two-night meeting (5 min)
+
+1. Open **Events** and find *Valley Spring Classic*. It shows **2 days** and both dates, with a night off between them.
+2. Open it. There's a tab for each day: **Practice & prelims** and **Finals**, each with its date.
+3. Press **Finals**, then **+ Add session** and add a **Feature** sheet. Save it.
+4. Open the sheet again and look at **Day**: it lists both days by name and date.
+5. Press **Edit event**. Set **Practice & prelims** to **Rained out** and save.
+
+**When it's right:** the Feature sheet is on the **Finals** tab only. **Practice & prelims** is crossed out, and the **Calendar → Month** view marks just the two race days, not the day between. See [Multi-day events](/help/events-sessions#multi-day-events).
+
 ## Check yourself
+
+<details><summary>A two-day meeting gets a practice day added before it. Do you make a new event?</summary>
+No. Edit the event and press <b>+ Add a day</b> (or set <b>Number of days</b>), then set the new day's date. One event keeps all the days and their sheets together.
+</details>
 
 <details><summary>Tonight's ADR is off the end of the engine's chart. What do you do?</summary>
 RaceOps offers the nearest row and says the reading is outside the chart. Check with your engine builder before you run it.

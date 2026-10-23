@@ -267,7 +267,7 @@ with sync_playwright() as pw:
     ed = p3.locator('[data-testid="fx-editor"]')
     expect(ed.locator('#f-major')).to_be_checked()
     expect(ed.locator('text=Publish to every team now')).to_have_count(0)
-    ed.locator('#f-name').fill('Australian Sprintcar Title'); ed.locator('#f-date').fill(d(50)); ed.locator('#f-end_date').fill(d(51))
+    ed.locator('#f-name').fill('Australian Sprintcar Title'); ed.locator('#f-date').fill(d(50)); ed.locator('#f-multi_day').check(); expect(ed.get_by_label('Day 2 date')).to_have_value(d(51))
     ed.locator('#f-track').fill('Premier Speedway')
     ed.locator('#f-classes').fill('410 Sprintcars'); ed.locator('#f-classes').press('Enter')
     ed.locator('button.primary:has-text("Save")').click()

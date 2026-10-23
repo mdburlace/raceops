@@ -144,6 +144,11 @@ cal = [rec('event', {'name': f['data']['values']['name'], 'date': f['data']['val
 for c in cal: c['data']['values'] = {k: x for k, x in c['data']['values'].items() if x}
 entry = rec('season_plan', {'series': gser['id'], 'season': str(start.year), 'car': car['id'], 'class': '410 Sprint', 'participation': 'Partial series'}, form_id=form('season_plan'))
 push(*cal, entry)
+# a two-night meeting with a night off between (multi-day events)
+two_nights = rec('event', {'name': 'Valley Two-Night Classic', 'venue': gtrack['id'], 'car': car['id'], 'intent': 'Planned', 'event_type': 'Special event',
+                           'multi_day': True, 'date': up(50), 'end_date': up(52),
+                           'days': [{'n': 1, 'date': up(50), 'label': 'Practice & prelims', 'time': '18:00'}, {'n': 2, 'date': up(52), 'label': 'Finals', 'time': '17:30'}]}, form_id=EF)
+push(two_nights)
 # requests to the shared calendars: a team-only track with its major event, and a change to a shared date
 mud = rec('track', {'name': 'Mudtown Raceway', 'city': 'Mudtown', 'region': 'QLD', 'country': 'Australia', 'status': 'Active'}, form_id=TRF)
 mud_ev = rec('event', {'name': 'Mudtown Classic night 1', 'date': up(30), 'venue': mud['id'], 'car': car['id'], 'intent': 'Planned', 'major': True, 'major_name': 'Mudtown Classic'}, form_id=EF)
@@ -265,6 +270,11 @@ with sync_playwright() as pw:
     if shot('event-sessions'):
         page.goto(f"{B}/events/{ev['id']}"); settle(page)
         save('event-sessions', page.screenshot())
+    if shot('event-days'):
+        page.goto(f"{B}/r/event/{two_nights['id']}"); settle(page)
+        sec = page.locator('[data-testid="days-field"]').locator('xpath=ancestor::section[1]').bounding_box()
+        days = page.locator('[data-testid="days-field"]').bounding_box()   # the event card down to the last day
+        save('event-days', page.screenshot(clip={'x': sec['x'], 'y': sec['y'], 'width': sec['width'], 'height': days['y'] + days['height'] - sec['y'] + 16}))
     if shot('calculators'):
         page.goto(B + '/calculators'); settle(page)
         save('calculators', page.screenshot())

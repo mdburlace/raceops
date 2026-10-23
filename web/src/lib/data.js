@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './store.js';
 import { useSession } from './session.jsx';
 import { listForField } from '@shared/platform.js';
+import { consecutiveDays, eventDayList } from '@shared/calendar.js';
 
 // Pick-lists managed by the platform admin (kept with the session so they work offline).
 let PLATFORM_LISTS = {};
@@ -122,6 +123,7 @@ export function titleOf(rec, data) {
 const LEVELS = { weekly: 'Weekly', race2: 'Every 2nd race', monthly: 'Monthly / 4th race' };
 /** showIf: "key=A", "key=A|B" (any of; empty allowed: "key=|A"), "key!=A|B". */
 export function isVisible(field, values) {
+  if (field.hidden) return false; // kept for its data, set by the app (e.g. an event's end date comes from its days)
   if (!field.showIf) return true;
   const neg = field.showIf.includes('!=');
   const [k, want] = field.showIf.split(neg ? '!=' : '=');
@@ -154,6 +156,8 @@ export function display(field, val, data) {
     case 'asset': return assetRefId(val) ? titleOf(data?.byId[assetRefId(val)]) : String(val);
     case 'checkbox': return val ? 'Yes' : 'No';
     case 'select': {
+      const labelled = (field.options || []).find((o) => typeof o === 'object' && String(o.value) === String(val));
+      if (labelled) return labelled.label;
       const opt = (field.optionsFrom === 'levels') ? levelLabel(val) : val;
       return String(opt);
     }
@@ -161,6 +165,8 @@ export function display(field, val, data) {
       return (field.corners || []).map((c) => `${c} ${display({ type: field.input === 'asset' ? 'asset' : 'text' }, val?.[c], data)}`).join('  ');
     case 'check': return val?.done ? `✓${val.value ? ` ${val.value}` : ''}` : '';
     case 'date': return fmtDate(val);
+    case 'days': return Array.isArray(val) ? eventDayList({ multi_day: true, days: val })
+      .map((d) => [fmtDay(d.date), d.label, fmtTime(d.time), d.status].filter(Boolean).join(' · ')).join('; ') : '';
     default: return String(val);
   }
 }
@@ -171,6 +177,29 @@ export function fmtDate(d) {
   return isNaN(dt) ? d : dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 export const fmtDateTime = (d) => (d ? new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '');
+/** "Sat 6 Dec" — one day of a multi-day event. */
+export const fmtDay = (d) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : '');
+/** "6:30 pm" from a stored "18:30". */
+export const fmtTime = (t) => {
+  const m = /^(\d{2}):(\d{2})$/.exec(String(t || ''));
+  return m ? new Date(2000, 0, 1, Number(m[1]), Number(m[2])).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+};
+/**
+ * When an event or shared date runs, in words: "6 Dec 2026"; "4 Dec 2026 – 6 Dec 2026" for days in a row;
+ * "Thu 4 & Sat 6 Dec 2026" when there are gaps (values: the record's values).
+ */
+export function fmtDays(values) {
+  const days = eventDayList(values);
+  if (days.length <= 1) return fmtDate(values?.date);
+  const first = days[0].date; const last = days[days.length - 1].date;
+  if (consecutiveDays(days)) return `${fmtDate(first)} – ${fmtDate(last)}`;
+  const at = (s) => new Date(`${s}T00:00:00`);
+  const sameMonth = days.every((d) => d.date.slice(0, 7) === first.slice(0, 7));
+  // "Fri 13", or "Fri 13 Nov" when the days run into another month
+  const parts = days.map((d) => `${at(d.date).toLocaleDateString(undefined, { weekday: 'short' })} ${Number(d.date.slice(8))}${sameMonth ? '' : ` ${at(d.date).toLocaleDateString(undefined, { month: 'short' })}`}`);
+  const tail = sameMonth ? at(last).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : String(at(last).getFullYear());
+  return `${parts.slice(0, -1).join(', ')} & ${parts[parts.length - 1]} ${tail}`;
+}
 export const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

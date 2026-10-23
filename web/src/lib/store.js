@@ -1,4 +1,5 @@
 import Dexie from 'dexie';
+import { normaliseDays } from '@shared/calendar.js';
 
 // Local-first store: the whole UI reads from IndexedDB so it works the same online or offline.
 export const db = new Dexie('raceops');
@@ -19,8 +20,9 @@ export async function getMeta(key, fallback = null) {
 }
 export const setMeta = (key, value) => db.meta.put({ key, value });
 
-/** Save locally and mark for sync. */
-export async function saveRecord(tid, type, id, data, userId) {
+/** Save locally and mark for sync. Events and shared dates keep their days and date span in step. */
+export async function saveRecord(tid, type, id, dataIn, userId) {
+  const data = (type === 'event' || type === 'fixture') && dataIn?.values ? { ...dataIn, values: normaliseDays(dataIn.values) } : dataIn;
   const now = new Date().toISOString();
   const existing = id ? await db.records.get(id) : null;
   const rec = {

@@ -10,6 +10,7 @@ import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersLis
 import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
 import { SpeedTables, SweepField, TableField } from './TableFields.jsx';
+import DaysField from './DaysField.jsx';
 
 /** ⓘ beside a field label: shows on hover or keyboard focus, toggles on tap; Esc closes. */
 export function InfoTip({ info, label }) {
@@ -564,7 +565,7 @@ function nextOnEnter(e) {
  * changesOnly, changed: changedFields(), openAll } — the person's section order, folded sections,
  * the Before / After switch and change highlighting.
  */
-export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [], roKeys = [], sectionExtras = {}, calcCtx = null, layout = null }) {
+export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, recordId = null, errors = {}, hideKeys = [], roKeys = [], sectionExtras = {}, calcCtx = null, layout = null }) {
   const { membership } = useSession(); // also re-renders when the cached member list arrives
   const shopTeam = isShop(membership);
   const suggestions = useMemo(() => {
@@ -608,7 +609,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
                 ? <h4 key={`h${i}`} className="subhead">{f.label}</h4>
                 : f.type === 'check'
                   ? <CheckItem key={f.key} field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />
-                  : <Field key={f.key} f={f} {...{ values, onChange, data, form, readOnly, errors, suggestions, calcCtx, changed }} />)}
+                  : <Field key={f.key} f={f} {...{ values, onChange, data, form, readOnly, errors, suggestions, calcCtx, changed, recordId }} />)}
             </section>
           );
         }
@@ -617,7 +618,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
         const nChanged = changed ? shown.filter((f) => changed[f.key]).length : 0;
         const extras = !layout || (stage !== 'after' && !layout.changesOnly) ? sectionExtras[sec.id] || null : null;
         const shockCards = setup && sec.id === 'shocks';
-        const props = { values, onChange, data, form, readOnly, errors, suggestions, calcCtx, changed };
+        const props = { values, onChange, data, form, readOnly, errors, suggestions, calcCtx, changed, recordId };
         return (
           <section key={sec.id} id={`sec-${sec.id}`} data-sec={sec.id} className={`card form-section${folded ? ' folded' : ''}`}>
             {layout ? (
@@ -650,8 +651,8 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
   );
 }
 
-function Field({ f, values, onChange, data, form, readOnly, errors, suggestions, calcCtx, changed }) {
-  const wide = ['textarea', 'corners', 'table', 'multiref', 'sweep', 'tags'].includes(f.type);
+function Field({ f, values, onChange, data, form, readOnly, errors, suggestions, calcCtx, changed, recordId }) {
+  const wide = ['textarea', 'corners', 'table', 'multiref', 'sweep', 'tags', 'days'].includes(f.type);
   let body;
   if (f.type === 'derived') {
     body = <div className="calc">{values[f.key] || '—'}{values[f.key] && f.unit ? <small> {f.unit}</small> : null}</div>;
@@ -664,6 +665,8 @@ function Field({ f, values, onChange, data, form, readOnly, errors, suggestions,
     body = f.bySpeed
       ? <SpeedTables field={f} value={values[f.key]} values={values} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />
       : <TableField field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
+  } else if (f.type === 'days') {
+    body = <DaysField value={values[f.key]} values={values} readOnly={readOnly} data={data} recordId={recordId} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'corners') {
     return <CornerGrid fields={[f]} {...{ values, onChange, data, form, readOnly, errors, calcCtx, changed }} />;
   } else if (readOnly) {

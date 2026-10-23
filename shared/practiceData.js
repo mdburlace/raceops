@@ -7,6 +7,7 @@
 export const PRACTICE = {
   car: 'Car 17', spareCar: 'Car 71', engine: '410 #3', series: 'Club Championship',
   tonight: 'Valley Speedway — Club night', next: 'Lakeside Raceway — Club Championship', shopSetup: 'Lakeside baseline',
+  classic: 'Valley Spring Classic',
   engineTune: '2026 v2', oldTune: '2026 v1',
   rrShock: 'RR Penske 8760', customer: 'Sam Hart', customerEngine: 'Hart 410', job: 'J-1001',
 };
@@ -156,6 +157,9 @@ export function practiceData({ form, today = new Date(), uuid }) {
     engine: ref(eng), engine_tune: tune.id, timing: '30° BTDC', nozzles: '435 down, 165 up', ls_bypass: '40–50 psi / 80',
   });
   add('event', { name: 'Lakeside Raceway — Club Championship', series: series.id, round: '9', date: day(7), track: 'Lakeside Raceway', car: car.id, intent: 'Planned', shop_setup: shop.id });
+  // a two-night meeting with a night off between: practice and prelims, then finals (multi-day exercise)
+  add('event', { name: PRACTICE.classic, date: day(21), end_date: day(23), multi_day: true, track: 'Valley Speedway', car: car.id, intent: 'Planned',
+    event_type: 'Special event', days: [{ n: 1, date: day(21), label: 'Practice & prelims', time: '18:00' }, { n: 2, date: day(23), label: 'Finals', time: '17:30' }] });
 
   // ---- workshop: schedules and a recent service
   add('schedule', { name: 'RR shock rebuild', applies_to: 'Asset', asset: shocks.RR.id, interval: '10', interval_unit: 'Races', last_done: day(-120),

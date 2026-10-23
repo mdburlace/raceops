@@ -4,6 +4,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
+import { sheetsByDay } from '../components/DaysField.jsx';
 import {
   AdminRequests, DuplicatesPanel, FeedPanel, FollowButton, HistoryPanel, MergeInto, OfficialsPanel, ReportResults, RequestsTab, ResultsTable, TeamNotes,
   UpdatesTab, sendRequest, useCalendarRequests, useOfficials, winnerText,
@@ -11,20 +12,32 @@ import {
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { api, apiJob } from '../lib/api.js';
 import { fileToPart } from '../lib/ai.js';
-import { fmtDate, formFor, roundAndTrack, num, platformList, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { fmtDate, fmtDays, formFor, roundAndTrack, num, platformList, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { syncNow } from '../lib/sync.js';
 import {
-  addDays, INTENTS, MONTHS, OUTCOMES, WITHDREW, WITHDRAW_REASONS, carsForFixture, entryStatus, eventFromFixture, fixtureChanges,
+  INTENTS, MONTHS, OUTCOMES, WITHDREW, WITHDRAW_REASONS, carsForFixture, consecutiveDays, daysOn, entryStatus, eventDayList, eventFromFixture, fixtureChanges,
+  normaliseDays, respanDays,
   fixtureClasses, inSeason, majorLabel, matchTrack, sanctioningOf, sameFixture, seasonLabel, seasonMatches, seasonOf, seasonStart, seasonSummary,
 } from '@shared/calendar.js';
 
 const isGlobal = (r) => !!(r?.global || r?.data?.scope === 'global');
 const vals = (r) => r?.data?.values || {};
 const lc = (s) => String(s ?? '').trim().toLowerCase();
-const dateRangeOf = (x) => (x.end_date && x.end_date !== x.date ? `${fmtDate(x.date)} – ${fmtDate(x.end_date)}` : fmtDate(x.date));
+/** When a calendar item or date runs, in words (values, or an item with date, end_date and days). */
+const dateRangeOf = (x) => fmtDays(x.days ? { ...x, multi_day: x.days.length > 1, days: x.days } : x);
 const dow = (d) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short' }) : '');
+const monShort = (d) => new Date(`${d}T00:00:00`).toLocaleString(undefined, { month: 'short' });
+/** The days of a calendar item for the printed sheet: "Fri 4–6", "Fri 30–1 Feb", or "Thu 4 & Sat 6" with gaps. */
+function sheetDays(i) {
+  const days = i.days?.length ? i.days : eventDayList(i);
+  if (days.length < 2) return `${dow(i.date)} ${Number(i.date.slice(8))}`;
+  const first = days[0].date; const last = days[days.length - 1].date;
+  if (consecutiveDays(days)) return `${dow(first)} ${Number(first.slice(8))}–${Number(last.slice(8))}${last.slice(5, 7) !== first.slice(5, 7) ? ` ${monShort(last)}` : ''}`;
+  const parts = days.map((d) => `${dow(d.date)} ${Number(d.date.slice(8))}${d.date.slice(5, 7) !== first.slice(5, 7) ? ` ${monShort(d.date)}` : ''}${d.off ? ` (${String(d.status).toLowerCase()})` : ''}`);
+  return `${parts.slice(0, -1).join(', ')} & ${parts[parts.length - 1]}`;
+}
 
 /** The racing year shown (?year=), and the month the team's year starts. */
 export function useRacingYear() {
@@ -51,7 +64,7 @@ export function teamItems(data, year, sm, { notGoing = true } = {}) {
       const car = data.byId[x.car];
       const fx = data.byId[x.fixture];
       return {
-        id: e.id, rec: e, values: x, date: x.date, end_date: x.end_date || '', name: x.name || 'Event', track: trackName(data, x),
+        id: e.id, rec: e, values: x, date: x.date, end_date: x.end_date || '', days: eventDayList(x), name: x.name || 'Event', track: trackName(data, x),
         location: x.location || '', series: seriesName(data, x.series), round: x.round || '', car: car ? titleOf(car) : '',
         sanctioning: sanctioningOf(x, vals(data.byId[x.series])), major: majorLabel(x.major ? x : vals(fx)).replace(/^★ /, ''),
         tentative: x.intent === 'Tentative', notGoing: x.intent === 'Not going',
@@ -163,7 +176,7 @@ function CalendarRow({ i, data, past }) {
       </span>
       <span className="grow">
         <Link className="row-title" to={`/events/${i.id}`}>{i.name}</Link>
-        <span className="row-sub">{[roundAndTrack(i.round, i.track), i.series, i.sanctioning, i.car, i.end_date && i.end_date !== i.date && `to ${fmtDate(i.end_date)}`].filter(Boolean).join(' · ')}</span>
+        <span className="row-sub">{[roundAndTrack(i.round, i.track), i.series, i.sanctioning, i.car, i.days.length > 1 && fmtDays(i.values)].filter(Boolean).join(' · ')}</span>
         {i.major && <span className="pill pill-info">★ {i.major}</span>}
         {winnerText(vals(i.fx)) && <span className="small winner">🏁 {winnerText(vals(i.fx))}</span>}
         {i.cancelled && <span className="pill pill-over">Cancelled</span>}
@@ -190,7 +203,10 @@ function seriesChoices(data) {
 function EntryQuickEdit({ ev, data, onDone }) {
   const { tid, user, canType } = useSession();
   const [x, setX] = useState(() => ({ ...vals(ev) }));
+  const [err, setErr] = useState('');
   const set = (k, val) => setX((cur) => {
+    // a new date moves the days with it (same number of days); a new end date adds or takes off days
+    if (k === 'date' || k === 'end_date') return respanDays(cur, k === 'date' ? val : cur.date, k === 'end_date' ? val : undefined);
     const next = { ...cur, [k]: val };
     // picking a series brings its sanctioning body if none is set
     if (k === 'series' && !cur.sanctioning && vals(data.byId[val]).sanctioning) next.sanctioning = vals(data.byId[val]).sanctioning;
@@ -199,6 +215,10 @@ function EntryQuickEdit({ ev, data, onDone }) {
   const bodies = platformList('sanctioning_bodies') || [];
   const save = async () => {
     const values = { ...x };
+    // a day that has setup sheets can't go
+    const kept = new Set(eventDayList(normaliseDays(values)).map((d) => d.n));
+    const lost = Object.entries(sheetsByDay(data, ev.id)).filter(([n]) => !kept.has(Number(n))).reduce((a, [, c]) => a + c, 0);
+    if (lost) { setErr(`That takes off a day that has ${lost} setup sheet${lost > 1 ? 's' : ''}. Move ${lost > 1 ? 'them' : 'it'} to another day first.`); return; }
     if (!values.series) { delete values.series; delete values.round; }
     if (!values.major) delete values.major_name;
     await saveRecord(tid, 'event', ev.id, { ...ev.data, values }, user.id);
@@ -214,10 +234,20 @@ function EntryQuickEdit({ ev, data, onDone }) {
           <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
         </div>
       </div>
+      {err && <div className="notice error small">{err}</div>}
       <div className="qe-grid">
         <label className="field"><span className="label">Event name</span><input aria-label="Event name" value={x.name || ''} onChange={(e) => set('name', e.target.value)} /></label>
-        <label className="field"><span className="label">Date</span><input type="date" aria-label="Date" value={x.date || ''} onChange={(e) => set('date', e.target.value)} /></label>
-        <label className="field"><span className="label">End date</span><input type="date" aria-label="End date" value={x.end_date || ''} onChange={(e) => set('end_date', e.target.value)} /></label>
+        {x.multi_day && eventDayList(x).length > 1 && !consecutiveDays(eventDayList(x)) ? (
+          <div className="field qe-days"><span className="label">Days</span>
+            <span>{fmtDays(x)}</span>
+            <small className="muted">Change the days in <Link to={`/r/event/${ev.id}?back=/calendar`}>All details</Link>.</small>
+          </div>
+        ) : (
+          <>
+            <label className="field"><span className="label">Date</span><input type="date" aria-label="Date" value={x.date || ''} onChange={(e) => set('date', e.target.value)} /></label>
+            <label className="field"><span className="label">End date</span><input type="date" aria-label="End date" value={x.end_date || ''} min={x.date || undefined} onChange={(e) => set('end_date', e.target.value)} /></label>
+          </>
+        )}
         <label className="field"><span className="label">Series</span>
           <select aria-label={`Series for ${name}`} value={x.series || ''} onChange={(e) => set('series', e.target.value)}>
             <option value="">None — stand-alone</option>
@@ -246,10 +276,10 @@ function EntryQuickEdit({ ev, data, onDone }) {
 function FixtureMoved({ ev, fx, changes, data }) {
   const { tid, user, canType } = useSession();
   const shown = changes.filter((c) => c.key !== 'status');
-  const fmt = (c, x) => (c.key === 'venue' ? trackName(data, { venue: x }) : fmtDate(x) || '—');
+  const fmt = (c, x) => (c.key === 'venue' ? trackName(data, { venue: x }) : c.key === 'days' ? fmtDays({ multi_day: true, days: x, date: x[0]?.date }) || '—' : fmtDate(x) || '—');
   const apply = () => {
     const x = { ...vals(ev) };
-    for (const c of shown) x[c.key] = c.now;
+    for (const c of shown) Object.assign(x, c.patch || { [c.key]: c.now });
     saveRecord(tid, 'event', ev.id, { ...ev.data, values: x }, user.id);
   };
   return (
@@ -301,8 +331,11 @@ function MonthGrid({ items, year, sm }) {
       {months.map(({ y, m }) => {
         const first = new Date(y, m, 1); const days = new Date(y, m + 1, 0).getDate();
         const lead = (first.getDay() + 6) % 7; // Monday first
-        const on = (d) => { const ds = `${y}-${pad(m + 1)}-${pad(d)}`; return items.filter((i) => i.date <= ds && (i.end_date || i.date) >= ds); };
-        const any = items.some((i) => i.date.slice(0, 7) === `${y}-${pad(m + 1)}` || (i.end_date || '').slice(0, 7) === `${y}-${pad(m + 1)}`);
+        const ym = `${y}-${pad(m + 1)}`;
+        const dayOn = (i, ds) => i.days.find((d) => d.date === ds);
+        const on = (d) => { const ds = `${ym}-${pad(d)}`; return items.filter((i) => dayOn(i, ds)); };
+        const inMonth = items.filter((i) => i.days.some((d) => d.date.slice(0, 7) === ym));
+        const any = inMonth.length > 0;
         return (
           <section key={`${y}-${m}`} className={`month card${any ? '' : ' empty-month'}`}>
             <h3>{MONTHS[m]} {y}</h3>
@@ -311,15 +344,17 @@ function MonthGrid({ items, year, sm }) {
               {Array.from({ length: lead }, (_, k) => <span key={`b${k}`} />)}
               {Array.from({ length: days }, (_, k) => {
                 const list = on(k + 1);
+                const ds = `${ym}-${pad(k + 1)}`;
+                const off = list.length > 0 && list.every((i) => dayOn(i, ds).off);
                 return (
-                  <span key={k} className={`mg-d${list.length ? ' has' : ''}${list.some((i) => i.tentative) && !list.some((i) => !i.tentative) ? ' tent' : ''}`}
-                    title={list.map((i) => `${i.name}${i.track ? ` — ${i.track}` : ''}`).join('\n')}>
-                    {list.length ? <Link to={`/events/${list[0].id}`} aria-label={`${k + 1} ${MONTHS[m]}: ${list.map((i) => i.name).join(', ')}`}>{k + 1}</Link> : k + 1}
+                  <span key={k} className={`mg-d${list.length ? ' has' : ''}${list.some((i) => i.tentative) && !list.some((i) => !i.tentative) ? ' tent' : ''}${off ? ' off' : ''}`}
+                    title={list.map((i) => { const d = dayOn(i, ds); return `${i.name}${i.days.length > 1 ? ` — ${d.label || `day ${i.days.indexOf(d) + 1}`}` : ''}${d.off ? ` (${d.status})` : ''}${i.track ? ` — ${i.track}` : ''}`; }).join('\n')}>
+                    {list.length ? <Link to={`/events/${list[0].id}${list[0].days.length > 1 ? `?day=${dayOn(list[0], ds).n}` : ''}`} aria-label={`${k + 1} ${MONTHS[m]}: ${list.map((i) => i.name).join(', ')}${off ? ' (didn’t run)' : ''}`}>{k + 1}</Link> : k + 1}
                   </span>
                 );
               })}
             </div>
-            {any && <ul className="mg-list">{items.filter((i) => i.date.slice(0, 7) === `${y}-${pad(m + 1)}`).map((i) => <li key={i.id}><b>{Number(i.date.slice(8))}</b> <Link to={`/events/${i.id}`}>{i.name}</Link>{i.tentative ? <small className="muted"> (tentative)</small> : ''}</li>)}</ul>}
+            {any && <ul className="mg-list">{inMonth.map((i) => <li key={i.id}><b>{i.days.filter((d) => d.date.slice(0, 7) === ym).map((d) => Number(d.date.slice(8))).join(', ')}</b> <Link to={`/events/${i.id}`}>{i.name}</Link>{i.tentative ? <small className="muted"> (tentative)</small> : ''}</li>)}</ul>}
           </section>
         );
       })}
@@ -482,7 +517,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                       <small>{fv.date ? new Date(`${fv.date}T00:00:00`).toLocaleString(undefined, { month: 'short' }) : ''} {dow(fv.date)}</small>
                     </span>
                     <span className="grow">
-                      <span className="row-title">{fv.name}{fv.end_date && fv.end_date !== fv.date ? <span className="muted small"> · to {fmtDate(fv.end_date)}</span> : null}</span>
+                      <span className="row-title">{fv.name}{eventDayList(fv).length > 1 ? <span className="muted small"> · {fmtDays(fv)}</span> : null}</span>
                       <span className="row-sub">{[roundAndTrack(fv.round, trackName(data, fv)), series && vals(series).name, sanctioningOf(fv, vals(series)), classes.join(', '), fv.start_time].filter(Boolean).join(' · ')}</span>
                       {winnerText(fv) && <span className="small winner">🏁 {winnerText(fv)}{fv.entries ? ` · ${fv.entries} entries` : ''}</span>}
                       <span className="fx-flags">
@@ -549,7 +584,7 @@ function Clashes({ data, dates, ourClasses, team }) {
   for (const f of dates) {
     const v = vals(f);
     if (v.status === 'Cancelled' || !v.date) continue;
-    for (let d = v.date; d <= (v.end_date || v.date); d = addDays(d, 1)) {
+    for (const { date: d } of daysOn(v)) {
       const k = `${d}|${region(f)}`;
       (days.get(k) || days.set(k, []).get(k)).push(f);
     }
@@ -629,7 +664,7 @@ function FixtureEditor({ data, rec, initial = {}, onSave = null, onDone, inline 
   const { tid, user } = useSession();
   const admin = !!onSave || !!user?.is_platform_admin;
   const form = formFor(data, 'fixture');
-  const base = rec ? vals(rec) : { status: 'Scheduled', ...Object.fromEntries(Object.entries(initial).filter(([, x]) => x)) };
+  const base = rec ? normaliseDays(vals(rec)) : { status: 'Scheduled', ...Object.fromEntries(Object.entries(initial).filter(([, x]) => x)) };
   const [values, setValues] = useState(() => ({ ...base }));
   const [publish, setPublish] = useState(admin);
   const [errors, setErrors] = useState({});
@@ -638,11 +673,12 @@ function FixtureEditor({ data, rec, initial = {}, onSave = null, onDone, inline 
   const dupes = data.list('fixture').filter((f) => f.id !== rec?.id && isGlobal(f) && sameFixture(vals(f), values));
   const save = async () => {
     const e = {};
-    if (!values.name) e.name = 'Required'; if (!values.date) e.date = 'Required';
+    const tidy = normaliseDays(values);
+    if (!values.name) e.name = 'Required'; if (!tidy.date) e[values.multi_day ? 'days' : 'date'] = 'Required';
     if (!values.venue && !values.track) e.venue = 'Pick a track or type its name';
     setErrors(e);
     if (Object.keys(e).length) return;
-    const clean = Object.fromEntries(Object.entries(values).filter(([, x]) => x !== '' && x !== undefined && x !== false && !(Array.isArray(x) && !x.length)));
+    const clean = Object.fromEntries(Object.entries(tidy).filter(([, x]) => x !== '' && x !== undefined && x !== false && !(Array.isArray(x) && !x.length)));
     if (onSave) {
       // Platform admin → Shared calendars: straight to the server
       try { await onSave(clean, rec); } catch (x) { setErr(x.message); return; }
@@ -959,7 +995,7 @@ function EntryEditor({ data, year, sm, rec, initial = {}, onDone }) {
             return (
               <label key={f.id} className="check-row round-row">
                 <input type="checkbox" checked={picked.includes(f.id)} onChange={(ev) => tick(f.id, ev.target.checked)} />
-                <span className="grow">{fv.round ? <b>Rd {fv.round}</b> : null}{fv.round ? ' — ' : ''}{fv.name} · {fmtDate(fv.date)}{fv.end_date && fv.end_date !== fv.date ? ` – ${fmtDate(fv.end_date)}` : ''}
+                <span className="grow">{fv.round ? <b>Rd {fv.round}</b> : null}{fv.round ? ' — ' : ''}{fv.name} · {fmtDays(fv)}
                   {data.byId[fv.venue] ? <span className="muted"> · {titleOf(data.byId[fv.venue])}</span> : null}
                   {fv.major && <span className="pill pill-warn">★ Major event</span>}
                   {e && <span className="pill pill-ok">{v(e, 'intent') === 'Not going' ? 'On our calendar — not going' : 'On our calendar'}</span>}
@@ -1053,7 +1089,7 @@ export function CalendarSheet({ title, sub, items, showCar = true, showResult = 
           <table className="cal-table">
             <tbody>{m.items.map((i) => (
               <tr key={i.id} className={i.cancelled ? 'cancelled' : i.tentative ? 'tentative' : ''}>
-                <td className="cs-date">{dow(i.date)} {Number(i.date.slice(8))}{i.end_date && i.end_date !== i.date ? `–${Number(i.end_date.slice(8))}${i.end_date.slice(5, 7) !== i.date.slice(5, 7) ? ` ${new Date(`${i.end_date}T00:00:00`).toLocaleString(undefined, { month: 'short' })}` : ''}` : ''}</td>
+                <td className="cs-date">{sheetDays(i)}</td>
                 <td>
                   <b>{i.name}</b>{i.tentative && <em className="muted"> (tentative)</em>}{i.cancelled && <b className="cs-cancel"> CANCELLED</b>}
                   {i.major && <div className="small cs-major">★ {i.major}</div>}
