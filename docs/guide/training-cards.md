@@ -16,6 +16,7 @@ Print these and keep them where the work happens: in the trailer, on the worksho
 - Open tonight's event: **At the Track → Events**.
 - Pick the session beside **+ Add session**, press it, then **Copy this session** (or start from the **Workshop setup**, **Last time out** or a baseline).
 - Set pressures, wing and shocks. **Save**. The sheet saves on the phone, even with no signal.
+- Pills: fill in the **ADR** in **Weather**, then in **Engine** press **Use this jetting** (from the motor's active tune).
 
 **Between sessions**
 - Mechanic: **Between-round checks → New check**. Note anything wrong.
@@ -75,7 +76,8 @@ Print these and keep them where the work happens: in the trailer, on the worksho
 3. Parts going away for service: set the asset's **Status** to **Out for Service**.
 4. **Car maintenance** → **+ Weekly**: tick each item, add measurements, **Save**.
 5. Rebuilt shock? **Shock & bar dyno → New shock run**.
-6. New parts: **Assets → New asset**, with the **car** and **position** set, so setup sheets list them at the right corner.
+6. Engine service: **Engine checks → New engine check**. Readings are compared with the tune and the last check; fix what's flagged and list **Parts needed**.
+7. New parts: **Assets → New asset**, with the **car** and **position** set, so setup sheets list them at the right corner.
 
 ## An engine shop job
 
@@ -85,6 +87,7 @@ Print these and keep them where the work happens: in the trailer, on the worksho
 4. Status through to **Ready for pickup**.
 5. **Job sheet / handover pack** → **Print / save as PDF** for the customer.
 6. Engine page link (**Customer access**) lets the owner see their engine's history.
+7. **Engine tunes → New tune** (or **New version**) for how it should be run. Shared tunes show on the engine page.
 
 ## Who can do what
 

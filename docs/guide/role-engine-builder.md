@@ -39,6 +39,7 @@ related: shop-jobs, engine-builds, handover-pack, share-engine-page, link-owner-
 | I want to… | Go to |
 |---|---|
 | See what's due or waiting | Home → In the shop |
+| Write a tune for a customer's engine and share it | [Engine tune sheets](/help/engine-tunes) |
 | Work out compression or dynamic compression | [Calculators](/help/calculators) |
 | Compare two builds | [Engine build sheets](/help/engine-builds) |
 | Change the labour rate or terms | [Shop settings](/help/shop-settings) |

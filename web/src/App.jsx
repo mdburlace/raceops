@@ -28,6 +28,7 @@ import { AdvisorPage, GuideEdit, GuideList } from './pages/Advisor.jsx';
 import { AdminBackups, TeamBackups } from './pages/Backups.jsx';
 import { AdminDeleted, RecentlyDeleted } from './pages/Deleted.jsx';
 import { WorkshopSetups } from './pages/WorkshopSetups.jsx';
+import { CheckPrint, EngineCheckList, EngineTunes, TunePrint } from './pages/EngineTunes.jsx';
 import { AdminDirectory, AdminGate, AdminLists, AdminOverview, AdminPlans, AdminSettings, AdminSystem, AdminTeams, AdminUsers, AdminAi } from './pages/Admin.jsx';
 
 /** A fresh record page per record — moving between records never carries one's state into another. */
@@ -78,6 +79,8 @@ function Routed() {
       <Route path="/c/:token" element={<PublicCalendar />} />
       <Route path="/cal/:type/:id" element={<PublicShared />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
+      <Route path="/print/tune/:id" element={<ModuleGate module="enginetunes"><TunePrint /></ModuleGate>} />
+      <Route path="/print/engine-check/:id" element={<AreaGate area="workshop" module="enginechecks"><CheckPrint /></AreaGate>} />
       <Route path="/print/job/:id" element={<AreaGate area="engines" module="jobs"><JobPrint /></AreaGate>} />
       <Route path="/print/guide" element={<HelpPrint />} />
       <Route path="/print/calendar" element={<ModuleGate module="calendar"><CalendarPrint /></ModuleGate>} />
@@ -103,6 +106,8 @@ function Routed() {
         <Route path="assets" element={<AreaGate area="workshop" module="assets"><AssetList /></AreaGate>} />
         <Route path="assets/:id" element={<AreaGate area="workshop" module="assets"><AssetDetail /></AreaGate>} />
         <Route path="workshop/dyno" element={<AreaGate area="workshop" module="dyno"><Dyno /></AreaGate>} />
+        <Route path="tunes" element={<ModuleGate module="enginetunes"><EngineTunes /></ModuleGate>} />
+        <Route path="workshop/engine-checks" element={<AreaGate area="workshop" module="enginechecks"><EngineCheckList /></AreaGate>} />
         <Route path="workshop/setups" element={<AreaGate area="workshop" module="shopsetups"><WorkshopSetups /></AreaGate>} />
         {/* Engines */}
         <Route path="engines" element={<AreaGate area="engines" module="engines"><Engines /></AreaGate>} />

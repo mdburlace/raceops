@@ -44,6 +44,7 @@ Some sections work things out for you:
 - **Corner weights.** Enter all four, and total, left %, rear % and cross % fill in.
 - **Weather.** Pull it for the track, or calculate from your readings. See [Track weather](/help/weather).
 - **Shocks.** A card per corner with the shock, its adjusters, bump rubbers and travel. Each corner lists that corner's shocks first, and adjusters show only for an adjustable shock. See [Shocks, adjusters and bump rubbers](/help/shocks-on-setup).
+- **Engine.** Once you pick the motor, its [engine tune](/help/engine-tunes) shows the pill settings for the session's ADR or density altitude. **Use this jetting** puts them on the sheet.
 - **Race.** The fuel plan predicts the fuel to start with. See [Plan fuel for a session](/help/fuel-planner).
 - **Calculator buttons** beside some fields (main jet, stagger, ADR…) open the matching calculator, filled in from the sheet. **Use** puts the answer in the field.
 

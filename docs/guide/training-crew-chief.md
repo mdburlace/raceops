@@ -7,8 +7,8 @@ summary: Hands-on exercises in the practice team — read tonight's heat, set up
 for: module:setups
 team: race
 covers: option:training-crew-chief
-related: training, role-crew-chief, setup-sheets, setup-sheet-layout, setup-advisor, compare-search
-demo: Car 17, Lakeside baseline, Lakeside Raceway, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick
+related: training, role-crew-chief, engine-tunes, setup-sheets, setup-sheet-layout, setup-advisor, compare-search
+demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick
 ---
 **Time:** about 45 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
 
@@ -80,7 +80,20 @@ demo: Car 17, Lakeside baseline, Lakeside Raceway, Valley Speedway — Club nigh
 
 **When it's right:** the new sheet says it started from workshop setup *Lakeside baseline*, and the bars, shocks, ride heights, pressures and wing angle are filled in from it. See [Workshop setup sheets](/help/workshop-setups).
 
+## Exercise 9: Pick the pills for tonight's weather (5 min)
+
+1. Open tonight's **Heat 1** sheet and go to the **Engine** section. It shows the motor's tune, *2026 v2*, marked **active**.
+2. In **Weather**, type an **ADR** of *91*.
+3. Read the panel: the 90–93 row is marked and it says *main pill 70, high-speed 108 psi / 72*.
+4. Press **Use this jetting**, then **Save**.
+
+**When it's right:** **Main** shows *70* and **HS** shows *108 psi / 72*, and **Engine tune** shows *2026 v2*. See [Engine tune sheets](/help/engine-tunes).
+
 ## Check yourself
+
+<details><summary>Tonight's ADR is off the end of the engine's chart. What do you do?</summary>
+RaceOps offers the nearest row and says the reading is outside the chart. Check with your engine builder before you run it.
+</details>
 
 <details><summary>Which values are <b>not</b> copied to a new sheet?</summary>
 Hot pressures and hot stagger, shock travel, the race result, conditions and feedback, notes and photos — they belong to the session that ran.

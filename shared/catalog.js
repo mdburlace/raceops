@@ -48,6 +48,10 @@ export const MODULES = [
   { key: 'shopsetups', label: 'Workshop setup sheets', types: ['shop_setup'], area: 'workshop' },
   { key: 'dyno', label: 'Shock & bar dyno', types: ['dyno_run'], area: 'workshop', feature: 'dyno' },
   { key: 'engines', label: 'Engine builds', types: ['engine_build'], area: 'engines' },
+  // each engine's tune (fuel settings for the weather, ending tune, fuel system), in versions. Used at the
+  // track, in the workshop and by engine builders, so it needs no area (like the calendar).
+  { key: 'enginetunes', label: 'Engine tunes', types: ['engine_tune'], area: null },
+  { key: 'enginechecks', label: 'Workshop engine checks', types: ['engine_check'], area: 'workshop' },
   // engine shop work for customers (shown to teams set up as an engine shop)
   { key: 'jobs', label: 'Shop jobs (parts & labour)', types: ['job'], area: 'engines' },
   { key: 'customers', label: 'Customers', types: ['customer'], area: 'engines' },
@@ -159,13 +163,13 @@ export const DEFAULT_ROLES = [
     permissions: [
       ...areas('track', 'workshop', 'engines'),
       ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view']),
-      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs', 'shopsetups'], ['view', 'edit']),
+      ...mod(['trackside', 'maintenance', 'assets', 'dyno', 'engines', 'jobs', 'shopsetups', 'enginetunes', 'enginechecks'], ['view', 'edit']),
       ...mod(['customers'], ['view']),
     ],
   },
   {
     name: 'Driver / Viewer',
     description: 'Read-only access at the track',
-    permissions: [...areas('track'), ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics'], ['view'])],
+    permissions: [...areas('track'), ...mod(['cars', 'events', 'calendar', 'setups', 'gears', 'tracks', 'contacts', 'ai', 'analytics', 'enginetunes'], ['view'])],
   },
 ];

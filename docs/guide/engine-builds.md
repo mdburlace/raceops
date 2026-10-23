@@ -7,9 +7,9 @@ summary: Full build records per engine — specs, measurements, clearances, torq
 for: module:engines
 pages: /engines, /r/engine_build/*
 covers: type:engine_build, module:engines, feature:engines
-related: assets, calculators, linked-engines, shop-jobs
+related: engine-tunes, engine-checks, assets, calculators, linked-engines, shop-jobs
 ---
-Each engine is an [asset](/help/assets) (category **Engine**). Each time it's built or freshened, it gets a build sheet.
+Each engine is an [asset](/help/assets) (category **Engine**). Each time it's built or freshened, it gets a build sheet. How to run it — pill settings, ending tune and fuel system — goes on its [engine tune sheet](/help/engine-tunes); each engine card shows its active tune.
 
 ## Start a build sheet
 

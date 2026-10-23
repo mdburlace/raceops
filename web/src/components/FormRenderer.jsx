@@ -3,6 +3,8 @@ import { infoFor } from '@shared/fieldInfo.js';
 import { ADJUSTERS } from '@shared/baseForms2.js';
 import { ADJUSTER_STEP, orderSections, stepValue } from '@shared/setupLayout.js';
 import { speedKey } from '@shared/dyno.js';
+import { engineIdOf } from '@shared/engineTune.js';
+import { isShop } from '@shared/shop.js';
 import { FieldCalc } from './Calculator.jsx';
 import { assetRefId, display, evalFormula, isVisible, LEVEL_INCLUDES, membersList, optionsOf, titleOf, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
@@ -270,7 +272,8 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
     }
     case 'ref': {
       let opts = data.list(field.ref).filter((r) => (!field.category || v(r, 'category') === field.category || r.id === value)
-        && (!field.matchCar || !values?.car || v(r, 'car') === values.car || r.id === value)).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
+        && (!field.matchCar || !values?.car || v(r, 'car') === values.car || r.id === value)
+        && (!field.match || !engineIdOf(values?.[field.match]) || v(r, field.match) === engineIdOf(values[field.match]) || r.id === value)).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
       if (field.ref === 'track') {
         // the team's own tracks first, then the rest of the directory; closed venues last
         const ours = new Set(data.list('team_track').filter((l) => v(l, 'link') !== 'Hidden').map((l) => v(l, 'track')));
@@ -562,7 +565,8 @@ function nextOnEnter(e) {
  * the Before / After switch and change highlighting.
  */
 export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, errors = {}, hideKeys = [], roKeys = [], sectionExtras = {}, calcCtx = null, layout = null }) {
-  useSession(); // re-render when the cached member list arrives
+  const { membership } = useSession(); // also re-renders when the cached member list arrives
+  const shopTeam = isShop(membership);
   const suggestions = useMemo(() => {
     const out = {};
     for (const s of form?.data.sections || []) for (const f of s.fields) {
@@ -586,7 +590,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
   return (
     <div className="form-sections" onKeyDown={nextOnEnter}>
       {sections.map((sec) => {
-        let fields = sec.fields.filter((f) => !hideKeys.includes(f.key) && visible(f, values))
+        let fields = sec.fields.filter((f) => !hideKeys.includes(f.key) && visible(f, values) && (!f.shopOnly || shopTeam))
           .filter((f) => f.type !== 'check' || !include || include.includes(f.freq));
         if (layout && stage !== 'all') fields = fields.filter((f) => f.type === 'heading' || (stage === 'after') === (f.stage === 'after'));
         if (layout?.changesOnly) fields = fields.filter((f) => changed?.[f.key]);

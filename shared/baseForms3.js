@@ -381,4 +381,7 @@ export const PHASE3_UPGRADES = [
   // an event's baseline from the workshop: the workshop setup sheet the car was set up to (for that car)
   { target: 'event', section: 'event', after: 'round', field: { key: 'shop_setup', label: 'Workshop setup', type: 'ref', ref: 'shop_setup', matchCar: true,
     help: 'The workshop setup sheet the car was set up to for this event. Setup sheets at the track can start from it.' } },
+  // the engine's tune sheet: picked on setup sheets (jetting for the weather) and workshop setups
+  { target: 'setup', section: 'engine', after: 'engine', field: { key: 'engine_tune', label: 'Engine tune', type: 'ref', ref: 'engine_tune', match: 'engine' } },
+  { target: 'shop_setup', section: 'engine', after: 'engine', field: { key: 'engine_tune', label: 'Engine tune', type: 'ref', ref: 'engine_tune', match: 'engine' } },
 ];

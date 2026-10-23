@@ -8,7 +8,7 @@ for: module:shopsetups
 team: race
 pages: /workshop/setups, /r/shop_setup/*
 covers: type:shop_setup, module:shopsetups
-related: setup-sheets, events-sessions, assets, shocks-on-setup, maintenance
+related: setup-sheets, engine-tunes, events-sessions, assets, shocks-on-setup, maintenance
 ---
 A workshop setup sheet records how a car is set up on the shop floor, measured on the setup pad, before it goes to the track. Link it to an event, and the setup sheets at that event can start from it.
 
@@ -23,7 +23,7 @@ It's a shorter sheet than the one used at the track. It has no weather, nothing 
 | **Rear suspension & linkage** | LR and RR torsion bars, turns, ride height or block clearance, rear axle squaring, radius rods and pick-up points, Jacob's ladder holes, rear shocks with valving and clicks, tie-downs, bump rubbers and packers |
 | **Tyres & wheels** | Tyres, compound, brand and size, cold pressures, front and rear stagger, wheels, rear wheel spacing and the front spindle spacer stack |
 | **Wings** | Top wing, its angle, slider position, side-to-side offset and wicker; front wing, its angle and wicker |
-| **Drivetrain & engine** | Motor, quick-change gear and position, ignition timing, nozzles and bypasses |
+| **Drivetrain & engine** | Motor and its [engine tune](/help/engine-tunes), quick-change gear and position, ignition timing, nozzles and bypasses. **Fill timing & fuel system from the tune** copies them from the tune |
 | **Weights** | Corner weights; total, left, rear and cross fill in when all four are entered |
 
 Bars, shocks, tyres, wheels and wings are picked from your parts, the same way as on a track sheet (see [Shocks, bars, tyres, wheels and wings on the setup sheet](/help/shocks-on-setup)). The ones meant for that corner and car come first.

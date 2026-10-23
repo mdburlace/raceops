@@ -88,12 +88,14 @@ export function useNav() {
       canModule('setups') && { to: '/setups', label: 'Setup sheets', icon: I.sheet },
       canModule('setups') && { to: '/track/advisor', label: 'Setup advisor', icon: I.sliders },
       canModule('trackside') && { to: '/track/checks', label: 'Between-round checks', icon: I.check },
+      racing && canModule('enginetunes') && !canArea('engines') && { to: '/tunes', label: 'Engine tunes', icon: I.engine },
       canModule('gears') && { to: '/track/gears', label: 'Gears & tires', icon: I.gear },
       { to: '/calculators?area=track', label: 'Calculators', icon: I.calc },
     ] },
     { area: 'workshop', label: 'In the Workshop', icon: I.shop, show: canArea('workshop'), links: [
       racing && canModule('maintenance') && { to: '/maintenance', label: 'Car maintenance', icon: I.wrench },
       racing && canModule('shopsetups') && { to: '/workshop/setups', label: 'Workshop setups', icon: I.sheet },
+      canModule('enginechecks') && { to: '/workshop/engine-checks', label: 'Engine checks', icon: I.check },
       canModule('assets') && { to: '/assets', label: 'Assets', icon: I.box },
       canModule('dyno') && { to: '/workshop/dyno', label: 'Shock & bar dyno', icon: I.wave },
       { to: '/calculators?area=workshop', label: 'Calculators', icon: I.calc },
@@ -103,6 +105,7 @@ export function useNav() {
       shop && canModule('customers') && { to: '/customers', label: 'Customers', icon: I.users },
       shop && canModule('assets') && { to: '/assets?category=Engine', label: 'Customer engines', icon: I.box },
       canModule('engines') && { to: '/engines', label: shop ? 'Build sheets' : 'Engines & builds', icon: I.engine, end: true, keep: shop },
+      canModule('enginetunes') && { to: '/tunes', label: 'Engine tunes', icon: I.sheet },
       { to: '/calculators?area=engines', label: 'Calculators', icon: I.calc },
     ] },
     // the Calendar is open to anyone with Calendars → view, so the group shows for them too (with just that link)

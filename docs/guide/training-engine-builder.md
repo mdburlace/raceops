@@ -3,11 +3,11 @@ id: training-engine-builder
 title: "Training: engine builder"
 section: training
 order: 13
-summary: Hands-on exercises in the practice team — work a customer job, start a build sheet, print the handover pack, share the engine with its owner, and check your own engine's life.
+summary: Hands-on exercises in the practice team — work a customer job, start a build sheet, print the handover pack, share the engine with its owner, write its tune, and check your own engine's life.
 for: module:jobs, module:engines
 team: shop
 covers: option:training-engine-builder
-related: training, role-engine-builder, shop-jobs, engine-builds, handover-pack, share-engine-page, customers
+related: training, role-engine-builder, shop-jobs, engine-builds, engine-tunes, handover-pack, share-engine-page, customers
 demo: Sam Hart, Hart 410, J-1001, Freshen after 480 laps
 ---
 **Time:** about 40 minutes. **You need:** the practice team (it's a race team and an engine shop), signed in as someone who can edit jobs.
@@ -53,7 +53,17 @@ demo: Sam Hart, Hart 410, J-1001, Freshen after 480 laps
 
 **When it's right:** you see the page the owner would see, without your internal notes or costs.
 
-## Exercise 6: Your own engine (5 min)
+## Exercise 6: Write the engine's tune (10 min)
+
+1. Go to **Engine Shop → Engine tunes**. Under *Hart 410*, press **New tune**.
+2. Name the version *Freshen v1*. Leave **Share with the engine’s owner** ticked.
+3. Under **Pill settings**, add a row: **From** *90*, **To** *93*, **Main pill** *70*, **H/S pressure** *108*, **H/S pill** *72*.
+4. Fill in the **Spark plugs** and **Plug gap**, then press **Save**.
+5. Open the engine page link from Exercise 5 again.
+
+**When it's right:** the engine page shows **Engine tunes** with *Freshen v1* marked current. See [Engine tune sheets](/help/engine-tunes).
+
+## Exercise 7: Your own engine (5 min)
 
 1. Go to **Assets** and open *410 #3*.
 2. Look at its laps against its 600-lap limit, and its fresh build sheet.
@@ -62,6 +72,9 @@ demo: Sam Hart, Hart 410, J-1001, Freshen after 480 laps
 
 ## Check yourself
 
+<details><summary>You've tried a tune on the dyno that the customer shouldn't see yet. How do you keep it to yourself?</summary>
+Untick <b>Share with the engine’s owner</b> on that version. Only shared versions show on the owner's engine page and in their linked team.
+</details>
 <details><summary>Does the customer ever see your parts costs?</summary>
 No. Customers see prices only on jobs where you tick <b>Show prices to the customer</b>, and never costs, margins or internal notes.
 </details>

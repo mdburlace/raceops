@@ -7,6 +7,7 @@ import { Empty, PageHeader, Pill, Section, useOnline } from '../components/ui.js
 import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime, titleOf, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
+import { BuilderTunes } from './EngineTunes.jsx';
 
 // ---------------------------------------------------------------- the engine page
 export function EnginePackView({ pack, frozen }) {
@@ -42,6 +43,32 @@ export function EnginePackView({ pack, frozen }) {
               {b.checks?.rows?.map((r) => <p key={r.label} className="small"><b>{r.label}</b> ({r.unit}): {r.cells.map(([k, x]) => `${k} ${Number(x).toFixed(r.dp)}`).join(' · ')}</p>)}
             </div>
           ))}
+        </section>
+      )}
+
+      {pack.tunes?.length > 0 && (
+        <section className="card" data-testid="pack-tunes"><h3>Engine tunes</h3>
+          {pack.tunes.map((t) => {
+            const tv = t.values || {};
+            const rows = (tv.fuel_chart || []).filter((r) => r.main || r.hs || r.hs_psi);
+            return (
+              <div key={t.id} className="pack-build">
+                <h4>{t.name || 'Tune'} · {fmtDate(t.date)}{t.active ? <> <Pill level="ok">current</Pill></> : null}</h4>
+                {t.active && rows.length > 0 && (
+                  <table className="ps-table small"><thead><tr><th>{tv.fuel_by === 'Density altitude' ? `Density altitude (${tv.da_unit || 'ft'})` : 'ADR %'}</th><th>Main pill</th><th>H/S psi</th><th>H/S pill</th></tr></thead>
+                    <tbody>{rows.map((r, i) => <tr key={i}><td>{[r.from, r.to].filter((x) => x !== undefined && x !== '').join('–')}</td><td>{r.main}</td><td>{r.hs_psi}</td><td>{r.hs}</td></tr>)}</tbody></table>
+                )}
+                {t.active && (
+                  <dl className="pack-specs">{[['Plugs', [tv.plugs, tv.plug_gap && `${tv.plug_gap} in`].filter(Boolean).join(' @ ')], ['Valve lash', (tv.lash_int || tv.lash_exh) ? `I ${tv.lash_int ?? '—'} / E ${tv.lash_exh ?? '—'}${tv.lash_when ? ` (${tv.lash_when.toLowerCase()})` : ''}` : ''],
+                    ['Spring tension', (tv.spring_int || tv.spring_exh) ? `I ${tv.spring_int ?? '—'} / E ${tv.spring_exh ?? '—'} lb` : ''], ['Timing', tv.timing], ['Ram tubes', tv.ram_tube], ['Oil', [tv.oil_level, tv.oil_type].filter(Boolean).join(' · ')],
+                    ['Fuel pump', tv.fuel_pump], ['Metering block', tv.metering_block && `${tv.metering_block}%`], ['Low speed', [tv.ls_psi && `${tv.ls_psi} psi`, tv.ls_pill && `pill ${tv.ls_pill}`].filter(Boolean).join(' / ')],
+                    ['High speed', tv.hs_type], ['Nozzles', [tv.nozzles_down && `${tv.nozzles_down} down`, tv.nozzles_up && `${tv.nozzles_up} up`].filter(Boolean).join(' / ')]]
+                    .filter(([, x]) => x).map(([l, x]) => <div key={l}><dt>{l}</dt><dd>{x}</dd></div>)}</dl>
+                )}
+                {t.active && tv.notes && <p className="small pre">{tv.notes}</p>}
+              </div>
+            );
+          })}
         </section>
       )}
 
@@ -279,6 +306,7 @@ export function LinkedEngineDetail() {
             }} />
         </Section>
       )}
+      <BuilderTunes link={l} />
       <EnginePackView pack={l.pack} frozen={l.status === 'ended' ? `This is a copy as at ${fmtDate(l.ended_at)} (${l.ended_reason}). Ask ${l.shop} to link it again for updates.` : null} />
     </div>
   );

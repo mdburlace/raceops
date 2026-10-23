@@ -112,6 +112,8 @@ export function titleOf(rec, data) {
     case 'tuning_guide': return vals.name || 'Tuning guide';
     case 'fixture': return `${vals.name || 'Calendar date'}${vals.date ? ` · ${fmtDate(vals.date)}` : ''}`;
     case 'shop_setup': return `${vals.name || 'Workshop setup'}${data?.byId[vals.car] ? ` · ${titleOf(data.byId[vals.car])}` : ''}`;
+    case 'engine_tune': return `${vals.name || 'Engine tune'}${data?.byId[vals.engine] ? ` · ${titleOf(data.byId[vals.engine])}` : ''}${vals.active ? ' (active)' : ''}`;
+    case 'engine_check': return `Engine check${data?.byId[vals.engine] ? ` · ${titleOf(data.byId[vals.engine])}` : ''}${vals.date ? ` · ${fmtDate(vals.date)}` : ''}`;
     case 'season_plan': return `${titleOf(data?.byId[vals.series], data)}${data?.byId[vals.car] ? ` · ${titleOf(data.byId[vals.car])}` : ''}`;
     default: return rec.type;
   }

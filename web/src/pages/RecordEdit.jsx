@@ -13,6 +13,8 @@ import { ArrangeSections, SheetNav, SheetTools, useSheetLayout } from '../compon
 import { changedFields } from '@shared/setupLayout.js';
 import { SHOP_SETUP_SKIP, toTrackValues } from '@shared/workshopSetup.js';
 import { ShopSetupLinks } from './WorkshopSetups.jsx';
+import { CheckCompare, TunePanel, TuneVersions, makeActive } from './EngineTunes.jsx';
+import { activeTune, engineIdOf } from '@shared/engineTune.js';
 import { JobExtras } from './Shop.jsx';
 import { nextJobNo, shopSettings } from '@shared/shop.js';
 import { FIELD_CALCS, cornerPercents } from '@shared/calcs.js';
@@ -31,7 +33,7 @@ export const TYPE_LABEL = {
   schedule: 'Maintenance schedule', measurement: 'Measurement', track_check: 'Between-rounds check',
   gear: 'Gear set', gear_list: 'Gear list', tire: 'Tire', track: 'Track', team_track: 'Team track', contact: 'Contact',
   supplier: 'Supplier', contact_link: 'Contact role', series: 'Series', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
-  customer: 'Customer', job: 'Job', shop_setup: 'Workshop setup',
+  customer: 'Customer', job: 'Job', shop_setup: 'Workshop setup', engine_tune: 'Engine tune', engine_check: 'Engine check',
 };
 
 // New records pre-filled from the latest record with the same car / engine.
@@ -39,6 +41,8 @@ const CARRY = {
   setup: { match: 'car', skip: ['event', 'car', 'session', 'crew_chief', 'day', 'baseline', 'baseline_name'], label: 'session' },
   engine_build: { match: 'engine', skip: ['engine', 'date', 'build_type', 'engine_laps', 'builder', 'notes'], label: 'build' },
   shop_setup: { match: 'car', skip: ['car', ...SHOP_SETUP_SKIP], label: 'workshop setup' },
+  // a new version of an engine's tune starts from its newest version
+  engine_tune: { match: 'engine', skip: ['engine', 'name', 'date', 'active', 'notes', 'builder_tune', 'builder_updated'], label: 'version' },
 };
 
 function afterSave(type, rec) {
@@ -67,6 +71,8 @@ function afterSave(type, rec) {
     case 'engine_build': return '/engines';
     case 'review': return '/team/reviews';
     case 'shop_setup': return '/workshop/setups';
+    case 'engine_tune': return '/tunes';
+    case 'engine_check': return '/workshop/engine-checks';
     default: return '/';
   }
 }
@@ -179,6 +185,20 @@ export default function RecordEdit() {
     setValues(init);
   }, [data, rec, isNew]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // setup sheets, workshop setups and engine checks: picking the motor picks its active tune
+  const engineRef = useRef(undefined);
+  const hasTuneField = !!form && allFields(form).some((f) => f.key === 'engine_tune');
+  useEffect(() => {
+    if (!values || !data || !hasTuneField) return;
+    const eid = engineIdOf(values.engine) || '';
+    const first = engineRef.current === undefined;
+    if (!first && eid === engineRef.current) return;
+    engineRef.current = eid;
+    if (first && !isNew) return;
+    const t = eid ? activeTune(data.list('engine_tune'), eid) : null;
+    if ((values.engine_tune || '') !== (t?.id || '')) setValues((x) => ({ ...x, engine_tune: t?.id || '' }));
+  }, [values?.engine, data, hasTuneField]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // event: picking a different track fills location, length, surface and banking from the directory
   const venueRef = useRef(undefined);
   useEffect(() => {
@@ -285,6 +305,8 @@ export default function RecordEdit() {
         if (r.id !== saved.id && v(r, 'asset') === vals.asset && v(r, 'initial')) await saveRecord(tid, 'dyno_run', r.id, { ...r.data, values: { ...r.data.values, initial: false } }, user.id);
       }
     }
+    // only one active version of an engine's tune: this one takes over
+    if (type === 'engine_tune' && vals.active) await makeActive(tid, user.id, { list: (t) => [...data.list(t).filter((r) => r.id !== saved.id), saved] }, saved);
     setDirty(false);
     nav(params.get('back') || afterSave(type, saved), { replace: true });
   };
@@ -363,6 +385,8 @@ export default function RecordEdit() {
           </>
         )}>
         {type === 'job' && !isNew && <Link className="btn ghost" to={`/print/job/${id}`}>Job sheet / handover pack</Link>}
+        {type === 'engine_tune' && !isNew && <Link className="btn ghost" to={`/print/tune/${id}`}>Print</Link>}
+        {type === 'engine_check' && !isNew && <Link className="btn ghost" to={`/print/engine-check/${id}`}>Print</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost advisor-link" to={`/track/advisor?setup=${id}`} title="What’s worked before for this handling problem, and what the tuning guides suggest">Setup advisor</Link>}
         {type === 'setup' && !isNew && canModule('dyno') && <Link className="btn ghost" to={`/workshop/dyno?setup=${id}`}>Shock dyno</Link>}
@@ -468,12 +492,16 @@ export default function RecordEdit() {
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} errors={errors}
         sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, rate: <BarResults data={data} id={id} values={values} /> }
           : type === 'dyno_run' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, data: <ShockVsInitial data={data} id={isNew ? null : id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
+          engine: <TunePanel type="setup" form={form} values={values} readOnly={readOnly} units={wxUnits} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           race: <FuelPlanner id={id} data={data} values={shownValues} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }}
-            unit={fuelShown} recorded={fuelRecorded} setView={(u) => setFuelView(u === fuelRecorded ? null : u)} setRecorded={setFuelRecorded} /> } : undefined}
+            unit={fuelShown} recorded={fuelRecorded} setView={(u) => setFuelView(u === fuelRecorded ? null : u)} setRecorded={setFuelRecorded} /> }
+          : type === 'shop_setup' ? { engine: <TunePanel type="shop_setup" form={form} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />
       {type === 'engine_build' && <EngineChecks values={values} />}
       {type === 'job' && <JobExtras id={id} values={values} isNew={isNew} />}
       {type === 'shop_setup' && !isNew && <ShopSetupLinks rec={rec} values={values} />}
+      {type === 'engine_tune' && !isNew && <TuneVersions rec={rec} values={values} />}
+      {type === 'engine_check' && <CheckCompare rec={isNew ? null : rec} values={values} />}
 
       {type === 'dyno_run' && <DynoChart runs={[{ id: id || 'new', name: values.label || 'This run', values, form }]} />}
 

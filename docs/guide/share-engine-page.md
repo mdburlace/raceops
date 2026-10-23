@@ -23,6 +23,7 @@ The owner doesn't need a RaceOps account for this.
 - The engine, the owner, the service interval and the last service date.
 - Every build: specs, clearances and torque figures.
 - The work history: what was asked for, findings, work done, recommendations, and parts and labour.
+- The engine tunes you share: the current version's pill settings, ending tune and fuel system. Untick **Share with the engine’s owner** on a tune to keep it to yourself. See [Engine tune sheets](/help/engine-tunes).
 - **Prices**, only on jobs where you ticked **Show prices to the customer**.
 
 They never see your internal notes, parts costs or margins. The panel shows how many times the link has been viewed.

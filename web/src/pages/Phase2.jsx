@@ -1,3 +1,4 @@
+import { activeTune } from '@shared/engineTune.js';
 import { runSpeeds } from '@shared/dyno.js';
 import { baselines } from '@shared/bars.js';
 import { BarBaselines, barRowMeta, barTests } from '../components/BarTests.jsx';
@@ -173,6 +174,7 @@ export function Engines() {
     <div>
       <PageHeader title={shop === 'engine_shop' ? 'Build sheets' : 'Engine builds'} sub="Every build and freshen, per engine">
         <button type="button" className="btn" disabled={sel.length < 2} onClick={() => nav(`/compare?ids=${sel.join(',')}`)}>Compare builds{sel.length ? ` (${sel.length})` : ''}</button>
+        {canType('engine_tune', 'view') && <Link className="btn ghost" to="/tunes">Engine tunes</Link>}
         {canType('asset', 'edit') && <Link className="btn ghost" to="/r/asset/new?category=Engine">New engine</Link>}
       </PageHeader>
       {shop !== 'engine_shop' && <LinkedEngines />}
@@ -194,6 +196,10 @@ export function Engines() {
                 <div><b>{mine.length}</b><small>builds</small></div>
                 <div><b>{last ? (evalFormula(fieldDef(formFor(data, 'engine_build', last.data.form_id), 'cr')?.formula, last.data.values) ?? '—') : '—'}</b><small>compression</small></div>
               </div>
+              {canType('engine_tune', 'view') && (() => {
+                const tune = activeTune(data.list('engine_tune'), e.id);
+                return <p className="small" data-testid="engine-tune-link">Tune: {tune ? <Link to={`/r/engine_tune/${tune.id}`}>{v(tune, 'name') || 'Tune'}</Link> : <span className="muted">none yet</span>}{' · '}<Link to="/tunes">all versions</Link></p>;
+              })()}
               {mine.length === 0 ? <p className="muted">No builds recorded.</p> : (
                 <div className="list">
                   {mine.map((b) => (

@@ -1,9 +1,10 @@
-// What an engine's owner sees: build history, specs, clearances, jobs and next service.
+// What an engine's owner sees: build history, specs, clearances, engine tunes, jobs and next service.
 // Built on the server from the shop's records for the no-login link, for a linked team, and
 // for the frozen copy a team keeps when a link ends. Never includes internal notes, parts
 // cost or margin; prices only for jobs the shop marked "Show prices to the customer".
 import { engineChecks } from './engineChecks.js';
 import { jobTotals } from './shop.js';
+import { tuneForPack } from './engineTune.js';
 
 export const SPEC_KEYS = [['bore', 'Bore (avg max)', 'in'], ['stroke', 'Stroke', 'in'], ['cid', 'Displacement', 'ci'], ['cr', 'Compression ratio', ':1'], ['rod_length', 'Rod length', 'in'],
   ['deck_height', 'Deck height', 'in'], ['cam_mfr', 'Cam'], ['grind_no', 'Grind #'], ['cam_installed_cl', 'Installed centreline', '°'], ['lsa', 'Lobe separation', '°'],
@@ -24,7 +25,7 @@ export function lastServiceDate(jobs) {
  * shop: { name, settings }, engine & customer: records, builds & jobs: the engine's records,
  * usage: { laps, sessions, last, since, team } from a linked team (optional).
  */
-export function enginePack({ shop, engine, customer, builds = [], jobs = [], usage = null }) {
+export function enginePack({ shop, engine, customer, builds = [], jobs = [], tunes = [], usage = null }) {
   const ev = vals(engine);
   const settings = shop.settings || {};
   const outJobs = jobs.filter((j) => vals(j).status !== 'Cancelled')
@@ -55,5 +56,7 @@ export function enginePack({ shop, engine, customer, builds = [], jobs = [], usa
     owner: customer ? vals(customer).name : '',
     service: { limit, unit, last_service: since, used: usage && unit === 'Laps' ? usage.laps : null, sessions: usage ? usage.sessions : null, last_session: usage?.last || null, team: usage?.team || null },
     builds: outBuilds, jobs: outJobs, terms: settings.terms || '',
+    // engine tunes the shop shares with the owner, newest first (the active one is marked)
+    tunes: tunes.filter((r) => vals(r).shared !== false).map(tuneForPack).sort((a, b) => String(b.date).localeCompare(String(a.date))),
   };
 }

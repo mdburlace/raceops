@@ -34,6 +34,8 @@ Add new shocks with their **position** and **adjustable type**, so they show at 
 
 | I want to… | Go to |
 |---|---|
+| Service the engine between races and see what’s changed | [Workshop engine checks](/help/engine-checks) |
+| Look up the plug gap, lash or pills to set | [Engine tune sheets](/help/engine-tunes) |
 | Record how the car is set up on the setup pad | [Workshop setup sheets](/help/workshop-setups) |
 | Get back something I deleted by mistake | [Recently deleted](/help/recently-deleted) |
 | Record a new shock's or bar's numbers when we buy it | [Shock and bar dyno](/help/dyno) — **Initial measurement** |

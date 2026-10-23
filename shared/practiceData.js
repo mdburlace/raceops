@@ -7,6 +7,7 @@
 export const PRACTICE = {
   car: 'Car 17', spareCar: 'Car 71', engine: '410 #3', series: 'Club Championship',
   tonight: 'Valley Speedway — Club night', next: 'Lakeside Raceway — Club Championship', shopSetup: 'Lakeside baseline',
+  engineTune: '2026 v2', oldTune: '2026 v1',
   rrShock: 'RR Penske 8760', customer: 'Sam Hart', customerEngine: 'Hart 410', job: 'J-1001',
 };
 
@@ -103,6 +104,40 @@ export function practiceData({ form, today = new Date(), uuid }) {
     stagger_cold: '5.5', wing_angle: '13', track_conditions: ['Tacky'], driver_feel: ['Loose exit'], driver_comments: 'Loose off turn 2, good drive into 3.',
   }));
   add('track_check', { event: tonight.id, car: car.id, after_session: 'Heat 1', c_pressures: { done: true }, c_lugs: { done: true }, c_fuel: { done: true, value: '2' }, issues: 'Small oil weep on the RR shock.' });
+  // ---- engines: the build sheet for our engine, and its tune from the builder (two versions, the newer active)
+  const build = add('engine_build', { engine: eng.id, date: day(-130), build_type: 'Fresh build', builder: 'Hart Engines', engine_type: '410 sprint', cid: '410', hp: '920',
+    engine_laps: '0', notes: 'Fresh build at the start of the season.' });
+  const tuneBase = {
+    engine: eng.id, source: 'Engine builder', builder: 'Hart Engines', build: build.id, shared: true, induction: 'Engler 2.9', prepared_by: 'Hart Engines',
+    fuel_by: 'ADR %', plugs: 'NGK R5671A-10', plug_gap: '0.024', lash_int: '0.012', lash_exh: '0.016', lash_when: 'Cold', spring_int: '280', spring_exh: '280',
+    springs: 'PSI 1577', timing: '30° BTDC', ram_tube: '3.750 in', oil_level: '8.5 L', oil_type: 'Driven XP6 15W-50',
+    fuel_pump: 'Waterman 500', metering_block: '20–22', ls_psi: '40–50', ls_pill: '80', hs_type: 'IRL', nozzles_down: '435', nozzles_up: '165',
+    rocker_stud: '5/16 in', rocker_stud_torque: '28', rocker_stand: '7/16 in', rocker_stand_torque: '60',
+  };
+  add('engine_tune', { ...tuneBase, name: '2026 v1', date: day(-130), active: false,
+    fuel_chart: [{ from: '87', to: '89', main: '76', hs_psi: '104', hs: '72' }, { from: '90', to: '93', main: '72', hs_psi: '106', hs: '72' },
+      { from: '94', to: '97', main: '70', hs_psi: '108', hs: '72' }, { from: '98', to: '100', main: '68', hs_psi: '110', hs: '72' }],
+    notes: 'Running-in tune after the fresh build.' });
+  const tune = add('engine_tune', { ...tuneBase, name: '2026 v2', date: day(-60), active: true,
+    fuel_chart: [{ from: '87', to: '89', main: '75', hs_psi: '106', hs: '72' }, { from: '90', to: '93', main: '70', hs_psi: '108', hs: '72' },
+      { from: '94', to: '97', main: '68', hs_psi: '110', hs: '72' }, { from: '98', to: '100', main: '66', hs_psi: '112', hs: '72' },
+      { from: '101', to: '103', main: '64', hs_psi: '114', hs: '72' }],
+    notes: 'Leaner on the top end after the dyno session. Richen one pill if the plugs read white.', run_ref: 'Dyno, then Hilltop round' });
+  // engine checks: the last one, and the one before, where #5 intake spring has dropped
+  const CYLS = ['#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8'];
+  const each = (f) => Object.fromEntries(CYLS.map((c, i) => [c, f(c, i)]));
+  const allDone = ['c_flush', 'c_nozzles', 'c_filters', 'c_valves', 'c_throttle', 'c_return', 'c_fuel_lines', 'c_oil_level', 'c_filter_cut', 'c_tank', 'c_air', 'c_hat_seal',
+    'c_radiator', 'c_water', 'c_headers', 'c_gaskets', 'c_cam_hex', 'c_wing_lines', 'c_mag', 'c_harness', 'c_motor_plates', 'c_header_bolts', 'c_ujoint'];
+  add('engine_check', { engine: eng.id, date: day(-35), car: car.id, engine_tune: tune.id, leakdown_temp: 'Cold',
+    leakdown: each((c, i) => String([3, 4, 3, 3, 4, 3, 4, 3][i])), lash_int: each(() => '0.012'), lash_exh: each(() => '0.016'),
+    spring_int: each(() => '278'), spring_exh: each(() => '276'), plug_read: each(() => 'Good'), plug_gap: '0.024', bypass_pill: '80', filter_status: 'Clean', oil_changed: 'Yes',
+    ...Object.fromEntries(allDone.map((k) => [k, true])), notes: 'All good.' });
+  add('engine_check', { engine: eng.id, date: day(-5), car: car.id, engine_tune: tune.id, leakdown_temp: 'Cold',
+    leakdown: each((c, i) => String([4, 4, 3, 4, 5, 3, 4, 4][i])), lash_int: each((c) => (c === '#6' ? '0.015' : '0.012')), lash_exh: each(() => '0.016'),
+    spring_int: each((c) => (c === '#5' ? '246' : '275')), spring_exh: each(() => '274'), plug_read: each((c) => (c === '#6' ? 'Lean' : 'Good')), plug_gap: '0.024', bypass_pill: '80',
+    filter_status: 'Minor specks', oil_changed: 'No', ...Object.fromEntries(allDone.filter((k) => k !== 'c_pressure').map((k) => [k, true])),
+    parts_needed: 'Intake spring for #5. Check #6 nozzle.', notes: 'Small specks in the filter, nothing shiny.' });
+
   // the car as set up in the workshop for next week (the baseline for round 9)
   const pick = (o, cs) => Object.fromEntries(cs.map((c) => [c, o[c]]));
   const shop = add('shop_setup', {
@@ -118,7 +153,7 @@ export function practiceData({ form, today = new Date(), uuid }) {
     rear_shocks: pick(Object.fromEntries(Object.entries(shocks).map(([c, x]) => [c, ref(x)])), ['LR', 'RR']), rear_clicks: { RR: 'LS comp 3 · HS comp 2 · Reb 8' },
     pressure_cold: { LF: '12', RF: '14', LR: '9', RR: '17' }, stagger_front: '1.5', stagger_cold: '6',
     top_wing: ref(topWing), wing_angle: '12', wing_position: '3', wicker: '1"', front_wing: ref(frontWing), nose_wing: '8', front_wicker: '1/2"',
-    engine: ref(eng), timing: '38°',
+    engine: ref(eng), engine_tune: tune.id, timing: '30° BTDC', nozzles: '435 down, 165 up', ls_bypass: '40–50 psi / 80',
   });
   add('event', { name: 'Lakeside Raceway — Club Championship', series: series.id, round: '9', date: day(7), track: 'Lakeside Raceway', car: car.id, intent: 'Planned', shop_setup: shop.id });
 
@@ -128,10 +163,6 @@ export function practiceData({ form, today = new Date(), uuid }) {
   add('schedule', { name: 'Oil and filter change', applies_to: 'Car', car: car.id, interval: '3', interval_unit: 'Races', last_done: day(-30) });
   add('schedule', { name: 'Repack wheel bearings', applies_to: 'Car', car: car.id, interval: '6', interval_unit: 'Races', last_done: day(-60) });
   add('maintenance', { car: car.id, date: day(-14), level: 'weekly', notes: 'Weekly service after the Hilltop round.' });
-
-  // ---- engines: the build sheet for our engine
-  add('engine_build', { engine: eng.id, date: day(-130), build_type: 'Fresh build', builder: 'Hart Engines', engine_type: '410 sprint', cid: '410', hp: '920',
-    engine_laps: '0', notes: 'Fresh build at the start of the season.' });
 
   // ---- engine shop: a customer, their engine and a job in progress
   const cust = add('customer', { name: 'Sam Hart', contact_name: 'Sam Hart', phone: '0400 111 222', races: '410 sprintcar' });

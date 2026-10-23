@@ -8,7 +8,7 @@ for: module:engines
 team: race
 pages: /engines/linked/:id, /link-engine/:code
 covers: setting:feed_lifecycle
-related: engine-builds, link-owner-team, assets
+related: engine-builds, engine-tunes, link-owner-team, assets
 ---
 If your engine builder runs their shop on RaceOps, they can link an engine to your team. You see their build and job history, and they see your laps since its last service. They never see your setups, tracks or results.
 
@@ -37,6 +37,17 @@ This is set per engine, by your team.
 3. Under **Service tracking**, tick or untick the switch. It saves straight away.
 
 **Who can change it:** anyone whose role can edit assets.
+
+## Use your builder's engine tune
+
+If your builder shares the engine's tune, the linked engine shows **Engine tunes from [shop]**, with the builder's current version marked.
+
+1. Go to **Engine Builds → Engines from your engine builder** and open the engine.
+2. Under **Engine tunes from [shop]**, press **Use this tune**.
+
+It's copied into your [engine tunes](/help/engine-tunes) as the active version for your engine, so the pill settings are on hand at the track even with no connection. If the builder changes that version later, it shows *updated since you copied it*: press **Update ours** to bring the change across.
+
+**Who can do this:** anyone whose role can edit engine tunes, while the link is active.
 
 ## End a link
 

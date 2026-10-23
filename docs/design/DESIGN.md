@@ -12,8 +12,8 @@
 | Product | RaceOps — race team and engine shop manager (self-hosted, multi-tenant PWA) |
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
-| Last schema migration | `017_workshop_setups.sql` |
-| Last updated | October 2026 (workshop setup sheets) |
+| Last schema migration | `018_engine_tunes.sql` |
+| Last updated | October 2026 (engine tunes and workshop engine checks) |
 
 ---
 
@@ -171,6 +171,7 @@ shared/                   code used by server AND web
   engineChecks.js, enginePack.js, shop.js, setupLayout.js, themes.js, calendar.js
   practiceData.js         demo data for practice teams (training)
   workshopSetup.js        the workshop setup sheet form, and mapping it onto a track setup sheet
+  engineTune.js           engine tune and engine check forms; active tune, pill-settings row for the weather, check comparison, shared tunes
   guide.js, guideData.js, guideChecklist.js   user guide parser, generated tables, first-run checklist
   seed/tracks.json, track_updates.json, guides.json   seed data for the shared directory
 tests/
@@ -423,7 +424,7 @@ Most screens are driven by **form definitions** stored as `form` records, render
 
 **Field types:** `text`, `textarea`, `number`, `date`, `select` (`options`, `optionsFrom`, `allowCustom`), `tags`, `check`, `checkbox`, `ref` (another record type), `multiref`, `entityref` (type chosen by another field), `asset`, `member`, `contact`, `track`, `corners` (per-corner/per-cylinder values), `table` (rows with columns), `sweep` (dyno readings by velocity), `calc` and `derived` (computed), `heading`.
 
-**Field options:** `core` (can't be removed by teams), `required`, `unit`, `help`, `placeholder`, `default`, `defaultSelf`, `showIf` (`key=A|B`, `key!=A`, empty allowed), `nocopy` (not carried to the next setup sheet), `suggest`, `measure`.
+**Field options:** `core` (can't be removed by teams), `required`, `unit`, `help`, `placeholder`, `default`, `defaultSelf`, `showIf` (`key=A|B`, `key!=A`, empty allowed), `nocopy` (not carried to the next setup sheet), `suggest`, `measure`, `matchCar` / `match: '<key>'` (ref options limited to records with the same car, or the same engine as the picked motor), `shopOnly` (shown to engine shops only).
 
 **Inventory pickers** (`asset` fields and `corners` fields with `input: 'asset'`): the value is `{ asset: <record id> }` when picked, or a plain string when entered manually. `category` limits assets to one category; `ref: 'tire'` lists tyre records instead of assets. `filterByCorner` (and every Shock field) lists first the items whose `position` is that corner, or empty/`N/A`/`Any`, and for this car (`car`, or a tyre's `available_for`); `scopePosition` does the same for a single field (`Top`/`Front` wings). Retired assets and worn-out tyres are hidden. **+ Save to inventory** turns a typed value into a new asset (or tyre) for that corner and car. Referenced items count laps through `setupsByAsset()`.
 
@@ -497,6 +498,8 @@ Each module is a set of record types, base forms, pages and (sometimes) shared c
 | Assets (`assets`) | `asset`, `measurement` | Parts with status, position, life limit and measurements; engines are assets (`category = Engine`) |
 | Dyno (`dyno`) | `dyno_run` | Shock runs (`dyno_kind: shock`, test speeds, sweeps, adjuster type) and bar tests (`bar`); **Initial measurement** flag (auto on first test); overlays; shock fade from the initial run (`shared/dyno.js`, `bars.js`) |
 | Engines (`engines`) | `engine_build` | Full build sheet; CID, compression and cam calculations (`shared/calcs.js`); engine checks (`engineChecks.js`) |
+| Engine tunes (`enginetunes`, area none) | `engine_tune` | Each engine's tune (`shared/engineTune.js`), in versions: pill settings by ADR % or density altitude (`fuel_chart` table: from, to, main, hs_psi, hs), ending tune, fuel system, adjustment reference. One version per engine has `active` (saving an active version, or **Make active**, clears the others client-side; with none marked, the newest is used). Setup sheets and workshop setups have `engine_tune` (ref, `match: 'engine'` filters by the picked motor, auto-picks the active tune); `fuelRowFor()` picks the chart row for the sheet's `adr`/`alt` (nearest row inside gaps, `exact: false` off the ends) and `tuneToSheet()` fills `main_jet`, `hs_bypass`, `ls_bypass`, `nozzles`, `pump`, `timing`. Engine shops: tunes with `shared !== false` go in the engine pack (`tunes`), shown on `/s/:token` and the linked engine; the team's **Use this tune** copies one (`tuneFromPack`: `builder_tune`, `builder_updated`) as its active version. Printed at `/print/tune/:id`. |
+| Workshop engine checks (`enginechecks`) | `engine_check` | Between-race engine service: per-cylinder (corners `#1`…`#8`, by bank) leak-down, lash, spring seat pressure and plug reading, plus checklists. `compareCheck()` flags against the tune (lash ±0.002 in, spring ≥10% under spec, plug gap, bypass pill) and the engine's previous check by date (leak-down ≥10% or +3 points, spring ≥10% drop) and metal in the filter. Printed filled or blank at `/print/engine-check/:id` (`blank?engine=`). |
 | Jobs (`jobs`) | `job` | Work orders with parts and labour, status flow, job numbers, handover pack (`enginePack.js`), shop settings (`shop.js`) |
 | Customers (`customers`) | `customer` | Engine owners; sharing in `sharing.js` |
 | Reports (`reports`) | — | Computed on device: results by car, spend, maintenance, Crew Chief stats; CSV export |
@@ -657,7 +660,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 | Guide coverage | `node tools/check-guide.mjs` | in `npm run build` (and so in `docker build`) |
 | Design document coverage | `node tools/check-design.mjs` | in `npm run build` |
 | Web build | `cd web && npm run build` | Vite production build |
-| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e38.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=… UPLOAD_DIR=… BACKUP_DIR=…` (both under `/var/tmp/raceops-test`) `BACKUP_KEY=… BACKUP_CLOUD_MOCK=1`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
+| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e39.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=… UPLOAD_DIR=… BACKUP_DIR=…` (both under `/var/tmp/raceops-test`) `BACKUP_KEY=… BACKUP_CLOUD_MOCK=1`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
 | Dependency audit | `npm audit` (server and web) | before each release |
 
 Local development: Postgres on `localhost:5432` (db/user `raceops`), `cd server && npm i && node src/index.js`, `cd web && npm i && npm run dev` (Vite proxies `/api` to `:8080`).
@@ -839,6 +842,7 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | `015_backups.sql` | `backup_targets`, `backup_plans`, `backup_runs`; `backup.manage` for roles with `team.manage` |
 | `016_recently_deleted.sql` | `records.deleted_at`, `deleted_by` (back-filled); `tenants.deleted_retention_days`, `retention_request`; `trash.manage` for roles with `team.manage` |
 | `017_workshop_setups.sql` | `shopsetups` rights for existing roles: full for roles that edit setups, view/edit for roles that edit maintenance or assets, view for roles that view setups |
+| `018_engine_tunes.sql` | `enginetunes` and `enginechecks` rights for existing roles: tunes full for roles that delete engine builds or setups, view/edit for roles that edit builds, setups or maintenance, view for roles that view setups or builds; checks full for roles that delete maintenance or builds, view/edit for editors, view for viewers |
 
 ## Appendix C — Record types
 
@@ -855,6 +859,8 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | maintenance | `maintenance`, `schedule` |
 | assets | `asset`, `measurement` |
 | shopsetups | `shop_setup` |
+| enginetunes | `engine_tune` |
+| enginechecks | `engine_check` |
 | dyno | `dyno_run` |
 | engines | `engine_build` |
 | jobs | `job` |
@@ -876,4 +882,4 @@ Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tra
 
 Public: `/login`, `/invite/:token`, `/s/:token`, `/c/:token`, `/cal/:type/:id`, `/print/calendar`, `/print/guide`, `/print/job/:id`.
 
-Signed in: `/` (home), `/track`, `/workshop`, `/engines`, `/team`, `/team/members`, `/team/reports`, `/team/reviews`, `/team/stats`, `/roles`, `/forms`, `/forms/:id`, `/cars`, `/events`, `/events/:id`, `/series`, `/series/:id`, `/setups`, `/compare`, `/track/advisor`, `/track/advisor/guides[/:id]`, `/track/checks`, `/track/gears`, `/tracks`, `/tracks/:id`, `/calendar`, `/maintenance`, `/assets`, `/assets/:id`, `/workshop/dyno`, `/engines/linked/:id`, `/link-engine/:code`, `/jobs`, `/customers`, `/customers/:id`, `/contacts`, `/contacts/:id`, `/suppliers`, `/calculators`, `/analytics`, `/ask`, `/help`, `/help/:id`, `/feedback`, `/profile`, `/r/:type/:id` (generic record editor), `/admin`, `/admin/teams|plans|users|directory|lists|settings|system|ai|calendar|feedback|backups|deleted`, `/team/backups`, `/deleted`, `/workshop/setups`.
+Signed in: `/` (home), `/track`, `/workshop`, `/engines`, `/team`, `/team/members`, `/team/reports`, `/team/reviews`, `/team/stats`, `/roles`, `/forms`, `/forms/:id`, `/cars`, `/events`, `/events/:id`, `/series`, `/series/:id`, `/setups`, `/compare`, `/track/advisor`, `/track/advisor/guides[/:id]`, `/track/checks`, `/track/gears`, `/tracks`, `/tracks/:id`, `/calendar`, `/maintenance`, `/assets`, `/assets/:id`, `/workshop/dyno`, `/engines/linked/:id`, `/link-engine/:code`, `/jobs`, `/customers`, `/customers/:id`, `/contacts`, `/contacts/:id`, `/suppliers`, `/calculators`, `/analytics`, `/ask`, `/help`, `/help/:id`, `/feedback`, `/profile`, `/r/:type/:id` (generic record editor), `/admin`, `/admin/teams|plans|users|directory|lists|settings|system|ai|calendar|feedback|backups|deleted`, `/team/backups`, `/deleted`, `/workshop/setups`, `/workshop/engine-checks`, `/tunes`. Print: `/print/tune/:id`, `/print/engine-check/:id`.

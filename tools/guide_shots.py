@@ -104,7 +104,20 @@ for n in range(8):
                                      fuel_start='5' if k == 0 else '9', fuel_finish='3' if k == 0 else str(round(3 - n * 0.05, 2)),
                                      tach_high=str(8600 - n * 12), track_conditions=[['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
                                      driver_feel=['Loose exit'] if k == 0 and n % 2 == 0 else []), form_id=SF))
-push(car, eng, *shocks.values(), spare, top_wing, front_wing, *tyres.values(), ev_old, ev, old, heat, feat, *season)
+heat['data']['values']['adr'] = '91'
+# the engine's tune (two versions, the newer active) and two engine checks, the later with a weak spring
+TB = {'engine': eng['id'], 'source': 'Engine builder', 'builder': 'Hart Engines', 'induction': 'Engler 2.9', 'fuel_by': 'ADR %', 'plugs': 'NGK R5671A-10', 'plug_gap': '0.024',
+      'lash_int': '0.012', 'lash_exh': '0.016', 'lash_when': 'Cold', 'spring_int': '280', 'spring_exh': '280', 'timing': '30° BTDC', 'ls_psi': '40–50', 'ls_pill': '80',
+      'nozzles_down': '435', 'nozzles_up': '165', 'fuel_pump': 'Waterman 500', 'metering_block': '20–22', 'hs_type': 'IRL'}
+chart = [{'from': a, 'to': b, 'main': m, 'hs_psi': p, 'hs': '72'} for a, b, m, p in [('87', '89', '75', '106'), ('90', '93', '70', '108'), ('94', '97', '68', '110'), ('98', '100', '66', '112')]]
+tune1 = rec('engine_tune', {**TB, 'name': '2026 v1', 'date': d(130), 'active': False, 'fuel_chart': chart}, form_id=form('engine_tune'))
+tune2 = rec('engine_tune', {**TB, 'name': '2026 v2', 'date': d(60), 'active': True, 'fuel_chart': chart}, form_id=form('engine_tune'))
+CY = ['#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8']
+ck = lambda n, sp, plug, **x: rec('engine_check', {'engine': eng['id'], 'date': d(n), 'engine_tune': tune2['id'], 'leakdown_temp': 'Cold', 'leakdown': {c: '4' for c in CY},
+    'lash_int': {c: '0.012' for c in CY}, 'lash_exh': {c: '0.016' for c in CY}, 'spring_int': sp, 'spring_exh': {c: '276' for c in CY}, 'plug_read': plug, 'plug_gap': '0.024', **x}, form_id=form('engine_check'))
+chk1 = ck(35, {c: '278' for c in CY}, {c: 'Good' for c in CY})
+chk2 = ck(5, {c: ('246' if c == '#5' else '276') for c in CY}, {c: ('Lean' if c == '#6' else 'Good') for c in CY}, parts_needed='Intake spring for #5.')
+push(car, eng, *shocks.values(), spare, top_wing, front_wing, *tyres.values(), ev_old, ev, old, heat, feat, *season, tune1, tune2, chk1, chk2)
 
 # calendars: the racing year starts with the first demo round; a shared series and track dates
 # (shared with every team on this server — another reason to use a test server)
@@ -224,6 +237,21 @@ with sync_playwright() as pw:
             save('fuel-planner', sec.screenshot())
         page.set_viewport_size({'width': 1280, 'height': 820})
         page.goto(B + '/'); settle(page)  # back to normal for the full-page shots below
+    if shot('engine-tune-panel'):
+        page.goto(f"{B}/r/setup/{heat['id']}"); settle(page)
+        page.add_style_tag(content='.page-head, .save-bar, .topbar { position: static !important; }')
+        sec = page.locator('#sec-engine'); sec.scroll_into_view_if_needed(); settle(page)
+        save('engine-tune-panel', sec.screenshot())
+        page.goto(B + '/'); settle(page)
+    if shot('engine-tunes'):
+        page.goto(B + '/tunes'); settle(page)
+        save('engine-tunes', page.screenshot())
+    if shot('engine-check-compare'):
+        page.goto(f"{B}/r/engine_check/{chk2['id']}"); settle(page)
+        page.add_style_tag(content='.page-head, .save-bar, .topbar { position: static !important; }')
+        sec = page.locator('.check-compare'); sec.scroll_into_view_if_needed(); settle(page)
+        save('engine-check-compare', sec.screenshot())
+        page.goto(B + '/'); settle(page)
     if shot('setup-quick-edit'):
         q = page_for(1280, 820)
         q.goto(f"{B}/r/setup/{feat['id']}"); settle(q)

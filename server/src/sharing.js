@@ -27,7 +27,7 @@ async function tenant(db, id) {
 
 /** The shop's engine and everything about it. */
 async function shopEngine(db, tid, engineId) {
-  const { rows } = await db.query(`SELECT id, type, data FROM records WHERE tenant_id=$1 AND NOT deleted AND type = ANY($2)`, [tid, ['asset', 'customer', 'engine_build', 'job']]);
+  const { rows } = await db.query(`SELECT id, type, data, updated_at FROM records WHERE tenant_id=$1 AND NOT deleted AND type = ANY($2)`, [tid, ['asset', 'customer', 'engine_build', 'job', 'engine_tune']]);
   const engine = rows.find((r) => r.id === engineId && r.type === 'asset' && vals(r).category === 'Engine');
   if (!engine) return null;
   return {
@@ -35,6 +35,7 @@ async function shopEngine(db, tid, engineId) {
     customer: rows.find((r) => r.type === 'customer' && r.id === vals(engine).customer) || null,
     builds: rows.filter((r) => r.type === 'engine_build' && vals(r).engine === engineId),
     jobs: rows.filter((r) => r.type === 'job' && vals(r).engine === engineId),
+    tunes: rows.filter((r) => r.type === 'engine_tune' && vals(r).engine === engineId && vals(r).shared !== false),
   };
 }
 

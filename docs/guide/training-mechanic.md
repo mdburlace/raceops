@@ -3,11 +3,11 @@ id: training-mechanic
 title: "Training: mechanic"
 section: training
 order: 11
-summary: Hands-on exercises in the practice team — between-round checks, what's due, schedules, checklists, parts and their life, a dyno run and a new tyre.
+summary: Hands-on exercises in the practice team — between-round checks, what's due, schedules, checklists, parts and their life, a dyno run, a new tyre, the workshop setup and an engine check.
 for: module:maintenance, module:assets
 covers: option:training-mechanic
-related: training, role-mechanic, between-round-checks, maintenance, assets, dyno, gears
-demo: Car 17, Lakeside baseline, Valley Speedway — Club night, Small oil weep on the RR shock, Oil and filter change, RR shock rebuild, RR Penske 8760, Spare Penske, Hoosier
+related: training, role-mechanic, engine-checks, engine-tunes, between-round-checks, maintenance, assets, dyno, gears
+demo: Car 17, 410 #3, 2026 v2, Intake spring for #5, Lakeside baseline, Valley Speedway — Club night, Small oil weep on the RR shock, Oil and filter change, RR shock rebuild, RR Penske 8760, Spare Penske, Hoosier
 ---
 **Time:** about 45 minutes. **You need:** the practice team, signed in as a mechanic.
 
@@ -87,8 +87,22 @@ demo: Car 17, Lakeside baseline, Valley Speedway — Club night, Small oil weep 
 
 **When it's right:** the event page for tonight shows **Workshop setup: Valley tacky**. See [Workshop setup sheets](/help/workshop-setups).
 
+## Exercise 10: The engine check (10 min)
+
+1. Go to **In the Workshop → Engine checks**. Under *410 #3*, the newest check shows how many things there are to look at.
+2. Open it. Under **Compared with the tune and the last check**, find the cylinder whose intake spring has dropped, and the cylinder whose plug reads lean.
+3. Read **Parts needed for the next race**: *Intake spring for #5. Check #6 nozzle.*
+4. Go back and press **New engine check** under *410 #3*. **Compare with tune** is already *2026 v2*.
+5. Type a **Leak-down** of *12* for cylinder #1 and watch the list underneath.
+6. Tick the **Fuel system & injectors** jobs, then press **Save**.
+
+**When it's right:** the list flags cylinder #1's leak-down as you type, and your check is at the top of the list. See [Workshop engine checks](/help/engine-checks).
+
 ## Check yourself
 
+<details><summary>How does RaceOps tell you a valve spring is going weak?</summary>
+It compares each spring's seat pressure with the engine's last check. A drop of 10% or more is flagged, so type every cylinder's reading each time.
+</details>
 <details><summary>Why record the fuel load and block heights on a workshop setup?</summary>
 Because every other measurement depends on them. With a different fuel load or different blocks, ride heights and corner weights change, and the numbers no longer compare with last time.
 </details>
