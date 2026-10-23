@@ -34,6 +34,28 @@ export const STATUS = {
 export const OPEN_STATUSES = ['draft', 'new', 'approved', 'in_progress'];
 
 /**
+ * Files attached to feedback and ideas. The type comes from the extension (never the browser's say-so):
+ * `show` = opened in the browser (pictures, PDFs, videos); everything else downloads.
+ */
+export const FILE_TYPES = {
+  png: { mime: 'image/png', show: 'image' }, jpg: { mime: 'image/jpeg', show: 'image' }, jpeg: { mime: 'image/jpeg', show: 'image' },
+  webp: { mime: 'image/webp', show: 'image' }, gif: { mime: 'image/gif', show: 'image' }, heic: { mime: 'image/heic' },
+  pdf: { mime: 'application/pdf', show: 'pdf' },
+  mp4: { mime: 'video/mp4', show: 'video' }, webm: { mime: 'video/webm', show: 'video' }, mov: { mime: 'video/quicktime', show: 'video' },
+  txt: { mime: 'text/plain' }, log: { mime: 'text/plain' }, md: { mime: 'text/markdown' }, csv: { mime: 'text/csv' }, json: { mime: 'application/json' },
+  doc: { mime: 'application/msword' }, docx: { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+  xls: { mime: 'application/vnd.ms-excel' }, xlsx: { mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  pptx: { mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+  zip: { mime: 'application/zip' },
+};
+export const FILE_LIMITS = { perItem: 5, mb: 20 };
+export const FILE_ACCEPT = Object.keys(FILE_TYPES).map((x) => `.${x}`).join(',');
+export const FILE_KINDS_TEXT = 'pictures, screen recordings (MP4, WebM, MOV), PDFs, Word, Excel and PowerPoint files, text, CSV, JSON and log files, and ZIP files';
+export const fileExt = (name) => (/\.([a-z0-9]+)$/i.exec(String(name || ''))?.[1] || '').toLowerCase();
+export const fileType = (name) => FILE_TYPES[fileExt(name)] || null;
+export const fmtSize = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+
+/**
  * Functionality areas an item can be linked to. Each knows where its code lives, so the brief sent
  * to Claude points at the right files. Modules come from the catalogue; the rest are the app's shared parts.
  */
@@ -149,6 +171,11 @@ export function buildBrief(item, { articles = [], appUrl = '' } = {}) {
   if (item.comments?.length) {
     L.push('## Discussion', '');
     for (const c of item.comments) L.push(`- **${c.from_admin ? 'Platform admin' : 'Submitter'}:** ${String(c.body).replace(/\s+/g, ' ').trim()}`);
+    L.push('');
+  }
+  if (item.files?.length) {
+    L.push('## Attachments', '', `In RaceOps on feedback #${item.ref ?? '?'} (sign in as a platform admin to open them):`, '');
+    for (const f of item.files) L.push(`- ${f.filename} (${fmtSize(f.size)})`);
     L.push('');
   }
   L.push('## How to do it', '',

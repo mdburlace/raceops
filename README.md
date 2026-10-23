@@ -442,7 +442,7 @@ Each plan has an optional **Shared engines** limit (Platform admin → Plans): h
 - **Everyone** can send a bug report, an enhancement or a new feature from **Feedback & roadmap** (`/feedback`), follow its status under **My submissions**, answer the admin's questions, and vote on the public **Roadmap**.
 - **Platform admins** review everything under **Platform admin → Feedback & ideas** (`/admin/feedback`): capture their own ideas, link items to functionality areas, approve into **Now** (action straight away), **Next** or **Later** (roadmap), decline, merge duplicates, and mark items done with a release.
 - **Send to Claude** builds a brief: the details, the areas and their code files, the guide articles to update, and the rules in `CLAUDE.md`. It is then either created as a **GitHub issue** that mentions `@claude`, so the Claude Code GitHub Action does the work and opens a pull request, or copied into a Claude Code session by hand. For the Action, install the Claude GitHub app on the repository (`/install-github-app` in Claude Code).
-- Data is in migration 014 (`feedback_items`, `feedback_votes`, `feedback_comments`, `feedback_files`); pictures are stored under `uploads/feedback/`. Code: `server/src/feedback.js`, `shared/feedback.js`, `web/src/pages/Feedback.jsx`, `web/src/pages/FeedbackAdmin.jsx`.
+- Data is in migration 014 (`feedback_items`, `feedback_votes`, `feedback_comments`, `feedback_files`); attached files (up to 5 per item, 20 MB each, common document, picture, video, text and ZIP types) are stored under `uploads/feedback/`. Code: `server/src/feedback.js`, `shared/feedback.js`, `web/src/pages/Feedback.jsx`, `web/src/pages/FeedbackAdmin.jsx`.
 
 | Variable | Default | What it does |
 |---|---|---|

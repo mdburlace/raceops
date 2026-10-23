@@ -26,7 +26,7 @@ The sidebar and the **Inbox** tab show how many items are waiting for review. If
 
 ![The pipeline, with a problem report open](img/feedback-admin.webp)
 
-Tap an item to open it under its row. It shows who sent it, their team, the details, pictures, the conversation, and for problem reports the page, device, browser and sync status.
+Tap an item to open it under its row. It shows who sent it, their team, the details, attached files, the conversation, and for problem reports the page, device, browser and sync status.
 
 ## Capture an idea
 
@@ -36,6 +36,13 @@ Tap an item to open it under its row. It shows who sent it, their team, the deta
 4. Press **Link to areas…** and tick the functionality it touches, such as **Setup sheets & advisor** or **Offline and sync**. The areas tell Claude which parts of the code and guide to look at.
 5. Tick **Show on the public roadmap** if everyone should see it once approved, and write a one-line **Roadmap summary**.
 6. Press **Save idea**. It waits under **Ideas** until you review it.
+7. Press **Add file** on the idea to attach anything that helps: a sketch, a screenshot, an example spreadsheet or a supplier's PDF.
+
+## Files on items
+
+Every item, from a user or your own idea, takes up to 5 files of up to 20 MB each: pictures, screen recordings, PDFs, Office files, text, CSV, JSON, log and ZIP files. Press **Add file** on the open item to add one, and **×** beside a file to remove it. Pictures show as thumbnails; other files show their name and size, with **Download**. The sender can remove only the files they added.
+
+**Send to Claude** lists the attachments in the brief under **Attachments**. A GitHub issue can't carry them, so the brief says they're in RaceOps on that item.
 
 **Edit** changes any of these later, on ideas and on items people sent. Use it to tidy a title, set the priority or link the areas before you approve.
 

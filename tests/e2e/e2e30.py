@@ -70,7 +70,7 @@ with sync_playwright() as pw:
     send.get_by_label('Steps').fill('1. Open a setup sheet\n2. Type 4.5 in stagger\n3. Save')
     send.get_by_label('Expected').fill('Stagger stays 4.5')
     expect(send).to_contain_text('/setups')
-    send.get_by_label('Pictures').set_input_files(f'{FIX}/ai-sheet.png')
+    send.get_by_label('Attach files').set_input_files(f'{FIX}/ai-sheet.png')
     shot(pu, '30-01-report-bug')
     send.locator('button:has-text("Send problem report")').click()
     expect(pu.locator('.notice.info')).to_contain_text('has been sent for review')
@@ -187,7 +187,7 @@ with sync_playwright() as pw:
     det.locator('button:has-text("Send to Claude…")').click()
     brief = det.get_by_label('Brief for Claude').input_value()
     for want in ['# Bug: Stagger won’t save', '## Steps to reproduce', 'web/src/pages/Setups.jsx', 'web/src/lib/sync.js',
-                 'docs/guide/setup-sheets.md', 'Stagger saves on desktop and phone', 'iPhone 15', 'CLAUDE.md', 'tests/e2e/run.sh', 'Page: `/setups`']:
+                 'docs/guide/setup-sheets.md', 'Stagger saves on desktop and phone', 'iPhone 15', 'CLAUDE.md', 'tests/e2e/run.sh', 'Page: `/setups`', '## Attachments', 'ai-sheet.png']:
         assert want in brief, (want, brief)
     shot(pa, '30-04-send-to-claude')
     det.locator('button:has-text("Create GitHub issue")').click()

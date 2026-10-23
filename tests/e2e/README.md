@@ -91,5 +91,6 @@ Output goes to `tests/e2e/out/` (ignored by Git): a log per suite, screenshots p
 | `e2e32` | Event lists show round and track first (Events, At the Track, Calendar, track page); Save and Cancel at the top of the calendar date form, the Our calendar quick edit and the event form |
 | `e2e33` | API responses not cached (`Cache-Control: no-store`), the clear-cache endpoint, **Can’t sync** badge when sync fails but the server answers, Repair this device (unreachable server changes nothing; repair keeps the sign-in and syncs again) |
 | `e2e34` | Training pack: practice team created from Teams & licences (demo data, banner), the crew chief exercise on the demo data, no calendar requests from practice teams, reset (and only for practice teams), the Training guide section, videos and printed cards |
+| `e2e35` | Files on feedback and ideas: allowed types and sizes, picked files, added later and removed, safe serving (type from the name, inline or download), the limit of 5, admin files the sender can't remove, files on ideas, attachments in the brief |
 
 When you add a suite, name it `e2eNN.py` with the next number, add a row here, and make it print `… OK` as its last line.

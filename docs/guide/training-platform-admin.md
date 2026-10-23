@@ -45,6 +45,9 @@ Trainees often spot things worth improving.
 
 1. Go to **Platform admin → Feedback & ideas** and press **New idea**.
 2. Link it to the functionality area it's about and save it.
+3. Press **Add file** and attach a screenshot of what you mean.
+
+**When it's right:** the idea is under **Ideas**, with the area and your screenshot.
 
 See [Feedback and ideas (platform admin)](/help/feedback-admin).
 

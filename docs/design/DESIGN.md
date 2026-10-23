@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `014_feedback.sql` |
-| Last updated | October 2026 (training pack reviewed every release) |
+| Last updated | October 2026 (files on feedback and ideas) |
 
 ---
 
@@ -229,7 +229,7 @@ Browsers only allow the service worker and "Add to Home Screen" over HTTPS, so p
 | State | Where | Backed up by |
 |---|---|---|
 | All business data, users, settings, audit, AI usage, requests | Postgres volume `raceops_db` | `pg_dump` (see §19) |
-| Attachments (photos, PDFs) and feedback pictures | volume `raceops_uploads` (`/data/uploads/<uuid>`, `/data/uploads/feedback/<uuid>`) | file copy of the volume |
+| Attachments (photos, PDFs) and feedback files | volume `raceops_uploads` (`/data/uploads/<uuid>`, `/data/uploads/feedback/<uuid>`) | file copy of the volume |
 | Secrets and settings | Portainer stack environment | password manager / secure export |
 | Sign-in lockouts, background jobs, settings cache | process memory | not persisted (by design) |
 
@@ -263,7 +263,7 @@ Browsers only allow the service worker and "Add to Home Screen" over HTTPS, so p
 | `feedback_items` | Bug reports and requests from users, ideas from platform admins — one pipeline | `ref` (serial, shown as #n), `source` (user/admin), `kind` (bug/enhancement/feature/change), `title`, `description`, `steps`, `expected`, `acceptance`, `areas jsonb` (functionality area keys), `page`, `context jsonb` (device, browser, sync), `priority`, `status` (draft/new/approved/in_progress/done/declined/duplicate/withdrawn), `lane` (now/next/later), `public`, `public_summary`, `duplicate_of`, `decision_note`, `release`, `tenant_id`, `user_id`, `decided_by/at`, `sent_at/by`, `github_issue`, `github_url`, `github_state`, `seen` |
 | `feedback_votes` | One vote per user per roadmap item | PK `(item_id, user_id)` |
 | `feedback_comments` | Questions and answers on an item | `item_id`, `user_id`, `from_admin`, `body` |
-| `feedback_files` | Pictures on an item (screenshots) | `item_id`, `filename`, `mime`, `size`, `storage_path` (`feedback/<uuid>` under `UPLOAD_DIR`) |
+| `feedback_files` | Files attached to an item (screenshots, recordings, documents) | `item_id`, `filename`, `mime`, `size`, `storage_path` (`feedback/<uuid>` under `UPLOAD_DIR`) |
 
 ### 6.2 The `records` document
 
@@ -491,10 +491,10 @@ Other shared logic: 47 calculators (`calcs.js`, documented by the `{{calculators
 
 Not team data, so it lives in its own tables (§6.1), not in `records`, and is online-only.
 
-- **Users** (any signed-in person, `/feedback`): send a bug report (title, what went wrong, steps, expected; the page it came from and device context are added automatically), an enhancement or a new feature (title, what and why); up to 3 pictures (PNG/JPEG/WebP/GIF, 8 MB each); 20 submissions per person per day. **Already on the roadmap?** matches the title against public items by word overlap (`similarity`) and offers a vote instead. **My submissions** shows status, decisions and the admin's questions (answer with `reply`); `seen=false` drives the sidebar badge (`notices.feedback_updates` in `/api/me`). **Roadmap** lists public items that are approved, in progress, or done in the last 120 days, by lane, with one vote per user.
+- **Users** (any signed-in person, `/feedback`): send a bug report (title, what went wrong, steps, expected; the page it came from and device context are added automatically), an enhancement or a new feature (title, what and why); up to 5 attached files (`FILE_LIMITS`: 20 MB each; types in `FILE_TYPES`, by extension: pictures, MP4/WebM/MOV, PDF, Word/Excel/PowerPoint, text/CSV/JSON/log, ZIP), added when sending or later while the item is open, and removed by whoever uploaded them (`DELETE /api/feedback/:id/files/:fid`; admins `DELETE /api/admin/feedback/:id/files/:fid`, audited); 20 submissions per person per day. **Already on the roadmap?** matches the title against public items by word overlap (`similarity`) and offers a vote instead. **My submissions** shows status, decisions and the admin's questions (answer with `reply`); `seen=false` drives the sidebar badge (`notices.feedback_updates` in `/api/me`). **Roadmap** lists public items that are approved, in progress, or done in the last 120 days, by lane, with one vote per user.
 - **Platform admins** (`/admin/feedback`): capture ideas (`source='admin'`, `status='draft'`), edit any item (kind, priority, description, acceptance criteria, functionality areas, public flag and roadmap summary), and decide: approve into a lane (`now` = action now, `next`/`later` = roadmap; non-bug items default to public), decline (note required), mark duplicate (the submitter's vote moves to the original), ask the submitter, move lane, start, done (with release), reopen. Every decision is audited and the submitter is told in the app and by email (`mailUser`). New items and answers email the admins. `notices.feedback_new` counts the inbox.
 - **Functionality areas** (`FEATURE_AREAS`): the four areas, every module from the catalogue, and app-wide parts (forms, sync, accounts, licensing, platform admin, navigation, appearance, guide, calculators, weather, import, email, feedback, deployment), each with the code files it lives in. `areaForPage()` links a report to an area from the page it was sent from.
-- **Send to Claude**: the web app builds a Markdown brief (`buildBrief`): item details, discussion, areas with their code files, related guide articles (matched by `covers: module:…` and `pages:`), and the `CLAUDE.md` rules (guide, design documents, e2e tests, backward compatibility). The admin can edit it, then either create a GitHub issue (`POST /repos/{GITHUB_REPO}/issues` with labels from `GITHUB_ISSUE_LABELS` and a `CLAUDE_MENTION` line asking Claude to action it and open a pull request — the Claude Code GitHub Action picks it up), post an updated brief as an issue comment, or copy/download it and **Mark as sent**. Either way the item moves to `in_progress`. **Check GitHub** reads the issue's state.
+- **Send to Claude**: the web app builds a Markdown brief (`buildBrief`): item details, discussion, attachment names, areas with their code files, related guide articles (matched by `covers: module:…` and `pages:`), and the `CLAUDE.md` rules (guide, design documents, e2e tests, backward compatibility). The admin can edit it, then either create a GitHub issue (`POST /repos/{GITHUB_REPO}/issues` with labels from `GITHUB_ISSUE_LABELS` and a `CLAUDE_MENTION` line asking Claude to action it and open a pull request — the Claude Code GitHub Action picks it up), post an updated brief as an issue comment, or copy/download it and **Mark as sent**. Either way the item moves to `in_progress`. **Check GitHub** reads the issue's state.
 
 ### 11.2 Practice teams and the training pack (`server/src/practice.js`, `shared/practiceData.js`)
 
@@ -604,7 +604,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 - **Authorisation:** every tenant route checks membership; every record write checks type permissions; global writes need a platform admin; licence expiry makes a team read-only; suspension blocks it.
 - **Data isolation:** all tenant queries filter by `tenant_id`; sync pulls only the team's records and global records of viewable types.
 - **Uploads:** stored under random uuids outside the web root; served with `nosniff`, a restrictive CSP and `Content-Disposition`; size-limited.
-- **Feedback pictures:** images only, size- and count-limited, stored under random uuids, served only to the person who sent the item and platform admins, with `nosniff` and a restrictive CSP. Admin names and emails, device context and GitHub details are stripped from what submitters see.
+- **Feedback files:** an allow-list of extensions (no HTML, SVG, scripts or programs), size- and count-limited, stored under random uuids, served only to the person who sent the item and platform admins. The `Content-Type` comes from the extension, never the upload; only pictures, PDFs and videos are served `inline` (`?download` forces a download), everything else as `attachment`, always with `nosniff` and a restrictive CSP. Admin names and emails, device context and GitHub details are stripped from what submitters see.
 - **SSRF:** server-side fetching refuses private, loopback, link-local and CGNAT addresses.
 - **Secrets:** environment variables only (Portainer stack); never in the repo, logs or devices. `x-powered-by` is off.
 - **Audit:** `admin_audit` (admin actions, lockouts), `record_history` (every data write), `ai_usage`.
@@ -630,7 +630,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 | Guide coverage | `node tools/check-guide.mjs` | in `npm run build` (and so in `docker build`) |
 | Design document coverage | `node tools/check-design.mjs` | in `npm run build` |
 | Web build | `cd web && npm run build` | Vite production build |
-| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e34.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=…`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
+| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e35.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=…`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
 | Dependency audit | `npm audit` (server and web) | before each release |
 
 Local development: Postgres on `localhost:5432` (db/user `raceops`), `cd server && npm i && node src/index.js`, `cd web && npm i && npm run dev` (Vite proxies `/api` to `:8080`).
@@ -801,11 +801,11 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 
 Public: `GET /api/health`, `POST /api/device/clear-cache`, `GET /api/status`, `POST /api/setup`, `POST /api/auth/login`, `GET|POST /api/invites/:token[/accept]`, `GET /api/share/:token`, `GET /api/public/calendar/:token[.ics]`, `GET /api/public/shared/:type/:id[.ics]`.
 
-Signed in: `GET|PATCH /api/me`; feedback `GET /api/feedback/mine|roadmap|similar`, `POST /api/feedback`, `POST /api/feedback/seen`, `POST /api/feedback/:id/files|reply|withdraw|vote`, `GET /api/feedback/files/:fid`.
+Signed in: `GET|PATCH /api/me`; feedback `GET /api/feedback/mine|roadmap|similar`, `POST /api/feedback`, `POST /api/feedback/seen`, `POST /api/feedback/:id/files|reply|withdraw|vote`, `DELETE /api/feedback/:id/files/:fid`, `GET /api/feedback/files/:fid[?download]`.
 
 Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `PATCH|DELETE /roles/:id`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; practice `POST /practice/reset`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
 
-Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tracks/export|import|reseed`, `settings`, `settings/general`, `settings/lists/:key`, `overview`, `audit`, `system`, `system/upgrade-forms`, `ai`, `ai/test`, `calendar/data`, `calendar/fixtures/:id`, `calendar/series/:id`, `calendar/requests[/:id/decide|ask]`, `calendar/officials[/:id]`, `calendar/duplicates`, `calendar/merge`, `calendar/history/:id[/restore]`, `calendar/feeds[/:id[/check]]`, `mail`, `mail/test`, `feedback` (list by view, create idea), `feedback/:id` (get, patch, delete), `feedback/:id/files|decide|claude|github`.
+Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tracks/export|import|reseed`, `settings`, `settings/general`, `settings/lists/:key`, `overview`, `audit`, `system`, `system/upgrade-forms`, `ai`, `ai/test`, `calendar/data`, `calendar/fixtures/:id`, `calendar/series/:id`, `calendar/requests[/:id/decide|ask]`, `calendar/officials[/:id]`, `calendar/duplicates`, `calendar/merge`, `calendar/history/:id[/restore]`, `calendar/feeds[/:id[/check]]`, `mail`, `mail/test`, `feedback` (list by view, create idea), `feedback/:id` (get, patch, delete), `feedback/:id/files|decide|claude|github`, `DELETE feedback/:id/files/:fid`.
 
 ## Appendix E — Web routes
 

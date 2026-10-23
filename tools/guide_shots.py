@@ -158,6 +158,13 @@ call(f'/feedback/{fb_feat["id"]}/vote', T, 'POST', {})
 call(f'/admin/feedback/{fb_enh["id"]}/decide', T, 'POST', {'action': 'approve', 'lane': 'now'})
 call(f'/admin/feedback/{fb_bug["id"]}', T, 'PATCH', {'priority': 'high', 'areas': ['module:setups', 'system:sync'], 'acceptance': '- Stagger saves on desktop and phone'})
 call(f'/admin/feedback/{fb_bug["id"]}/decide', T, 'POST', {'action': 'approve', 'lane': 'now'})
+FIX = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tests', 'e2e', 'fixtures')
+def attach(path, name):  # a file on a feedback item (multipart upload)
+    bd = 'xGuideShots'
+    body = (f'--{bd}\r\nContent-Disposition: form-data; name="file"; filename="{name}"\r\nContent-Type: application/octet-stream\r\n\r\n').encode() + open(os.path.join(FIX, name), 'rb').read() + f'\r\n--{bd}--\r\n'.encode()
+    urllib.request.urlopen(urllib.request.Request(B + '/api' + path, method='POST', data=body, headers={'authorization': f'Bearer {T}', 'content-type': f'multipart/form-data; boundary={bd}'}))
+attach(f'/admin/feedback/{fb_bug["id"]}/files', 'ai-sheet.png')
+attach(f'/admin/feedback/{fb_bug["id"]}/files', 'ai-printout.pdf')
 fb_idea = call('/admin/feedback', T, 'POST', {'title': 'Bulk-edit pressures across a night’s sheets', 'kind': 'feature', 'description': 'Change one value on several setup sheets at once.',
                'areas': ['module:setups'], 'public': True, 'public_summary': 'Change a value on several setup sheets at once'})[1]['item']
 call(f'/admin/feedback/{fb_idea["id"]}/decide', T, 'POST', {'action': 'approve', 'lane': 'later'})
@@ -263,6 +270,8 @@ with sync_playwright() as pw:
         page.click('button[role="radio"]:has-text("Something isn’t working")')
         page.get_by_label('Title').fill('Stagger resets after saving a setup sheet')
         page.get_by_label('Details').fill('After pressing Save the stagger goes back to blank.')
+        page.get_by_label('Attach files').set_input_files([os.path.join(FIX, 'ai-sheet.png'), os.path.join(FIX, 'sheet.csv')]); settle(page)
+        page.locator('[data-testid="fb-picked"]').scroll_into_view_if_needed(); page.mouse.wheel(0, 200); settle(page)
         save('feedback-send', page.screenshot())
     if shot('feedback-roadmap'):
         page.goto(B + '/feedback?tab=roadmap'); settle(page)

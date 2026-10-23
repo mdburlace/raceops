@@ -15,7 +15,7 @@ import { HttpError } from './auth.js';
 import { audit } from './settings.js';
 import { mailAdmins, mailUser } from './mail.js';
 import {
-  KIND, USER_KINDS, PRIORITIES, LANE, OPEN_STATUSES, cleanAreas, areaForPage, similarity,
+  KIND, USER_KINDS, PRIORITIES, LANE, OPEN_STATUSES, cleanAreas, areaForPage, similarity, FILE_LIMITS, FILE_KINDS_TEXT, fileType,
 } from '../../shared/feedback.js';
 
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -23,9 +23,7 @@ const need = (cond, status, msg) => { if (!cond) throw new HttpError(status, msg
 const text = (x, max) => (x === undefined || x === null ? null : String(x).trim().slice(0, max) || null);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PER_DAY = 20; // submissions per person per day
-const MAX_FILES = 3;
-const MAX_FILE_MB = 8;
-const IMAGE = /^image\/(png|jpeg|webp|gif)$/;
+const { perItem: MAX_FILES, mb: MAX_FILE_MB } = FILE_LIMITS;
 
 // ---------------------------------------------------------------- GitHub
 const GH_API = process.env.GITHUB_API_URL || 'https://api.github.com';
@@ -87,7 +85,7 @@ async function extras(items, { admin = false } = {}) {
   const { rows: comments } = await q(
     `SELECT c.id, c.item_id, c.from_admin, c.body, c.created_at, u.name AS user_name
        FROM feedback_comments c LEFT JOIN users u ON u.id=c.user_id WHERE c.item_id = ANY($1) ORDER BY c.created_at`, [ids]);
-  const { rows: files } = await q(`SELECT id, item_id, filename, mime, size, created_at FROM feedback_files WHERE item_id = ANY($1) ORDER BY created_at`, [ids]);
+  const { rows: files } = await q(`SELECT id, item_id, filename, mime, size, uploaded_by, created_at FROM feedback_files WHERE item_id = ANY($1) ORDER BY created_at`, [ids]);
   return items.map((i) => {
     const out = { ...i, comments: comments.filter((c) => c.item_id === i.id), files: files.filter((f) => f.item_id === i.id) };
     if (!admin) {
@@ -120,7 +118,7 @@ function uploader(UPLOAD_DIR) {
   return multer({
     storage: multer.diskStorage({ destination: (_r, _f, cb) => cb(null, dir), filename: (_r, _f, cb) => cb(null, crypto.randomUUID()) }),
     limits: { fileSize: MAX_FILE_MB * 1024 * 1024, files: 1 },
-    fileFilter: (_r, f, cb) => cb(IMAGE.test(f.mimetype) ? null : new HttpError(400, 'Add a picture (PNG, JPEG, WebP or GIF), such as a screenshot.'), IMAGE.test(f.mimetype)),
+    fileFilter: (_r, f, cb) => (fileType(f.originalname) ? cb(null, true) : cb(new HttpError(400, `That type of file can’t be attached. You can attach ${FILE_KINDS_TEXT}.`), false)),
   });
 }
 
@@ -128,7 +126,7 @@ async function addFile(req, item, UPLOAD_DIR) {
   try {
     need(req.file, 400, 'No file uploaded');
     const { rows: [n] } = await q('SELECT count(*)::int AS n FROM feedback_files WHERE item_id=$1', [item.id]);
-    need(n.n < MAX_FILES, 400, `Up to ${MAX_FILES} pictures per item.`);
+    need(n.n < MAX_FILES, 400, `Up to ${MAX_FILES} files per item.`);
   } catch (e) {
     if (req.file) fs.rmSync(req.file.path, { force: true });
     throw e;
@@ -136,7 +134,16 @@ async function addFile(req, item, UPLOAD_DIR) {
   const { rows: [f] } = await q(
     `INSERT INTO feedback_files(item_id,filename,mime,size,storage_path,uploaded_by) VALUES ($1,$2,$3,$4,$5,$6)
      RETURNING id, filename, mime, size, created_at`,
-    [item.id, req.file.originalname, req.file.mimetype, req.file.size, path.relative(UPLOAD_DIR, req.file.path), req.user.id]);
+    [item.id, req.file.originalname.slice(0, 200), fileType(req.file.originalname).mime, req.file.size, path.relative(UPLOAD_DIR, req.file.path), req.user.id]);
+  return f;
+}
+
+async function removeFile(item, fid, UPLOAD_DIR, onlyBy) {
+  need(UUID.test(fid), 404, 'Not found');
+  const { rows: [f] } = await q('SELECT * FROM feedback_files WHERE id=$1 AND item_id=$2', [fid, item.id]);
+  need(f && (!onlyBy || f.uploaded_by === onlyBy), 404, 'Not found');
+  await q('DELETE FROM feedback_files WHERE id=$1', [f.id]);
+  fs.rmSync(path.join(UPLOAD_DIR, f.storage_path), { force: true });
   return f;
 }
 
@@ -235,14 +242,23 @@ export function mountFeedback(app, { UPLOAD_DIR }) {
     res.json({ file: await addFile(req, item, UPLOAD_DIR) });
   }));
 
+  F.delete('/:id/files/:fid', h(async (req, res) => {
+    const item = await own(req);
+    need(['new', 'approved', 'in_progress'].includes(item.status), 400, 'This item is closed.');
+    await removeFile(item, req.params.fid, UPLOAD_DIR, req.user.id);
+    res.json({ ok: true });
+  }));
+
   F.get('/files/:fid', h(async (req, res) => {
     need(UUID.test(req.params.fid), 404, 'Not found');
     const { rows: [f] } = await q('SELECT f.*, i.user_id FROM feedback_files f JOIN feedback_items i ON i.id=f.item_id WHERE f.id=$1', [req.params.fid]);
     need(f && (req.user.is_platform_admin || f.user_id === req.user.id), 404, 'Not found');
-    res.setHeader('Content-Type', f.mime);
+    // the type comes from the file name, never the upload; only pictures, PDFs and videos open in the browser
+    const t = fileType(f.filename);
+    res.setHeader('Content-Type', t?.mime || 'application/octet-stream');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'");
-    res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(f.filename)}`);
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'");
+    res.setHeader('Content-Disposition', `${t?.show && req.query.download === undefined ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(f.filename)}`);
     res.sendFile(path.join(UPLOAD_DIR, f.storage_path));
   }));
 
@@ -360,6 +376,13 @@ export function mountFeedbackAdmin(A, { UPLOAD_DIR }) {
     let item;
     try { item = await one(req.params.id); } catch (e) { if (req.file) fs.rmSync(req.file.path, { force: true }); throw e; }
     res.json({ file: await addFile(req, item, UPLOAD_DIR) });
+  }));
+
+  A.delete('/feedback/:id/files/:fid', h(async (req, res) => {
+    const item = await one(req.params.id);
+    const f = await removeFile(item, req.params.fid, UPLOAD_DIR);
+    await audit(req.user.id, 'feedback.file.delete', item.title, { id: item.id, file: f.filename });
+    res.json({ ok: true });
   }));
 
   // decisions and moves through the pipeline

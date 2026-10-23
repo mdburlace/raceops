@@ -6,7 +6,7 @@ import { Empty, PageHeader, Pill, useOnline } from '../components/ui.jsx';
 import { api, token } from '../lib/api.js';
 import { useSession } from '../lib/session.jsx';
 import { getSyncStatus } from '../lib/sync.js';
-import { KIND, LANE, LANES, STATUS, OPEN_STATUSES } from '@shared/feedback.js';
+import { KIND, LANE, LANES, STATUS, OPEN_STATUSES, FILE_ACCEPT, FILE_LIMITS, FILE_KINDS_TEXT, fileType, fmtSize } from '@shared/feedback.js';
 
 export const fmtWhen = (t) => (t ? new Date(t).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
 export const fileSrc = (id) => `/api/feedback/files/${id}?token=${encodeURIComponent(token() || '')}`;
@@ -34,14 +34,67 @@ function deviceContext() {
   };
 }
 
-export function Thumbs({ files }) {
-  if (!files?.length) return null;
+/** Why a file can't be attached, or '' if it can. */
+export function fileProblem(file, already = 0) {
+  if (!fileType(file.name)) return `${file.name}: that type of file can’t be attached. You can attach ${FILE_KINDS_TEXT}.`;
+  if (file.size > FILE_LIMITS.mb * 1048576) return `${file.name} is ${fmtSize(file.size)}. Files can be up to ${FILE_LIMITS.mb} MB.`;
+  if (already >= FILE_LIMITS.perItem) return `Up to ${FILE_LIMITS.perItem} files per item.`;
+  return '';
+}
+
+/** Upload files to an item one at a time; returns the problems (empty when all went up). */
+export async function uploadFiles(url, files, already = 0) {
+  const problems = [];
+  let n = already;
+  for (const f of files) {
+    const p = fileProblem(f, n);
+    if (p) { problems.push(p); continue; }
+    const fd = new FormData(); fd.append('file', f);
+    try { await api(url, { method: 'POST', form: fd }); n += 1; } catch (e) { problems.push(`${f.name}: ${e.message}`); }
+  }
+  return problems;
+}
+
+/** Add-a-file button. */
+export function AddFile({ label = 'Add file', onFiles, disabled }) {
   return (
-    <div className="fb-thumbs">
-      {files.map((f) => <a key={f.id} href={fileSrc(f.id)} target="_blank" rel="noreferrer"><img src={fileSrc(f.id)} alt={f.filename} /></a>)}
+    <label className={`btn small ghost file-btn${disabled ? ' disabled' : ''}`}>{label}
+      <input type="file" hidden multiple accept={FILE_ACCEPT} disabled={disabled} onChange={(e) => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) onFiles(fs); }} />
+    </label>
+  );
+}
+
+/** Attached files: pictures as thumbnails, everything else as a file chip. `onRemove(file)` adds a remove button. */
+export function Attachments({ files, onRemove, canRemove = () => true }) {
+  if (!files?.length) return null;
+  const pics = files.filter((f) => fileType(f.filename)?.show === 'image');
+  const rest = files.filter((f) => fileType(f.filename)?.show !== 'image');
+  const remove = (f) => onRemove && canRemove(f) && (
+    <button type="button" className="fb-file-x" aria-label={`Remove ${f.filename}`} title="Remove" onClick={() => window.confirm(`Remove ${f.filename}?`) && onRemove(f)}>×</button>
+  );
+  return (
+    <div className="fb-files" data-testid="fb-files">
+      {pics.length > 0 && (
+        <div className="fb-thumbs">
+          {pics.map((f) => <span key={f.id} className="fb-thumb"><a href={fileSrc(f.id)} target="_blank" rel="noreferrer"><img src={fileSrc(f.id)} alt={f.filename} /></a>{remove(f)}</span>)}
+        </div>
+      )}
+      {rest.map((f) => {
+        const t = fileType(f.filename);
+        return (
+          <span key={f.id} className="fb-file" data-testid="fb-file">
+            <span className="fb-file-ext">{(f.filename.split('.').pop() || '').toUpperCase()}</span>
+            <a href={fileSrc(f.id)} target="_blank" rel="noreferrer">{f.filename}</a>
+            <span className="small muted">{fmtSize(f.size)}</span>
+            {t?.show && <a className="small" href={`${fileSrc(f.id)}&download`}>Download</a>}
+            {remove(f)}
+          </span>
+        );
+      })}
     </div>
   );
 }
+export const Thumbs = Attachments;
 
 export function Thread({ comments }) {
   if (!comments?.length) return null;
@@ -86,10 +139,8 @@ function SendForm({ onSent }) {
     setErr(''); setBusy(true);
     try {
       const r = await api('/feedback', { method: 'POST', body: { kind, ...v, page, tenant_id: tid, context: kind === 'bug' ? deviceContext() : {} } });
-      for (const f of files) {
-        const fd = new FormData(); fd.append('file', f);
-        await api(`/feedback/${r.item.id}/files`, { method: 'POST', form: fd }).catch((e) => setErr(`Sent, but a picture wasn’t added: ${e.message}`));
-      }
+      const problems = await uploadFiles(`/feedback/${r.item.id}/files`, files);
+      if (problems.length) setErr(`Sent, but not every file was added: ${problems.join(' ')}`);
       setV({ title: '', description: '', steps: '', expected: '' }); setFiles([]); setKind('');
       onSent(r.item);
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
@@ -137,9 +188,15 @@ function SendForm({ onSent }) {
           {page && (
             <p className="small muted">About the page <code>{page}</code> <button type="button" className="btn small ghost" onClick={() => setPage('')}>Not this page</button></p>
           )}
-          <label className="field"><span className="label">Pictures (optional, up to 3)</span>
-            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple aria-label="Pictures"
-              onChange={(e) => setFiles([...e.target.files].slice(0, 3))} /></label>
+          <label className="field"><span className="label">Attach files (optional, up to {FILE_LIMITS.perItem}, {FILE_LIMITS.mb} MB each)</span>
+            <input type="file" accept={FILE_ACCEPT} multiple aria-label="Attach files"
+              onChange={(e) => {
+                const picked = [...e.target.files].slice(0, FILE_LIMITS.perItem);
+                const bad = picked.map((f) => fileProblem(f)).filter(Boolean);
+                setErr(bad.join(' ')); setFiles(picked.filter((f) => !fileProblem(f)));
+              }} />
+            <span className="small muted">Screenshots, a screen recording, a PDF, a spreadsheet or a log file — anything that helps explain it.</span></label>
+          {files.length > 0 && <p className="small" data-testid="fb-picked">{files.map((f) => `${f.name} (${fmtSize(f.size)})`).join(' · ')}</p>}
           {bug && <p className="small muted">We’ll include your device, browser, screen size and sync status so we can reproduce it. Team: {membership?.tenant_name}.</p>}
           {err && <div className="notice error small">{err}</div>}
           <div className="row-actions">
@@ -154,6 +211,7 @@ function SendForm({ onSent }) {
 
 // ======================================================================= mine
 function MyItem({ item, onChanged }) {
+  const { user } = useSession();
   const [answer, setAnswer] = useState('');
   const [err, setErr] = useState('');
   const open = OPEN_STATUSES.includes(item.status);
@@ -163,6 +221,9 @@ function MyItem({ item, onChanged }) {
     try { await api(`/feedback/${item.id}/reply`, { method: 'POST', body: { body: answer } }); setAnswer(''); onChanged(); } catch (e) { setErr(e.message); }
   };
   const withdraw = async () => { if (window.confirm('Withdraw this?')) { await api(`/feedback/${item.id}/withdraw`, { method: 'POST' }); onChanged(); } };
+  const canAdd = ['new', 'approved', 'in_progress'].includes(item.status);
+  const addFiles = async (fs) => { setErr(''); const p = await uploadFiles(`/feedback/${item.id}/files`, fs, item.files.length); if (p.length) setErr(p.join(' ')); onChanged(); };
+  const removeFile = async (f) => { setErr(''); try { await api(`/feedback/${item.id}/files/${f.id}`, { method: 'DELETE' }); onChanged(); } catch (e) { setErr(e.message); } };
   return (
     <div className={`card fb-item${item.seen ? '' : ' unseen'}`} data-testid="fb-mine-item">
       <div className="inline-row wrap">
@@ -172,7 +233,7 @@ function MyItem({ item, onChanged }) {
       <p className="small muted">Sent {fmtWhen(item.created_at)}{item.team_name ? ` · ${item.team_name}` : ''}{item.release ? ` · in release ${item.release}` : ''}</p>
       {item.description && <p className="fb-desc">{item.description}</p>}
       {item.status === 'duplicate' && item.duplicate_title && <p className="small">Already requested as <b>#{item.duplicate_ref} {item.duplicate_title}</b> — your vote has been added to it.</p>}
-      <Thumbs files={item.files} />
+      <Attachments files={item.files} onRemove={canAdd ? removeFile : null} canRemove={(f) => f.uploaded_by === user?.id} />
       <Thread comments={item.comments} />
       {asked && (
         <div className="fb-answer">
@@ -181,7 +242,10 @@ function MyItem({ item, onChanged }) {
         </div>
       )}
       {err && <div className="notice error small">{err}</div>}
-      {item.status === 'new' && <button type="button" className="btn small ghost" onClick={withdraw}>Withdraw</button>}
+      <div className="row-actions wrap">
+        {canAdd && item.files.length < FILE_LIMITS.perItem && <AddFile onFiles={addFiles} />}
+        {item.status === 'new' && <button type="button" className="btn small ghost" onClick={withdraw}>Withdraw</button>}
+      </div>
     </div>
   );
 }

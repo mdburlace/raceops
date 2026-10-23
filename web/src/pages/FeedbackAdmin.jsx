@@ -7,9 +7,9 @@ import { api } from '../lib/api.js';
 import { ARTICLES } from '../lib/guide.js';
 import { useSession } from '../lib/session.jsx';
 import {
-  FEATURE_AREAS, FEATURE_AREA, KIND, KINDS, LANE, LANES, PRIORITIES, PRIORITY_LABEL, buildBrief,
+  FEATURE_AREAS, FEATURE_AREA, KIND, KINDS, LANE, LANES, PRIORITIES, PRIORITY_LABEL, buildBrief, FILE_LIMITS,
 } from '@shared/feedback.js';
-import { KindPill, StatusPill, Thread, Thumbs, fmtWhen } from './Feedback.jsx';
+import { AddFile, Attachments, KindPill, StatusPill, Thread, fmtWhen, uploadFiles } from './Feedback.jsx';
 
 const VIEWS = [['inbox', 'Inbox'], ['ideas', 'Ideas'], ['pipeline', 'Pipeline'], ['done', 'Done'], ['closed', 'Closed'], ['all', 'All']];
 
@@ -179,6 +179,7 @@ function ItemDetail({ id, github, open, onChanged }) {
   const [editing, setEditing] = useState(false);
   const [claude, setClaude] = useState(false);
   const [err, setErr] = useState('');
+  const [fileErr, setFileErr] = useState('');
   const load = () => api(`/admin/feedback/${id}`).then((r) => setItem(r.item)).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const changed = (it) => { setItem(it); setEditing(false); setClaude(false); onChanged(); };
@@ -187,7 +188,8 @@ function ItemDetail({ id, github, open, onChanged }) {
   const c = item.context || {};
   const refresh = async () => { try { changed((await api(`/admin/feedback/${id}/github`, { method: 'POST' })).item); } catch (e) { setErr(e.message); } };
   const remove = async () => { if (window.confirm('Delete this idea?')) { await api(`/admin/feedback/${id}`, { method: 'DELETE' }); onChanged(true); } };
-  const addPic = async (file) => { const fd = new FormData(); fd.append('file', file); try { await api(`/admin/feedback/${id}/files`, { method: 'POST', form: fd }); load(); } catch (e) { setErr(e.message); } };
+  const addFiles = async (fs) => { setFileErr(''); const p = await uploadFiles(`/admin/feedback/${id}/files`, fs, item.files.length); if (p.length) setFileErr(p.join(' ')); load(); };
+  const removeFile = async (f) => { setFileErr(''); try { await api(`/admin/feedback/${id}/files/${f.id}`, { method: 'DELETE' }); load(); } catch (e) { setFileErr(e.message); } };
   return (
     <div className="card fb-detail" data-testid="fb-detail">
       {editing ? <ItemEditor item={item} onSaved={changed} onCancel={() => setEditing(false)} /> : (
@@ -214,12 +216,13 @@ function ItemDetail({ id, github, open, onChanged }) {
             <p className="small" data-testid="fb-sent">Sent to Claude {fmtWhen(item.sent_at)}{item.sent_by_name ? ` by ${item.sent_by_name}` : ''}
               {item.github_url && <> · <a href={item.github_url} target="_blank" rel="noreferrer">GitHub issue #{item.github_issue}</a> ({item.github_state || 'open'}) <button type="button" className="btn small ghost" onClick={refresh}>Check GitHub</button></>}</p>
           )}
-          <Thumbs files={item.files} />
+          <Attachments files={item.files} onRemove={removeFile} />
+          {fileErr && <div className="notice error small">{fileErr}</div>}
           <Thread comments={item.comments} />
           <div className="row-actions wrap">
             <button type="button" className="btn small ghost" onClick={() => setEditing(true)}>Edit</button>
             {['approved', 'in_progress'].includes(item.status) && <button type="button" className="btn small" aria-expanded={claude} onClick={() => setClaude(!claude)}>Send to Claude…</button>}
-            <label className="btn small ghost file-btn">Add picture<input type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => e.target.files[0] && addPic(e.target.files[0])} /></label>
+            {item.files.length < FILE_LIMITS.perItem && <AddFile onFiles={addFiles} />}
             {item.source === 'admin' && item.status === 'draft' && <button type="button" className="btn small ghost danger" onClick={remove}>Delete idea</button>}
           </div>
           {claude && <SendToClaude item={item} github={github} onDone={changed} />}

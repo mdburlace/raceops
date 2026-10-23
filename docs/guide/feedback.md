@@ -22,7 +22,7 @@ Feedback needs an internet connection. If you're at the track with no signal, no
    - **What went wrong?** — what you saw, including any message on screen.
    - **What were you doing?** — the steps, one per line.
    - **What did you expect to happen?**
-5. Add up to three **Pictures**, such as a screenshot of the problem.
+5. Under **Attach files**, add anything that helps explain it, such as a screenshot or a screen recording. See [Attach files](#attach-files) below.
 6. Press **Send problem report**.
 
 ![Reporting a problem](img/feedback-send.webp)
@@ -34,7 +34,27 @@ Problem reports include your device, browser, screen size and sync status, so th
 1. Choose **Improve something** (for a screen or feature that already exists) or **A new feature**.
 2. Give it a short title. As you type, **Already on the roadmap?** shows matching items. If one is what you mean, press **Vote** on it instead of sending another.
 3. Under **What would you like, and why?**, say what you'd use it for and how it would help.
-4. Press **Send request**.
+4. Attach any files that help, such as an example spreadsheet or a printout you use now.
+5. Press **Send request**.
+
+## Attach files
+
+You can attach up to **5 files** to each problem report or request, each up to **20 MB**:
+
+- pictures and screenshots (PNG, JPEG, WebP, GIF, HEIC);
+- screen recordings (MP4, WebM, MOV);
+- PDFs;
+- Word, Excel and PowerPoint files;
+- text, CSV, JSON and log files;
+- ZIP files.
+
+Other types, such as programs or web pages, can't be attached.
+
+- **When you send it:** pick the files under **Attach files**. The names you picked are listed before you send.
+- **Later:** in **My submissions**, press **Add file** on the item while it's still open (waiting for review, approved or in progress).
+- **Remove one:** press **×** beside a file you added. Files the RaceOps team added stay.
+
+Pictures show as thumbnails. Other files show their name and size: tap the name to open it (PDFs, pictures and videos open in the browser), or **Download**. Only you and the platform admins can open your files.
 
 ## My submissions
 
