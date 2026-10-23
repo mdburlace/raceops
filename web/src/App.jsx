@@ -18,6 +18,7 @@ import { Profile, Roles, Team } from './pages/Team.jsx';
 import { AskPage } from './components/Ai.jsx';
 import { Calculators } from './pages/Calculators.jsx';
 import { HelpArticle, HelpHome, HelpPrint } from './pages/Help.jsx';
+import { ReleaseDetail, ReleaseList } from './pages/Releases.jsx';
 import { FeedbackPage } from './pages/Feedback.jsx';
 import { AdminFeedback } from './pages/FeedbackAdmin.jsx';
 import { AnalyticsPage } from './pages/Analytics.jsx';
@@ -153,6 +154,8 @@ function Routed() {
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="help" element={<HelpHome />} />
         <Route path="feedback" element={<FeedbackPage />} />
+        <Route path="help/releases" element={<ReleaseList />} />
+        <Route path="help/releases/:version" element={<ReleaseDetail />} />
         <Route path="help/:id" element={<HelpArticle />} />
         <Route path="calculators" element={<Calculators />} />
         <Route path="*" element={<Navigate to="/" replace />} />

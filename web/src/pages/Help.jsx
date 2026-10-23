@@ -6,6 +6,7 @@ import { SECTIONS, SECTION, excerpt, searchArticles, visibleTo } from '@shared/g
 import { Empty, PageHeader, Section } from '../components/ui.jsx';
 import { SetupChecklist } from '../components/SetupChecklist.jsx';
 import { ARTICLE, renderArticle, rolesFor, useGuideCtx, visibleArticles } from '../lib/guide.js';
+import { CURRENT, releaseDate } from '../lib/releases.js';
 
 const ALL_KEY = 'raceops.help.all';
 const readAll = () => { try { return localStorage.getItem(ALL_KEY) === '1'; } catch { return false; } };
@@ -50,6 +51,12 @@ export function HelpHome() {
           {start && (
             <Link to="/help/getting-started" className="card help-start">
               <b>New team? Start here</b><span className="muted">{ARTICLE['getting-started'].summary}</span>
+            </Link>
+          )}
+          {CURRENT && (
+            <Link to="/help/releases" className="card help-start help-releases" data-testid="help-releases">
+              <b>Release notes</b>
+              <span className="muted">Version {CURRENT.version}, {releaseDate(CURRENT.date)}: {CURRENT.title}. What changed in this release and every one before it.</span>
             </Link>
           )}
           {(mine || others.length > 0) && (

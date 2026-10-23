@@ -53,6 +53,24 @@ for (const a of articles.filter((x) => x.section === 'training')) {
     if (!practiceSrc.includes(n)) bad(`${a.file}: uses the demo name "${n}", which isn't in shared/practiceData.js any more. Update the exercise or the practice data.`);
   }
 }
+// Release notes (docs/releases): one file per release, in the format Help & guide → Release notes reads.
+// The newest What's new line must be in the newest release's notes, so every release gets them.
+const { loadReleases, releaseProblems } = await import('../shared/releases.js');
+const relDir = path.join(ROOT, 'docs/releases');
+const releases = loadReleases(fs.existsSync(relDir)
+  ? Object.fromEntries(fs.readdirSync(relDir).filter((f) => f.endsWith('.md')).map((f) => [f, fs.readFileSync(path.join(relDir, f), 'utf8')])) : {});
+if (!releases.length) bad('docs/releases has no release notes. See CLAUDE.md → "Release notes".');
+for (const p of releaseProblems(releases)) bad(`Release notes: ${p}`);
+{
+  const newest = /^- \*\*(.+?)\.?\*\*/m.exec(files['whats-new.md'] || '')?.[1];
+  const r = releases[0];
+  const text = r ? [r.title, r.summary, ...Object.values(r.sections)].join('\n').toLowerCase() : '';
+  if (newest && r && !text.includes(newest.toLowerCase())) {
+    bad(`"${newest}" (newest in What's new) isn't in the newest release notes (docs/releases/${r.version}.md). `
+      + 'Add this release to its notes, or a new release file. See CLAUDE.md → "Release notes".');
+  }
+}
+
 // The training pack is reviewed for every release: training.md's reviewed: names the newest What's new entry it was checked against.
 const latestNew = /^- \*\*(.+?)\.?\*\*/m.exec(files['whats-new.md'] || '')?.[1];
 const reviewed = byId.get('training')?.reviewed;

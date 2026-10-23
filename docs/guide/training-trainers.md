@@ -83,7 +83,7 @@ Someone's ready when they can do their sign-off task without help.
 
 RaceOps is updated regularly, and the training pack is updated in the same release: the exercises, cards, quick start and videos always match the app you're using. When an update lands:
 
-1. Read **Help & guide → What's new**. Each line links to the article that explains it.
+1. Read the [release notes](/help/release-notes) for the update (**Help & guide → Release notes**), then **What's new**. Each What's new line links to the article that explains it.
 2. Reset the practice team (**Team Management → Members & invites → Practice team → Reset practice data**), so it has the latest demo data.
 3. Run through the exercises for the roles the update touches, before you train anyone on them.
 4. Reprint the [quick reference cards](/help/training-cards) if they changed, and swap the old ones in the trailer and workshop.

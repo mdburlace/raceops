@@ -12,6 +12,7 @@ related: getting-started, all-settings
 - **Help** in the sidebar (under Profile & device) opens this guide. It's stored on your device, so it works offline at the track.
 - **?** at the top of most pages opens the article for that page.
 - **ⓘ** beside a field explains what to enter and where to get the number.
+- **Release notes** (and the **Version** at the bottom of the sidebar) say what changed in each release. See [Release notes](/help/release-notes).
 
 ![The Help page: start here, your role’s guide, then every topic](img/help-home.webp)
 

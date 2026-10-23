@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AREAS, MODULE } from '@shared/catalog.js';
 import { RequestNotice } from '../components/SharedRequests.jsx';
@@ -12,6 +12,7 @@ import { teamType } from '@shared/shop.js';
 import { ShopHome } from './Shop.jsx';
 import { SetupChecklist } from '../components/SetupChecklist.jsx';
 import { AnalyticsKpis } from './Analytics.jsx';
+import { markReleaseSeen, unseenRelease } from '../lib/releases.js';
 
 // ---------- access gate used by routes ----------
 export function AreaGate({ area, module, children }) {
@@ -77,6 +78,19 @@ function areaStat(key, s) {
 }
 
 // ---------- landing page ----------
+/** After the app updates to a new release: a one-off note on Home pointing to the release notes. */
+function UpdatedNotice() {
+  const [r, setR] = useState(() => unseenRelease());
+  if (!r) return null;
+  const done = () => { markReleaseSeen(); setR(null); };
+  return (
+    <div className="notice info release-notice" data-testid="release-notice">
+      <span className="grow">RaceOps has been updated to version {r.version}: <b>{r.title}</b>. <Link to={`/help/releases/${r.version}`} onClick={markReleaseSeen}>See what’s new</Link></span>
+      <button type="button" className="icon-btn" aria-label="Dismiss" onClick={done}>×</button>
+    </div>
+  );
+}
+
 export function Landing() {
   const { user, membership, canArea, licensed, can } = useSession();
   const s = useSummary();
@@ -88,6 +102,7 @@ export function Landing() {
   return (
     <div>
       <PageHeader title={`G'day, ${user?.name?.split(' ')[0] || ''}`} sub={membership?.tenant_name} />
+      <UpdatedNotice />
       <RequestNotice />
       <SetupChecklist />
       {type !== 'engine_shop' && <AnalyticsKpis />}

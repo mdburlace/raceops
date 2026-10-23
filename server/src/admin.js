@@ -1,4 +1,5 @@
 // Global (platform) administration: licences, plans, users, shared directory, pick-lists and system settings.
+import { cleanRepoUrl } from '../../shared/releases.js';
 import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -347,6 +348,8 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
     const cur = settings().general;
     need(!b.default_plan || settings().plans[b.default_plan], 400, 'Unknown plan');
     const a = b.announcement || cur.announcement;
+    const repo = String(b.release_repo_url ?? cur.release_repo_url ?? '').trim();
+    need(!repo || cleanRepoUrl(repo), 400, 'The code repository must be a GitHub address, e.g. https://github.com/your-name/raceops');
     const general = {
       app_name: String(b.app_name ?? cur.app_name).trim().slice(0, 40) || DEFAULT_GENERAL.app_name,
       default_plan: b.default_plan || cur.default_plan,
@@ -355,6 +358,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
       support_email: String(b.support_email ?? cur.support_email).trim().slice(0, 120),
       announcement: { text: String(a.text || '').slice(0, 500), level: ANNOUNCE_LEVELS[a.level] ? a.level : 'info', until: dateOrNull(a.until) },
       deleted_retention_days: cur.deleted_retention_days, // changed on Platform admin → Recently deleted
+      release_repo_url: cleanRepoUrl(repo),
     };
     await saveSetting('general', general, req.user.id);
     await audit(req.user.id, 'settings.general', null, general);

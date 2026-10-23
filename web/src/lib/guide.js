@@ -70,3 +70,6 @@ export function renderArticle(a) {
   const parts = expandEmbeds(a.body).split(/^\{\{([a-z-]+)\}\}\s*$/m);
   return parts.map((p, i) => (i % 2 ? { app: p } : { html: marked.parse(p, { renderer }) })).filter((p) => p.app || p.html.trim());
 }
+
+/** Markdown → HTML with the guide's look (tables, pictures, heading anchors). */
+export const renderMarkdown = (md) => marked.parse(String(md || ''), { renderer });

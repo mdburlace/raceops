@@ -280,7 +280,7 @@ Platform admins get a **Platform admin** area (sidebar, home tile and an **Admin
 | **Users** | Every account with its teams and last sign-in. Edit name or email, **reset password** (shows a one-time temporary password), make or remove platform admins, **disable** an account (signs it out everywhere), and remove someone from a team. |
 | **Tracks & directory** | Track counts by country and status, data gaps, shared contacts and suppliers. Import, **export all tracks as JSON**, or re-apply the bundled list. |
 | **Pick-lists** | The standard choices every team sees: track conditions, car behaviour, contact roles, supplier categories and race classes. Add, remove, reorder or paste a list; restore the default at any time. |
-| **Settings** | App name (shown in the menu and browser tab), support email, invite link lifetime, default plan and seats for new teams, and an **announcement banner** for all users (Information / Warning / Critical, with an optional end date). |
+| **Settings** | App name (shown in the menu and browser tab), support email, invite link lifetime, the **Code repository** the release notes link to (a GitHub address, optional), default plan and seats for new teams, and an **announcement banner** for all users (Information / Warning / Critical, with an optional end date). |
 | **System & activity** | Version, uptime, database size, uploads, migrations, record counts, a button to re-check base forms for every team, and the full **admin audit log**. |
 
 How licences are enforced:
