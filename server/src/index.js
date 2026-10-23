@@ -28,6 +28,7 @@ import { mountCalendarPlus, mountPublicShared, startFeedChecks } from './calenda
 import { mountJobs } from './jobs.js';
 import { convertLegacySuggestions, mountCalendarRequests, pendingRequests } from './calendarRequests.js';
 import { feedbackNotices, mountFeedback } from './feedback.js';
+import { mountPractice } from './practice.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads');
@@ -444,6 +445,7 @@ mountCalendar(T);
 mountCalendarRequests(T);
 mountCalendarPlus(T);
 mountJobs(T);
+mountPractice(T);
 
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {

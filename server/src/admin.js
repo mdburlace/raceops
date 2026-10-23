@@ -14,6 +14,7 @@ import { mountAiAdmin } from './ai.js';
 import { mountCalendarAdmin } from './calendar.js';
 import { mountCalendarRequestsAdmin, syncEvents, updateRecord } from './calendarRequests.js';
 import { mountFeedbackAdmin } from './feedback.js';
+import { makePractice } from './practice.js';
 import { mountCalendarPlusAdmin } from './calendarPlus.js';
 import { fetchCalendar } from './calendar.js';
 import { TEAM_TYPES } from '../../shared/shop.js';
@@ -70,8 +71,10 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
     const out = await tx(async (c) => {
       const t = await createTenant(c, String(b.name).trim(), join ? req.user.id : null, {
         plan: b.plan, seats: intOrNull(b.seats), licence_expires: dateOrNull(b.licence_expires), status: TEAM_STATUS[b.status] ? b.status : 'active',
-        team_type: b.team_type,
+        // a practice team races and builds engines, so every training exercise works in it
+        team_type: b.team_type || (b.practice ? 'both' : undefined),
       });
+      if (b.practice) t.practice_records = await makePractice(c, t.id, req.user.id);
       let invite = null;
       if (owner) {
         const days = Math.max(1, Number(settings().general.invite_days) || 14);
@@ -82,7 +85,7 @@ export function mountAdmin(app, { createTenant, importTracks, ensureBaseForms, e
       }
       return { ...t, invite };
     });
-    await audit(req.user.id, 'team.create', out.name, { id: out.id, plan: out.plan, owner_email: owner || null });
+    await audit(req.user.id, 'team.create', out.name, { id: out.id, plan: out.plan, owner_email: owner || null, practice: !!b.practice });
     res.json(out);
   }));
 

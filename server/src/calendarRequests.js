@@ -441,6 +441,9 @@ export function mountCalendarRequests(T) {
 
   T.post('/calendar/requests', h(async (req, res) => {
     need(canSend(req), 403, 'Your role can’t send to the shared calendars.');
+    // practice teams train on demo data, which must never reach every team's shared calendars
+    const { rows: [tm] } = await q('SELECT settings FROM tenants WHERE id=$1', [req.tid]);
+    need(!tm?.settings?.practice, 400, 'This is a practice team, so it can’t send to the shared calendars. Everything else works as normal.');
     const r = await buildRequest(req, req.body || {});
     const { rows: [row] } = await q(`INSERT INTO calendar_requests(tenant_id,user_id,kind,subject_type,subject_id,title,payload,note)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, [req.tid, req.user.id, r.kind, r.subject_type, r.subject_id, r.title, JSON.stringify(r.payload), r.note]);

@@ -464,7 +464,13 @@ Each plan has an optional **Shared engines** limit (Platform admin → Plans): h
 
 Each person sees the articles that fit their role and team type; **Show everything** lists the rest. A **?** beside page titles opens the article for that page. **Print / PDF** prints the whole guide with a contents page. Owners and team admins see a **Set up your team** checklist on Home that ticks itself off from the team's data.
 
-Articles are Markdown files in `docs/guide/`. `tools/check-guide.mjs` runs before every web build and fails it when a page, setting, record type, module, role or form field isn't documented. `tools/guide_shots.py` retakes the guide's screenshots from a test server. See `CLAUDE.md` for the checklist every change follows.
+### Training
+
+**Help & guide → Training** is a training pack for rolling RaceOps out to a team: a quick start, exercises for each role with checks of understanding and a sign-off task, printable quick reference cards, short videos, and a trainer's guide with a four-week rollout plan and session plans.
+
+Trainees practise on a **practice team**: a platform admin ticks **Practice team** under **Platform admin → Teams & licences → Create a team**, and it comes loaded with demo cars, parts, setup sheets, a season of results, maintenance schedules and an engine shop job. Its owner can **Reset practice data** (Team Management → Members & invites) between groups. Practice teams can't send requests to the shared calendars.
+
+Articles are Markdown files in `docs/guide/`. `tools/check-guide.mjs` runs before every web build and fails it when a page, setting, record type, module, role or form field isn't documented. `tools/guide_shots.py` retakes the guide's screenshots from a test server, and `tools/training_videos.py` re-records the training videos (needs ffmpeg). See `CLAUDE.md` for the checklist every change follows.
 
 ### Teams, roles and permissions
 
@@ -511,7 +517,7 @@ shared/       catalog.js (modules, permissions, default roles) · baseForms.js (
 server/       Express API · migrations/*.sql (auto-applied) · src/index.js (auth, teams, roles, invites, sync, attachments)
 web/          React PWA · lib/store.js (IndexedDB) · lib/sync.js (push/pull) · components/FormRenderer.jsx · pages/*
 docs/guide/   User guide articles (Markdown) and img/ screenshots, bundled into the app
-tools/        check-guide.mjs (build-time guide check) · guide_shots.py (retake guide screenshots)
+tools/        check-guide.mjs (build-time guide check) · guide_shots.py (retake guide screenshots) · training_videos.py (record training videos)
 CLAUDE.md     What every change must update, including the user guide
 ```
 

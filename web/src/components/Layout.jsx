@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useSession } from '../lib/session.jsx';
 import { SyncBadge, useHeightVar } from './ui.jsx';
 import { teamType } from '@shared/shop.js';
@@ -119,7 +119,7 @@ export function useNav() {
 }
 
 function Banners() {
-  const { platform, licence, user } = useSession();
+  const { platform, licence, user, membership } = useSession();
   const a = platform?.announcement;
   const key = a ? `raceops.ann.${a.text}` : '';
   const [hidden, setHidden] = useState(() => { try { return !!(key && localStorage.getItem(key)); } catch { return false; } });
@@ -134,6 +134,11 @@ function Banners() {
         </div>
       )}
       {licence === 'suspended' && <div className="banner banner-critical" role="alert"><span className="grow">This team is suspended. Only platform admins can open it.</span></div>}
+      {membership?.settings?.practice && (
+        <div className="banner banner-info practice-banner" role="status" data-testid="practice-banner">
+          <span className="grow"><b>Practice team</b> — for training, with demo data. Try anything: the owner can reset it. <Link to="/help/training">Training exercises</Link></span>
+        </div>
+      )}
       {a && !hidden && (
         <div className={`banner banner-${a.level}`} role="status">
           <span className="grow">{a.text}</span>

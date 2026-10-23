@@ -29,3 +29,9 @@ Your plan may limit seats: members plus pending invites. The **Licence** card on
 Under **Members**, change the role beside a person, or press **Remove**. **Leave** takes you off the team yourself. Only owners can make someone an owner or change an owner, and a team always keeps at least one owner.
 
 **Who can do this:** the owner, or a role with **Invite & manage members**.
+
+## Practice team
+
+On a practice team (one created for [training](/help/training)), this page also has a **Practice team** box. **Reset practice data** puts the demo data back as it started: everything trainees added or changed is removed. Forms and roles you changed are kept.
+
+**Who can do this:** the owner, or a role with **Edit team settings**.

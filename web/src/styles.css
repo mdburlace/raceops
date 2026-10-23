@@ -1497,3 +1497,17 @@ a.sc-label { color: inherit; font-weight: 600; }
 .fx-editor-head .row-actions { margin: 0; }
 .top-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .qe-head h3 { font-size: 14px; }
+.banner-info { background: var(--info-soft); color: var(--info); }
+.practice-banner a { color: inherit; font-weight: 600; text-decoration: underline; }
+.guide-video { margin: 12px 0; }
+.guide-video video { width: 100%; max-width: 860px; border-radius: 10px; border: 1px solid var(--line); background: #000; }
+.guide-video figcaption { font-size: 13px; color: var(--muted); margin-top: 4px; }
+/* quick reference cards: each "##" card on its own page, boxed */
+.print-cards .hp-only-title { display: none; }
+.print-cards .md h2 { border: 2px solid var(--ink); border-radius: 10px 10px 0 0; padding: 10px 14px; margin: 0; background: var(--ink); color: var(--surface); font-size: 20px; }
+.print-cards .md h2 ~ * { margin-left: 4px; margin-right: 4px; }
+.print-cards .md > p:first-child { display: none; }
+@media print {
+  .print-cards .md h2 { page-break-before: always; break-before: page; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-cards .md h2:first-of-type { page-break-before: auto; break-before: auto; }
+}

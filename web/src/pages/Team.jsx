@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Empty, PageHeader, Section, useOnline } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { fmtDate, fmtDateTime } from '../lib/data.js';
@@ -20,6 +20,25 @@ export function useLoad(fn, deps) {
   const reload = () => fn().then((data) => setState({ data, err: '' })).catch((e) => setState({ data: null, err: e.message }));
   useEffect(() => { reload(); }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   return [state, reload];
+}
+
+/** A practice team: what it's for, and putting the demo data back. */
+function PracticeReset({ canReset }) {
+  const { tid } = useSession();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const reset = async () => {
+    if (!window.confirm('Reset the practice team? Everything added or changed here is removed and the demo data comes back.')) return;
+    setBusy(true); setMsg(null);
+    try { await api(`/t/${tid}/practice/reset`, { method: 'POST' }); await syncNow(); setMsg({ ok: true, text: 'Practice data reset.' }); } catch (e) { setMsg({ ok: false, text: e.message }); } finally { setBusy(false); }
+  };
+  return (
+    <Section title="Practice team">
+      <p>This team is for training. It comes with demo cars, setup sheets, parts, maintenance schedules and an engine shop job, used by the exercises in <Link to="/help/training">Training</Link>.</p>
+      {msg && <div className={`notice small ${msg.ok ? 'info' : 'error'}`} role="status">{msg.text}</div>}
+      {canReset && <button type="button" className="btn ghost danger" disabled={busy} onClick={reset}>{busy ? 'Resetting…' : 'Reset practice data'}</button>}
+    </Section>
+  );
 }
 
 export function Team() {
@@ -55,6 +74,7 @@ export function Team() {
         </Section>
         <TeamAiSection Section={Section} />
         <ShopSettings />
+        {membership?.settings?.practice && <PracticeReset canReset={can('team.manage') || !!user?.is_platform_admin} />}
         {can('team.manage') && (
           <Section title="Team settings">
             <div className="inline-row">

@@ -137,6 +137,22 @@ export function HelpPrint() {
     ? <p key={i} className="muted small">The live “Set up your team” checklist is on Home in the app.</p>
     // eslint-disable-next-line react/no-danger
     : <div key={i} className="md" dangerouslySetInnerHTML={{ __html: p.html.replace(/href="\/help\/([a-z0-9-]+)"/g, 'href="#g-$1"') }} />));
+  // ?ids=a,b prints just those articles (e.g. the quick reference cards, one card per page)
+  const ids = (params.get('ids') || '').split(',').map((x) => x.trim()).filter((x) => ARTICLE[x]);
+  if (ids.length) {
+    const only = ids.map((x) => ARTICLE[x]);
+    return (
+      <div className={`print-page help-print${ids.includes('training-cards') ? ' print-cards' : ''}`}>
+        <div className="print-tools no-print">
+          <button type="button" className="btn ghost" onClick={() => nav(-1)}>‹ Back</button>
+          <button type="button" className="btn primary" onClick={() => window.print()}>Print / save as PDF</button>
+        </div>
+        <article className="print-sheet">
+          {only.map((a) => <section key={a.id} id={`g-${a.id}`} className="hp-article hp-first"><h2 className="hp-only-title">{a.title}</h2>{body(a)}</section>)}
+        </article>
+      </div>
+    );
+  }
   return (
     <div className="print-page help-print">
       <div className="print-tools no-print">

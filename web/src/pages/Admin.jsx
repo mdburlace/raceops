@@ -262,7 +262,7 @@ function TeamEditor({ t, plans, onSaved, onDeleted }) {
 
 function CreateTeam({ plans, onCreated }) {
   const { refresh } = useSession();
-  const blank = { name: '', plan: '', seats: '', licence_expires: '', status: 'active', owner_email: '', join: true, team_type: 'race' };
+  const blank = { name: '', plan: '', seats: '', licence_expires: '', status: 'active', owner_email: '', join: true, team_type: 'race', practice: false };
   const [f, setF] = useState(blank);
   const [invite, setInvite] = useState(null);
   const [act, box] = useAct();
@@ -306,6 +306,10 @@ function CreateTeam({ plans, onCreated }) {
             </select></div>
           <div className="field"><label htmlFor="nt-owner">Owner’s email</label><input id="nt-owner" type="email" placeholder="Optional — creates an owner invite link" value={f.owner_email} onChange={(e) => set('owner_email', e.target.value)} /></div>
         </div>
+        <label className="check-row" data-testid="nt-practice">
+          <input type="checkbox" checked={f.practice} onChange={(e) => setF((x) => ({ ...x, practice: e.target.checked, team_type: e.target.checked ? 'both' : x.team_type, name: e.target.checked && !x.name ? 'Practice team' : x.name }))} />
+          Practice team — loaded with demo cars, setups, parts and a shop job, for training. Its owner can reset it at any time.
+        </label>
         <div className="inline-row end">
           {f.owner_email && (
             <label className="toggle small"><input type="checkbox" checked={f.join} onChange={(e) => set('join', e.target.checked)} /><span>Also add me as an owner</span></label>

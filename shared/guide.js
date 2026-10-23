@@ -19,6 +19,7 @@
 
 export const SECTIONS = [
   { key: 'start', label: 'Getting started', blurb: 'Setting RaceOps up for a new team, in order.' },
+  { key: 'training', label: 'Training', blurb: 'Learn RaceOps hands-on: quick start, exercises for each role in a practice team, reference cards and short videos.' },
   { key: 'roles', label: 'Guides by role', blurb: 'How to do your job in RaceOps, role by role.' },
   { key: 'settings', label: 'Settings & options', blurb: 'Every switch and option: where it is, who can change it and what it does.' },
   { key: 'track', label: 'At the track', blurb: 'Events, setup sheets, weather, fuel, the advisor and checks.' },
@@ -137,7 +138,8 @@ export function excerpt(body, q, len = 160) {
 /** Internal links in an article body: /help/<id>. */
 export const helpLinks = (body) => [...body.matchAll(/\]\(\/help\/([a-z0-9-]+)(?:#[^)]*)?\)/g)].map((m) => m[1]);
 /** Images in an article body: img/<file>. */
-export const helpImages = (body) => [...body.matchAll(/!\[[^\]]*\]\((img\/[^)\s]+)\)/g)].map((m) => m[1]);
+/** Pictures and videos an article uses: ![…](img/x.webp) and ![Video: …](video/x.webm). */
+export const helpImages = (body) => [...body.matchAll(/!\[[^\]]*\]\(((?:img|video)\/[^)\s]+)\)/g)].map((m) => m[1]);
 /** Live blocks drawn by the app itself rather than as Markdown (e.g. the interactive setup checklist). */
 export const APP_EMBEDS = ['checklist'];
 /** Live tables: {{name}} on a line of its own, filled from the app's own data (see EMBEDS in guideData.js). */

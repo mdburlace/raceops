@@ -14,6 +14,9 @@ const base = (p) => p.split('/').pop();
 export const ARTICLES = loadArticles(Object.fromEntries(Object.entries(raw).map(([p, s]) => [base(p), s])));
 export const ARTICLE = Object.fromEntries(ARTICLES.map((a) => [a.id, a]));
 const IMG = Object.fromEntries(Object.entries(imgs).map(([p, u]) => [`img/${base(p)}`, u]));
+// training videos: loaded when played (not stored for offline use — they're large)
+const vids = import.meta.glob('@docs/guide/video/*', { query: '?url', import: 'default', eager: true });
+const VID = Object.fromEntries(Object.entries(vids).map(([p, u]) => [`video/${base(p)}`, u]));
 
 /** Who's reading: the role, rights and team type the guide filters by. */
 export function useGuideCtx() {
@@ -45,7 +48,9 @@ export function rolesFor(ctx, all) {
 
 marked.use({ gfm: true, breaks: false });
 const renderer = new marked.Renderer();
-renderer.image = ({ href, text }) => `<img src="${IMG[href] || href}" alt="${text || ''}" loading="lazy" />`;
+renderer.image = ({ href, text }) => (/\.(webm|mp4)$/i.test(href)
+  ? `<figure class="guide-video"><video src="${VID[href] || href}" controls preload="none" playsinline${(() => { const p = IMG[href.replace(/^video\//, 'img/').replace(/\.(webm|mp4)$/i, '.webp')]; return p ? ` poster="${p}"` : ''; })()}></video><figcaption>${text || ''}</figcaption></figure>`
+  : `<img src="${IMG[href] || href}" alt="${text || ''}" loading="lazy" />`);
 const attr = (html) => html.replace(/<[^>]+>/g, '').replace(/"/g, '&quot;');
 // tables: each cell carries its column name, so on a phone the rows stack as labelled cards
 renderer.table = function table(t) {

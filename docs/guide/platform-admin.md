@@ -14,7 +14,7 @@ Platform admins run the RaceOps server for every team. The first account created
 | Page | What it's for |
 |---|---|
 | **Overview** | Teams by licence status, users, seats in use, licences per plan, teams needing attention, and recent admin activity. |
-| **Teams & licences** | Create a team, optionally with an owner invite link for someone else. Per team: name, team type, plan, status (Active / Trial / Suspended), seats, licence end date, notes and feature overrides. **Join & open** a team to support it. Delete a team (you type its name to confirm). |
+| **Teams & licences** | Create a team, optionally with an owner invite link for someone else. Tick **Practice team** to load it with demo data for [training](/help/training). Per team: name, team type, plan, status (Active / Trial / Suspended), seats, licence end date, notes and feature overrides. **Join & open** a team to support it. Delete a team (you type its name to confirm). |
 | **Plans & allocation** | What each plan includes, seats per team, licences to allocate, a price note, and the **Shared engines** limit for engine shops. Add plans, remove unused ones, or restore a built-in plan. |
 | **Users** | Every account, its teams and last sign-in. Edit name or email, **reset password** (shows a one-time temporary password), make admins, **disable** an account, and remove someone from a team. |
 | **Tracks & directory** | Track counts and gaps, shared contacts and suppliers. Import tracks, export all as JSON, or re-apply the bundled list. |

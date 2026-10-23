@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `014_feedback.sql` |
-| Last updated | October 2026 (no-store API responses, Repair this device) |
+| Last updated | October 2026 (training pack: practice teams, exercises, cards, videos; Repair this device) |
 
 ---
 
@@ -155,6 +155,7 @@ server/
   src/calendarPlus.js     follows, notices, officials, feeds, merge, history, public shared pages, mail status
   src/mail.js             SMTP email (nodemailer), admin, team and single-user recipients
   src/feedback.js         feedback & ideas: bug reports, requests, roadmap and votes, admin pipeline, GitHub issues for Claude
+  src/practice.js         practice teams for training: seed demo data, reset
 shared/                   code used by server AND web
   catalog.js              areas, modules, record types, permissions, plans, default roles
   platform.js             default platform settings, plans merge, licence state, AI models and prices, pick-lists
@@ -162,6 +163,7 @@ shared/                   code used by server AND web
   fieldInfo.js            ⓘ descriptions for every form field
   calcs.js, gearLists.js, fuel.js, dyno.js, bars.js, sessions.js, analytics.js, advisor.js, weather.js, tracks.js,
   engineChecks.js, enginePack.js, shop.js, setupLayout.js, themes.js, calendar.js
+  practiceData.js         demo data for practice teams (training)
   guide.js, guideData.js, guideChecklist.js   user guide parser, generated tables, first-run checklist
   seed/tracks.json, track_updates.json, guides.json   seed data for the shared directory
 tests/
@@ -171,6 +173,7 @@ tools/
   check-design.mjs        design document coverage check (runs in the build)
   guide-baseline.json     baseline for the guide check
   guide_shots.py          retakes guide screenshots against a test server
+  training_videos.py      records the training videos (docs/guide/video/*.webm) against a test server
 web/
   index.html, vite.config.js, public/ (icons)
   src/main.jsx, App.jsx   entry and routes
@@ -451,6 +454,7 @@ Conventions:
 | `calendarPlus.js` | `/api/public/shared/:type/:id(.ics)`, `/api/t/:tid/notices…`, officials, request replies, admin officials/ask/duplicates/merge/history/feeds/mail | calendar extras (§12) |
 | `mail.js` | — | `sendMail`, `mailAdmins`, `mailTeam`, `mailUser` |
 | `feedback.js` | `/api/feedback/*` (any signed-in user), `/api/admin/feedback/*` | feedback & ideas (§11.1) |
+| `practice.js` | `/api/t/:tid/practice/reset`; `makePractice()` called from `POST /api/admin/tenants` | practice teams (§11.2) |
 
 The full route list is in [Appendix D](#appendix-d--api-routes).
 
@@ -491,6 +495,15 @@ Not team data, so it lives in its own tables (§6.1), not in `records`, and is o
 - **Platform admins** (`/admin/feedback`): capture ideas (`source='admin'`, `status='draft'`), edit any item (kind, priority, description, acceptance criteria, functionality areas, public flag and roadmap summary), and decide: approve into a lane (`now` = action now, `next`/`later` = roadmap; non-bug items default to public), decline (note required), mark duplicate (the submitter's vote moves to the original), ask the submitter, move lane, start, done (with release), reopen. Every decision is audited and the submitter is told in the app and by email (`mailUser`). New items and answers email the admins. `notices.feedback_new` counts the inbox.
 - **Functionality areas** (`FEATURE_AREAS`): the four areas, every module from the catalogue, and app-wide parts (forms, sync, accounts, licensing, platform admin, navigation, appearance, guide, calculators, weather, import, email, feedback, deployment), each with the code files it lives in. `areaForPage()` links a report to an area from the page it was sent from.
 - **Send to Claude**: the web app builds a Markdown brief (`buildBrief`): item details, discussion, areas with their code files, related guide articles (matched by `covers: module:…` and `pages:`), and the `CLAUDE.md` rules (guide, design documents, e2e tests, backward compatibility). The admin can edit it, then either create a GitHub issue (`POST /repos/{GITHUB_REPO}/issues` with labels from `GITHUB_ISSUE_LABELS` and a `CLAUDE_MENTION` line asking Claude to action it and open a pull request — the Claude Code GitHub Action picks it up), post an updated brief as an issue comment, or copy/download it and **Mark as sent**. Either way the item moves to `in_progress`. **Check GitHub** reads the issue's state.
+
+### 11.2 Practice teams and the training pack (`server/src/practice.js`, `shared/practiceData.js`)
+
+- A practice team is an ordinary tenant with `tenants.settings.practice = true` and team type `both`. A platform admin creates one by ticking **Practice team** on **Create a team** (`POST /api/admin/tenants` with `practice: true`); the server calls `makePractice()`, which sets the flag and seeds it in the same transaction. The audit entry records `practice`.
+- `practiceData({ form, today, uuid })` returns the demo records (cars, engines, shocks, bars, wheels, wings, tyres, a contact and supplier, the *Club Championship* series with eight past rounds and two setup sheets each, tonight's event with a Heat 1 sheet and a between-round check, next week's round 9, three schedules, a weekly maintenance, an engine build, and an engine shop customer, engine and job J-1001). Dates are relative to `today`, so the data always looks current. `seedPractice()` maps each record to the team's form for its type and writes record history.
+- `POST /api/t/:tid/practice/reset` (owner, `team.manage` or platform admin; practice teams only, else 400) soft-deletes every record except `form` and `gear_list` (bumping `seq`, so devices drop them on sync), deletes the team's calendar requests and team notices, and re-seeds. Forms and roles are kept.
+- Practice teams can't send calendar requests (`calendarRequests.js` returns 400), so trainees never reach the shared-calendar admins.
+- Web: a **Practice team** banner in `Layout` (links to `/help/training`), and a **Practice team** box with **Reset practice data** on the Team page.
+- The training pack itself is guide content (`section: training`: `training*.md`): start page, quick start, trainer's guide and rollout plan, quick reference cards (printed with `/print/guide?ids=training-cards`, one card per page), and exercises per role with "Check yourself" questions and sign-off tasks. Videos are WebM files in `docs/guide/video/`, embedded as `![…](video/<name>.webm)` and rendered as `<video>` with the poster `img/<name>.webp`; they are made by `tools/training_videos.py` (Playwright recording with a caption bar and pointer, re-encoded with ffmpeg to VP9) and are not precached by the PWA (online only).
 
 **Team types** (`shared/shop.js TEAM_TYPES`): `race`, `shop`, `both`. They change navigation and checklists, not permissions.
 
@@ -553,7 +566,7 @@ The largest cross-team workflow. Shared (global) `series` and `fixture` records 
 - **Layout:** sidebar grouped by area (collapsible, per-user), badges (calendar requests/updates, admin queue), sync badge, announcement banner, mobile bottom bar. Each page header has a **?** linking to the guide article for that route.
 - **PWA** (`vite.config.js`): `registerType: autoUpdate`; precaches JS, CSS, HTML, images and fonts (including guide images, so Help works offline); navigation fallback `index.html`, never for `/api/`.
 - **Theming:** CSS custom properties on `:root`, light/dark and custom themes from `shared/themes.js`, stored in `users.prefs`.
-- **Printing:** dedicated routes (`/print/calendar`, `/print/guide`, `/print/job/:id`) with print CSS.
+- **Printing:** dedicated routes (`/print/calendar`, `/print/guide` (optionally `?ids=a,b` for chosen articles), `/print/job/:id`) with print CSS.
 
 ---
 
@@ -604,7 +617,8 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 - `shared/guide.js` parses articles; the web app bundles them (`@docs` alias) and shows them at `/help`, with search, role filtering, the **?** link per page and `{{embed}}` tables generated from code (`EMBEDS` in `shared/guideData.js`: roles, permissions, plans, settings, calculators, themes, shock adjusters).
 - `shared/guideData.js SETTINGS` lists every setting; `shared/guideChecklist.js CHECKLIST` is the first-run checklist on Home.
 - `tools/check-guide.mjs` fails the build if any page, record type, module, licence feature, admin right, team type, built-in role, setting read in the code, link, image or field description is undocumented.
-- Screenshots: `tools/guide_shots.py` against a test server.
+- Screenshots: `tools/guide_shots.py` against a test server. Videos: `tools/training_videos.py` (needs ffmpeg), into `docs/guide/video/` with posters in `docs/guide/img/`.
+- `helpImages` collects `img/…` and `video/…` references; the check fails if a referenced file is missing.
 
 ---
 
@@ -615,7 +629,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 | Guide coverage | `node tools/check-guide.mjs` | in `npm run build` (and so in `docker build`) |
 | Design document coverage | `node tools/check-design.mjs` | in `npm run build` |
 | Web build | `cd web && npm run build` | Vite production build |
-| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e29.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=…`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
+| End-to-end tests | `tests/e2e/run.sh` (suites `e2e.py` … `e2e34.py`) | `tests/e2e/server.sh` recreates the test database and starts the server with `AI_PROVIDER=mock WEATHER_PROVIDER=mock CALENDAR_FETCH_PRIVATE=1 CALENDAR_FEED_HOURS=0 MAIL_TRANSPORT=file MAIL_OUTBOX=… APP_URL=…`, then creates the first user `owner@test.com` through `/api/setup`; suites run in order and build on each other (see `tests/e2e/README.md`) |
 | Dependency audit | `npm audit` (server and web) | before each release |
 
 Local development: Postgres on `localhost:5432` (db/user `raceops`), `cd server && npm i && node src/index.js`, `cd web && npm i && npm run dev` (Vite proxies `/api` to `:8080`).
@@ -787,7 +801,7 @@ Public: `GET /api/health`, `POST /api/device/clear-cache`, `GET /api/status`, `P
 
 Signed in: `GET|PATCH /api/me`; feedback `GET /api/feedback/mine|roadmap|similar`, `POST /api/feedback`, `POST /api/feedback/seen`, `POST /api/feedback/:id/files|reply|withdraw|vote`, `GET /api/feedback/files/:fid`.
 
-Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `PATCH|DELETE /roles/:id`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
+Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `PATCH|DELETE /roles/:id`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; practice `POST /practice/reset`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
 
 Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tracks/export|import|reseed`, `settings`, `settings/general`, `settings/lists/:key`, `overview`, `audit`, `system`, `system/upgrade-forms`, `ai`, `ai/test`, `calendar/data`, `calendar/fixtures/:id`, `calendar/series/:id`, `calendar/requests[/:id/decide|ask]`, `calendar/officials[/:id]`, `calendar/duplicates`, `calendar/merge`, `calendar/history/:id[/restore]`, `calendar/feeds[/:id[/check]]`, `mail`, `mail/test`, `feedback` (list by view, create idea), `feedback/:id` (get, patch, delete), `feedback/:id/files|decide|claude|github`.
 
