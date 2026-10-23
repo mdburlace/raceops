@@ -1636,3 +1636,13 @@ a.dl-link:hover { background: var(--surface-2); }
 .role-pick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .role-pick .chip { cursor: pointer; }
 .public-sponsors { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* multi-day events: each day's result */
+.day-result { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.day-result > b { flex: 1 1 100%; }
+.day-result select { width: auto; flex: 0 1 260px; }
+.day-result input { flex: 1 1 220px; width: auto; }
+.day-result textarea { flex: 1 1 100%; min-height: 38px; }
+.day-result select.needs { border-color: var(--warn, #d97706); }
+.days-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.dl-result { font-size: 12px; color: var(--ink-2); }

@@ -298,7 +298,8 @@ function FixtureMoved({ ev, fx, changes, data }) {
 export function EntryResult({ ev, compact, past: pastIn }) {
   const { tid, user, canType } = useSession();
   const x = vals(ev);
-  const past = pastIn ?? (x.date || '') <= today();
+  // an event with a result already (e.g. worked out from its first days) shows it, even before its last day
+  const past = pastIn ?? ((x.date || '') <= today() || !!x.outcome);
   const canEdit = canType('event', 'edit');
   const set = (patch) => saveRecord(tid, 'event', ev.id, { ...ev.data, values: { ...x, ...patch } }, user.id);
   const st = entryStatus(x, today());
@@ -312,7 +313,7 @@ export function EntryResult({ ev, compact, past: pastIn }) {
         </select>
       )}
       {past && x.intent !== 'Not going' && (
-        <select aria-label={`What happened at ${name}`} className={x.outcome ? '' : 'needs'} value={x.outcome || ''} onChange={(e) => set({ outcome: e.target.value })}>
+        <select aria-label={`What happened at ${name}`} className={x.outcome ? '' : 'needs'} value={x.outcome || ''} onChange={(e) => set({ outcome: e.target.value, outcome_auto: false })}>
           <option value="">What happened?</option>
           {OUTCOMES.map((o) => <option key={o}>{o}</option>)}
         </select>

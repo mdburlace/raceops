@@ -147,13 +147,13 @@ After the meeting, choose **What happened**:
 | Did not attend | You planned to go but didn't. |
 | Event cancelled | The meeting didn't run (rain-out, for example). |
 
-The same controls are on each event's page under **Plan & result**. Open **Edit event** to add **Withdrew after** (the last session run), **Result notes** and a **Note on the public calendar**.
+The same controls are on each event's page under **Plan & result**. A meeting over more than one day also has **what happened** for each day, and its overall result is worked out from them until you pick one — see [Multi-day events](/help/events-sessions#multi-day-events). Open **Edit event** to add **Withdrew after** (the last session run), **Result notes** and a **Note on the public calendar**.
 
 The boxes at the top add up the year: meetings planned, meetings you ran, feature starts, and withdrawals with their reasons.
 
 **List** shows the year as a list with the controls. **Month** shows each month as a grid with your race days marked. Your choice is remembered for you.
 
-A meeting over more than one day is one entry, marked **2 days** (or however many). Under it is a line for each day: its date, its name (or *Day 1 of 2*), its start time, and **Rained out** or **Cancelled** if it didn't run. A line down the left joins the days to their event. Tap a day's line to open the event on that day. The month grid marks only the days it runs, and a rained-out or cancelled day is crossed out. Tap a day there to open it too. See [Multi-day events](/help/events-sessions#multi-day-events).
+A meeting over more than one day is one entry, marked **2 days** (or however many). Under it is a line for each day: its date, its name (or *Day 1 of 2*), its start time, **Rained out** or **Cancelled** if it didn't run, and what happened that day once it's recorded. A line down the left joins the days to their event. Tap a day's line to open the event on that day. The month grid marks only the days it runs, and a rained-out or cancelled day is crossed out. Tap a day there to open it too. See [Multi-day events](/help/events-sessions#multi-day-events).
 
 ## Sharing with every team
 

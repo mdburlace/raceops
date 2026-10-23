@@ -13,7 +13,7 @@ import crypto from 'node:crypto';
 import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { canType } from '../../shared/catalog.js';
-import { keepUsedDays, moveDays, normaliseDays } from '../../shared/calendar.js';
+import { keepUsedDays, moveDays, normaliseDays, stripDayResults } from '../../shared/calendar.js';
 import { audit } from './settings.js';
 import { notifyFollowers, officialFor, sendAfter } from './calendarPlus.js';
 import { mailAdmins, mailTeam } from './mail.js';
@@ -26,7 +26,8 @@ const tidy = (k, x) => (k === 'results' && Array.isArray(x) ? x.filter((r) => r 
 const pick = (v, keys) => Object.fromEntries(keys.map((k) => [k, tidy(k, v?.[k])]).filter(([, x]) => x !== undefined && x !== null && x !== '' && !(Array.isArray(x) && !x.length)));
 export { pick as pickValues };
 /** A shared date's values: the fields kept, with its days and date span in step (see normaliseDays). */
-export const pickFixture = (v, keys = FIXTURE_KEYS) => normaliseDays(pick(v, keys));
+// a team's own day results never go to a shared date
+export const pickFixture = (v, keys = FIXTURE_KEYS) => stripDayResults(normaliseDays(pick(v, keys)));
 
 export const FIXTURE_KEYS = ['name', 'date', 'end_date', 'multi_day', 'days', 'series', 'round', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes',
   'entries', 'results', 'results_note'];
@@ -536,9 +537,9 @@ export async function convertLegacySuggestions() {
     for (const s of rows) {
       const v = { ...(s.data.values || {}) };
       if (v.review === 'pending') {
-        const values = pick(v, [...FIXTURE_KEYS, 'source']);
+        const values = stripDayResults(pick(v, [...FIXTURE_KEYS, 'source']));
         let req;
-        if (v.replaces) req = { kind: 'change', st: 'fixture', sid: v.replaces, title: `Change: ${v.name}`, payload: { values: pick(v, FIXTURE_KEYS), current: {} } };
+        if (v.replaces) req = { kind: 'change', st: 'fixture', sid: v.replaces, title: `Change: ${v.name}`, payload: { values: stripDayResults(pick(v, FIXTURE_KEYS)), current: {} } };
         else {
           const { rows: [ev] } = await c.query(`SELECT id FROM records WHERE tenant_id=$1 AND type='event' AND NOT deleted AND data->'values'->>'fixture'=$2`, [s.tenant_id, s.id]);
           req = { kind: 'share', st: 'dates', sid: null, title: `Date: ${v.name}`, payload: { series: null, track: null, items: [{ key: s.id, event: ev?.id || null, values }] } };

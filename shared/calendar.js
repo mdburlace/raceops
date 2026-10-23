@@ -151,6 +151,10 @@ export function seasonSummary(entries) {
 export const MAX_DAYS = 14;
 /** A day that didn't run. Anything else (blank) means the day is on. */
 export const DAY_STATUS = ['Rained out', 'Cancelled'];
+/** What happened on one day of a multi-day meeting (the team's own result, never on a shared date). */
+export const DAY_OUTCOMES = ['Raced the feature', 'Did not make the feature', 'Withdrew', 'Did not race'];
+/** A day's result fields: outcome, why we withdrew, the result in a few words ("Prelim feature 5th"), notes. */
+export const DAY_RESULT_KEYS = ['outcome', 'withdraw_reason', 'result', 'notes'];
 export const isIsoDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
 const spanOf = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5) + 1;
 const short = (x, n) => String(x ?? '').trim().slice(0, n);
@@ -162,6 +166,57 @@ function cleanDay(d) {
   if (short(d.label, 60)) out.label = short(d.label, 60);
   if (/^\d{2}:\d{2}$/.test(String(d.time || ''))) out.time = d.time;
   if (DAY_STATUS.includes(d.status)) out.status = d.status;
+  if (DAY_OUTCOMES.includes(d.outcome)) out.outcome = d.outcome;
+  if (out.outcome === 'Withdrew' && short(d.withdraw_reason, 60)) out.withdraw_reason = short(d.withdraw_reason, 60);
+  if (short(d.result, 80)) out.result = short(d.result, 80);
+  if (short(d.notes, 500)) out.notes = short(d.notes, 500);
+  return out;
+}
+
+/** The result fields of a day (empty when it has none). */
+export const dayResult = (d) => Object.fromEntries(DAY_RESULT_KEYS.filter((k) => d?.[k]).map((k) => [k, d[k]]));
+const hasResult = (d) => DAY_RESULT_KEYS.some((k) => d?.[k]);
+
+/** A shared date's days without any team's results (they're private to the team). */
+export function stripDayResults(v) {
+  if (!v || !Array.isArray(v.days)) return v;
+  return { ...v, days: v.days.map((d) => Object.fromEntries(Object.entries(d || {}).filter(([k]) => !DAY_RESULT_KEYS.includes(k)))) };
+}
+
+/**
+ * The overall result of a multi-day meeting from its days' results: raced the feature on any day → Raced the
+ * feature; else withdrew on any day → Withdrew during the event (with that day's reason); else missed the feature
+ * → Did not make the feature; every day that ran "Did not race" → Did not attend; every day off → Event cancelled.
+ * null when no day has a result yet.
+ */
+export function overallFromDays(v) {
+  const days = eventDayList(v);
+  if (days.length < 2) return null;
+  const ran = days.filter((d) => !d.off);
+  if (!ran.length) return { outcome: 'Event cancelled' };
+  const set = ran.filter((d) => d.outcome);
+  if (!set.length) return null;
+  const any = (o) => set.find((d) => d.outcome === o);
+  if (any('Raced the feature')) return { outcome: 'Raced the feature' };
+  const w = any('Withdrew');
+  if (w) return { outcome: WITHDREW, ...(w.withdraw_reason ? { withdraw_reason: w.withdraw_reason } : {}) };
+  if (any('Did not make the feature')) return { outcome: 'Did not make the feature' };
+  if (set.length === ran.length) return { outcome: 'Did not attend' };
+  return null;
+}
+
+/**
+ * Set one day's result, and keep the event's overall result in step while it's the worked-out one
+ * (outcome_auto) or not set yet. A result someone picked for the whole event stays.
+ */
+export function setDayResult(values, n, patch) {
+  const days = eventDayList(values).map(({ off, ...d }) => (d.n === n ? { ...d, ...patch } : d)); // eslint-disable-line no-unused-vars
+  const out = normaliseDays({ ...values, multi_day: true, days });
+  if (!out.outcome || out.outcome_auto) {
+    const o = overallFromDays(out);
+    if (o) { out.outcome = o.outcome; out.outcome_auto = true; if (o.withdraw_reason) out.withdraw_reason = o.withdraw_reason; else if (o.outcome !== WITHDREW) delete out.withdraw_reason; }
+    else if (out.outcome_auto) { delete out.outcome; delete out.outcome_auto; delete out.withdraw_reason; }
+  }
   return out;
 }
 const sortDays = (rows) => rows.slice().sort((a, b) => a.date.localeCompare(b.date) || a.n - b.n);
@@ -309,10 +364,14 @@ export function moveDays(before, after) {
  */
 export function keepUsedDays(teamBefore, next, usedDays) {
   const coming = eventDayList(next);
-  const kept = eventDayList(teamBefore).filter((d) => usedDays.has(d.n) && !coming.some((c) => c.n === d.n));
-  if (!kept.length) return next;
+  const before = eventDayList(teamBefore);
+  const kept = before.filter((d) => (usedDays.has(d.n) || hasResult(d)) && !coming.some((c) => c.n === d.n || c.date === d.date));
+  // each day keeps the team's result for it (matched by day number, or by date when the numbers changed)
+  const resultsFor = (d) => dayResult(before.find((b) => b.n === d.n) || before.find((b) => b.date === d.date));
+  const carried = coming.some((d) => Object.keys(resultsFor(d)).length);
+  if (!kept.length && !carried) return next;
   const strip = ({ off, ...d }) => d; // eslint-disable-line no-unused-vars
-  return normaliseDays({ ...next, multi_day: true, days: [...coming.map(strip), ...kept.map(strip)] });
+  return normaliseDays({ ...next, multi_day: true, days: [...coming.map((d) => ({ ...strip(d), ...resultsFor(d) })), ...kept.map(strip)] });
 }
 
 /** A shared date's or event's iCal entries: one per day for a multi-day meeting (the first keeps the meeting's id). */

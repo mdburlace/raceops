@@ -7,7 +7,7 @@ summary: How to learn RaceOps hands-on — the practice team, the path for your 
 for: everyone
 covers: option:training, option:practice-team, setting:practice
 related: training-quick-start, training-trainers, training-cards
-reviewed: Team roles and the Business area
+reviewed: What happened each day of a multi-day event
 demo: Car 17, Car 71, 410 #3, 2026 v2, RR Penske 8760, Club Championship, Valley Speedway — Club night, Sam Hart, Hart 410, J-1001
 ---
 RaceOps training is hands-on. You learn by doing real jobs on a **practice team** full of demo data, so nothing you try can upset your real team.
