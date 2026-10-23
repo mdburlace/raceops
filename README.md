@@ -10,6 +10,7 @@ The app is organised into four **areas**, each with its own access control and l
 | **In the Workshop** | Car maintenance checklists and service schedules, asset lifecycle and measurements, shock dyno runs and torsion-bar rate tests with overlay graphs |
 | **Engine Builds** | Full build sheet per engine (from *Engine_Buildsheet_v5*): block, bores, crank, cam timing, pistons and rings, heads, valvetrain, fastener torque, with CID, compression ratio and cam calculations |
 | **Team Management** | Cars, members and invites, roles and permissions, forms, season reports (CSV), Crew Chief stats and performance reviews |
+| **Business** | Parts orders with approval, finance (budget, expenses, income, contracts, event profit and loss, accounting export), transport, partnerships and sponsors, marketing, reminders |
 
 The landing page shows the four areas with live status and each area's "Coming next" roadmap. Areas you can't use are shown locked, with the reason: *No access* (your role) or *Not in plan* (your licence).
 
@@ -460,6 +461,7 @@ Each plan has an optional **Shared engines** limit (Platform admin → Plans): h
 - **Series entries** (`season_plan`): series, racing year, car, class, full or partial. A full series adds every round.
 - **Import:** a web page, an iCal/webcal link, a PDF, photo or screenshot, or pasted text. iCal is read directly. Everything else goes to the AI assistant, so it needs the AI add-on. Dates are always shown for review first. Facebook and Instagram links are refused with a request for a screenshot, because they need a login. The server fetches links itself and won't open private network addresses.
 - **Print and publish:** `/print/calendar` prints the year. **Publish** gives a no-login page at `/c/<token>` and an iCal feed at `/api/public/calendar/<token>.ics`. These show only events the team is going to, with optional tentative events, car and results, and never notes or withdraw reasons. If you publish through a reverse proxy, these paths must reach the app like any other.
+- **Business modules** (Finance, Transport, Partnerships, Marketing) are licence features in the built-in Pro plan. A plan you've customised needs them ticked in **Plans & allocation**. Migration 019 gives existing crew-chief roles parts orders with approval and money, and roles that edit maintenance or assets parts orders. Set each team's **Region & currency** (Team → Members & invites) for tax, licence classes and the accounting export.
 - **Access:** the **Calendars** module (`calendar.view/edit/delete`). It needs no area, so any role with `calendar.view` sees it under Team Management, including drivers. Migration 011 gives it to roles with the same rights on Events.
 - **Code:** `shared/calendar.js` (racing years, car matching, iCal in and out), `server/src/calendar.js` (import, publish, admin review), `web/src/pages/Calendar.jsx`.
 
@@ -514,7 +516,7 @@ Articles are Markdown files in `docs/guide/`. `tools/check-guide.mjs` runs befor
 
 - **Multi-team:** one person can belong to several teams and switch between them in the sidebar. Platform admins create more teams under **Platform admin → Teams & licences**.
 - **Invites:** go to **Team → Invite someone** and pick a role. You get a link to send by text or email; it's valid for 14 days (platform admins can change this). Each team's **Licence** card shows its plan, seats and end date. Existing users who open it add the team to their account.
-- **Roles:** Owner, Crew Chief, Mechanic and Driver/Viewer come built in. Under **Roles & permissions** you can create your own and set View / Edit / Delete per area (Cars, Events, Setups, Maintenance, Assets, plus the Phase 2 areas), along with the admin rights: edit forms, manage members, manage roles, and team settings.
+- **Roles:** Owner, Crew Chief, Car Chief, Mechanic, Tire Specialist, Driver, Viewer, Transport, Business Manager, Partnerships Manager and Marketing Manager come built in (older teams: **Add standard roles**). A member can hold more than one role. Part rights let a role edit only some sections of a setup sheet; **See costs, prices and amounts** controls who sees money. Under **Roles & permissions** you can create your own and set View / Edit / Delete per area (Cars, Events, Setups, Maintenance, Assets, plus the Phase 2 areas), along with the admin rights: edit forms, manage members, manage roles, and team settings.
 
 ### Editing forms
 

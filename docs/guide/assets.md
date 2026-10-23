@@ -20,6 +20,10 @@ An asset is any part you want to track: shocks, torsion bars, engines, gears, re
 5. Optionally, add a **parent** (e.g. a gear fitted in a rear end), purchase details, a **life limit** in laps, races or hours, and an **expiry date** (e.g. SFI belts).
 6. Press **Save**.
 
+## Vehicles
+
+The hauler, toterhome, trailer and tow vehicle are assets with the category **Vehicle**. Pick the **Vehicle type**, and set **Registration due** and **Inspection due** — both show in Reminders 30 days before. Give them service schedules like any other asset. See [Transport](/help/transport).
+
 ## Shocks: position and adjustable type
 
 Two shock settings change what setup sheets show:

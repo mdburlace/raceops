@@ -6,7 +6,9 @@ import { fmtDate, fmtDateTime } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { fullResync, getSyncStatus, repairDevice, subscribeSync, syncNow } from '../lib/sync.js';
 import { TeamAiSection } from '../components/Ai.jsx';
-import { ACTIONS, ADMIN_PERMISSIONS, AREAS, MODULES, moduleActions } from '@shared/catalog.js';
+import { ACTIONS, ADMIN_PERMISSIONS, AREAS, MODULES, SPECIAL_PERMISSIONS, MODULE, moduleActions } from '@shared/catalog.js';
+import { CURRENCIES, REGIONS, regionOf } from '@shared/regions.js';
+import { CONNECTORS, FINANCE_CATEGORIES } from '@shared/accounting.js';
 import { Appearance } from '../components/Appearance.jsx';
 import { ShopSettings } from './Shop.jsx';
 
@@ -83,6 +85,7 @@ export function Team() {
             </div>
           </Section>
         )}
+        {can('team.manage') && <RegionSettings />}
         {manage && (
           <Section title="Invite someone">
             <form className="inline-row wrap" onSubmit={(e) => { e.preventDefault(); act(async () => { const r = await api(`/t/${tid}/invites`, { method: 'POST', body: inv }); setInv({ email: '', role_id: inv.role_id }); await reloadInvites(); copy(r.token); }); }}>
@@ -114,10 +117,23 @@ export function Team() {
                 <div key={m.id} className="list-row">
                   <span className="grow"><span className="row-title">{m.name}{m.id === user.id ? ' (you)' : ''}</span><span className="row-sub">{m.email}</span></span>
                   {manage && m.id !== user.id ? (
-                    <select value={m.role_id} onChange={(e) => act(async () => { await api(`/t/${tid}/members/${m.id}`, { method: 'PATCH', body: { role_id: e.target.value } }); reloadMembers(); })}>
-                      {(roles.data || []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                    </select>
-                  ) : <span className="pill pill-info">{m.role_name}</span>}
+                    <span className="role-pick">
+                      <select aria-label={`${m.name}’s main role`} value={m.role_id} onChange={(e) => act(async () => { await api(`/t/${tid}/members/${m.id}`, { method: 'PATCH', body: { role_id: e.target.value } }); reloadMembers(); })}>
+                        {(roles.data || []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      </select>
+                      {(m.extra_role_ids || []).map((rid) => {
+                        const r = (roles.data || []).find((x) => x.id === rid);
+                        return r ? (
+                          <button type="button" key={rid} className="chip" title="Remove this extra role"
+                            onClick={() => act(async () => { await api(`/t/${tid}/members/${m.id}`, { method: 'PATCH', body: { extra_role_ids: m.extra_role_ids.filter((x) => x !== rid) } }); reloadMembers(); })}>+ {r.name} ×</button>
+                        ) : null;
+                      })}
+                      <select aria-label={`Add a role for ${m.name}`} value="" onChange={(e) => e.target.value && act(async () => { await api(`/t/${tid}/members/${m.id}`, { method: 'PATCH', body: { extra_role_ids: [...(m.extra_role_ids || []), e.target.value] } }); reloadMembers(); })}>
+                        <option value="">+ Also…</option>
+                        {(roles.data || []).filter((r) => !r.is_owner && r.id !== m.role_id && !(m.extra_role_ids || []).includes(r.id)).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      </select>
+                    </span>
+                  ) : <span className="pill pill-info">{[m.role_name, ...(m.extra_role_names || [])].join(' + ')}</span>}
                   {(manage || m.id === user.id) && (
                     <button type="button" className="btn small ghost danger" onClick={() => act(async () => {
                       if (!window.confirm(m.id === user.id ? 'Leave this team?' : `Remove ${m.name} from the team?`)) return;
@@ -152,6 +168,14 @@ export function Roles() {
       setEdit({ ...r }); setSaved('Saved — members get the new access next time their app syncs.'); reload();
     } catch (e) { setErr(e.message); }
   };
+  const addStandard = async () => {
+    setErr(''); setSaved('');
+    try {
+      const r = await api(`/t/${tid}/roles/standard`, { method: 'POST' });
+      setSaved(r.added.length ? `Added: ${r.added.join(', ')}.` : 'This team already has every standard role.');
+      reload();
+    } catch (e) { setErr(e.message); }
+  };
   const remove = async () => {
     if (!window.confirm(`Delete role “${edit.name}”?`)) return;
     try { await api(`/t/${tid}/roles/${edit.id}`, { method: 'DELETE' }); setEdit(null); reload(); } catch (e) { setErr(e.message); }
@@ -163,13 +187,15 @@ export function Roles() {
     const [m, a] = p.split('.');
     // edit/delete imply view; removing view removes edit/delete
     if (on && (a === 'edit' || a === 'delete')) perms.add(`${m}.view`);
-    if (!on && a === 'view') { perms.delete(`${m}.edit`); perms.delete(`${m}.delete`); }
+    if (!on && a === 'view') { perms.delete(`${m}.edit`); perms.delete(`${m}.delete`); for (const x of [...perms]) if (x.startsWith(`${m}.part.`)) perms.delete(x); }
     return { ...e, permissions: [...perms] };
   });
 
   return (
     <div>
+      {saved && !edit && <div className="notice info" role="status">{saved}</div>}
       <PageHeader title="Roles & permissions" sub="Decide what each role can see and change">
+        {manage && <button type="button" className="btn" onClick={addStandard} title="Adds the built-in roles this team doesn't have yet">Add standard roles</button>}
         {manage && <button type="button" className="btn primary" onClick={() => { setEdit({ name: '', description: '', permissions: [] }); setSaved(''); }}>New role</button>}
       </PageHeader>
       <OnlineOnly>
@@ -223,6 +249,15 @@ export function Roles() {
                       })}
                     </tbody>
                   </table>
+                  <h4 className="subhead">Other rights</h4>
+                  <p className="muted small">Part rights let a role that can only view setup sheets change just those sections.</p>
+                  {SPECIAL_PERMISSIONS.map((p) => {
+                    const needView = p.module && p.key !== 'purchases.approve' && !has(`${p.module}.view`);
+                    return (
+                      <label key={p.key} className={`toggle block${needView ? ' dim' : ''}`}><input type="checkbox" disabled={!manage || needView} checked={has(p.key)} onChange={(e) => toggle(p.key, e.target.checked)} />
+                        <span>{p.label}{needView ? <small className="muted"> — needs {MODULE[p.module]?.label} → view</small> : null}</span></label>
+                    );
+                  })}
                   <h4 className="subhead">Administration</h4>
                   {ADMIN_PERMISSIONS.map((p) => (
                     <label key={p.key} className="toggle block"><input type="checkbox" disabled={!manage} checked={has(p.key)} onChange={(e) => toggle(p.key, e.target.checked)} /><span>{p.label}</span></label>
@@ -321,5 +356,61 @@ export function Profile() {
       <Appearance />
       <button type="button" className="btn ghost danger" onClick={() => logout()}>Sign out of this device</button>
     </div>
+  );
+}
+
+/** Team → Region & currency: the region pack (tax, licence classes, work-hour rules), currency and accounting codes. */
+function RegionSettings() {
+  const { tid, membership, refresh } = useSession();
+  const st = membership?.settings || {};
+  const [f, setF] = useState(() => ({ region: regionOf(st).key, currency: st.currency || '', tax_rate: st.tax_rate ?? '', entity_name: st.entity_name || '',
+    connector: st.accounting?.connector || '', accounts: st.accounting?.accounts || {} }));
+  const [msg, setMsg] = useState('');
+  const [open, setOpen] = useState(false);
+  const r = REGIONS[f.region];
+  const save = async () => {
+    setMsg('');
+    try {
+      const settings = { ...(membership.settings || {}), region: f.region, currency: f.currency || undefined, tax_rate: f.tax_rate === '' ? undefined : Number(f.tax_rate), entity_name: f.entity_name || undefined,
+        accounting: { connector: f.connector || undefined, accounts: Object.fromEntries(Object.entries(f.accounts).filter(([, x]) => x)) } };
+      await api(`/t/${tid}`, { method: 'PATCH', body: { settings } });
+      await refresh(); setMsg('Saved.');
+    } catch (e) { setMsg(e.message); }
+  };
+  return (
+    <Section title="Region & currency">
+      <div className="field-grid">
+        <div className="field"><label htmlFor="rg-region">Region</label>
+          <select id="rg-region" value={f.region} onChange={(e) => setF({ ...f, region: e.target.value })}>
+            {Object.entries(REGIONS).map(([k, x]) => <option key={k} value={k}>{x.label}</option>)}
+          </select></div>
+        <div className="field"><label htmlFor="rg-cur">Currency</label>
+          <select id="rg-cur" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })}>
+            <option value="">{r.currency} (the region’s)</option>
+            {CURRENCIES.filter((c) => c !== r.currency).map((c) => <option key={c} value={c}>{c}</option>)}
+          </select></div>
+        <div className="field"><label htmlFor="rg-tax">{r.tax.name} rate (%)</label>
+          <input id="rg-tax" inputMode="decimal" placeholder={String(r.tax.rate)} value={f.tax_rate} onChange={(e) => setF({ ...f, tax_rate: e.target.value })} />
+          {r.tax.varies && <small className="help">Varies by {f.region === 'US' ? 'state' : 'country'} — enter yours.</small>}</div>
+        <div className="field"><label htmlFor="rg-ent">Business name (for exports)</label>
+          <input id="rg-ent" value={f.entity_name} onChange={(e) => setF({ ...f, entity_name: e.target.value })} /></div>
+      </div>
+      <p className="muted small">{r.label}: {r.tax.name}, {r.business_no} on receipts, heavy-vehicle licences {r.heavy_classes.join(', ')}, {r.hours.name}, {r.inspections.join(', ')}. These are starting points, not compliance advice — check your country’s rules.</p>
+      <button type="button" className="btn ghost small" onClick={() => setOpen(!open)}>{open ? 'Hide' : 'Show'} accounting export settings</button>
+      {open && (
+        <div className="field-grid">
+          <div className="field"><label htmlFor="rg-conn">Accounting software</label>
+            <select id="rg-conn" value={f.connector} onChange={(e) => setF({ ...f, connector: e.target.value })}>
+              <option value="">Suggested for the region ({CONNECTORS.find((c) => c.key === r.accounting[0])?.label})</option>
+              {CONNECTORS.filter((c) => !c.future).map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select></div>
+          {FINANCE_CATEGORIES.map((c) => (
+            <div key={c} className="field"><label htmlFor={`acc-${c}`}>Account code: {c}</label>
+              <input id={`acc-${c}`} value={f.accounts[c] || ''} onChange={(e) => setF({ ...f, accounts: { ...f.accounts, [c]: e.target.value } })} /></div>
+          ))}
+        </div>
+      )}
+      <div className="inline-row end">{msg && <span className="muted small">{msg}</span>}<button type="button" className="btn primary" onClick={save}>Save region & currency</button></div>
+    </Section>
   );
 }

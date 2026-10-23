@@ -58,4 +58,4 @@ Every chart says what it's **based on**, e.g. *Based on 34 sessions over 17 nigh
 
 ## Who can see it
 
-Analytics is a licence feature and a role right (**Analytics → view**, in [Roles and permissions](/help/roles-permissions)). The built-in Crew Chief, Mechanic and Driver / Viewer roles have it.
+Analytics is a licence feature and a role right (**Analytics → view**, in [Roles and permissions](/help/roles-permissions)). The built-in Crew Chief, Car Chief, Mechanic, Tire Specialist, Driver and Viewer roles have it.

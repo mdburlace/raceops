@@ -44,7 +44,7 @@ def session(page, lg, tid):
 
 o = login('owner@test.com', 'password1'); OT = o['token']
 TA, ua = team('Feedback Racing', 'fb1@test.com', 'password11'); UA = ua['token']
-TB, ub = team('Roadmap Racing', 'fb2@test.com', 'password12', 'Driver / Viewer'); UB = ub['token']
+TB, ub = team('Roadmap Racing', 'fb2@test.com', 'password12', 'Viewer'); UB = ub['token']
 
 # ---- permissions: only platform admins see the admin side
 assert call('/admin/feedback', UA)[0] == 403

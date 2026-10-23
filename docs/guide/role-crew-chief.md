@@ -30,8 +30,9 @@ You run the car. RaceOps keeps every session's setup, the conditions and the res
    - fuel finished;
    - hot pressures and stagger;
    - travel and tach.
-6. **Feedback.** Track conditions, driver and crew-lead feel, and changes for next session. Tap, type or use **Voice debrief**. [Feedback and voice debrief](/help/feedback-debrief)
-7. **Stuck?** Press **Setup advisor** on the sheet to see what's fixed this before, and what the guides say. [Setup advisor](/help/setup-advisor)
+6. **Change list.** Press **Add changes from this sheet** (under **Change list**) so the car chief has each change as a job to tick off. Set **Tyre targets** for the tyre specialist. [Car chief](/help/role-car-chief)
+7. **Feedback.** Track conditions, driver and crew-lead feel, and changes for next session. Tap, type or use **Voice debrief**. [Feedback and voice debrief](/help/feedback-debrief)
+8. **Stuck?** Press **Setup advisor** on the sheet to see what's fixed this before, and what the guides say. [Setup advisor](/help/setup-advisor)
 
 No signal? Keep going. Everything saves on the phone and syncs later. [Work offline](/help/offline-sync)
 
@@ -40,6 +41,7 @@ No signal? Keep going. Everything saves on the phone and syncs later. [Work offl
 - **Compare sessions** on the event to see what changed and what it did.
 - Save a good setup as a **baseline**.
 - Hand the workshop list to the mechanics: [checklists and schedules](/help/maintenance).
+- Approve or decline the parts orders waiting for you (they're in **Reminders**). [Parts orders](/help/parts-orders)
 
 ## Common jobs
 

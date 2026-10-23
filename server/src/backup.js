@@ -162,6 +162,7 @@ const TEAM_TABLES = [
   ['record_history', 'tenant_id = $1'],
   ['attachments', 'tenant_id = $1'],
   ['engine_shares', 'tenant_id = $1'],
+  ['sponsor_portals', 'tenant_id = $1'],
   ['engine_links', 'shop_tenant_id = $1', (r, t) => r.shop_tenant_id === t],
   ['calendar_officials', 'tenant_id = $1'],
   ['calendar_requests', 'tenant_id = $1'],
@@ -305,7 +306,8 @@ export async function restoreTeam(tid, data, { by } = {}) {
 
     // roles: the backup's come back; roles people hold now stay too, so nobody loses access
     const backupRoles = data.tables.roles || [];
-    const { rows: inUse } = await c.query('SELECT role_id FROM memberships WHERE tenant_id=$1 UNION SELECT role_id FROM invites WHERE tenant_id=$1', [tid]);
+    const { rows: inUse } = await c.query(`SELECT role_id FROM memberships WHERE tenant_id=$1 UNION SELECT unnest(extra_role_ids) FROM memberships WHERE tenant_id=$1
+      UNION SELECT role_id FROM invites WHERE tenant_id=$1`, [tid]);
     const keep = new Set([...inUse.map((r) => r.role_id), ...backupRoles.map((r) => r.id)]);
     const { rows: curRoles } = await c.query('SELECT id, name FROM roles WHERE tenant_id=$1', [tid]);
     for (const r of curRoles) if (!keep.has(r.id)) await c.query('DELETE FROM roles WHERE id=$1', [r.id]);
@@ -331,12 +333,12 @@ export async function restoreTeam(tid, data, { by } = {}) {
     // the team's data: replaced
     oldPaths = (await c.query('SELECT storage_path FROM attachments WHERE tenant_id=$1', [tid])).rows.map((r) => r.storage_path);
     await c.query('DELETE FROM calendar_requests WHERE tenant_id=$1', [tid]); // messages go with them
-    for (const t of ['team_notices', 'calendar_officials', 'engine_shares', 'attachments', 'records']) await c.query(`DELETE FROM ${t} WHERE tenant_id=$1`, [tid]);
+    for (const t of ['team_notices', 'calendar_officials', 'engine_shares', 'sponsor_portals', 'attachments', 'records']) await c.query(`DELETE FROM ${t} WHERE tenant_id=$1`, [tid]);
     await c.query('DELETE FROM engine_links WHERE shop_tenant_id=$1', [tid]);
 
     const serialCols = (table) => s.sequences.filter((x) => x.t === table).map((x) => x.c);
     const counts = {};
-    for (const table of ['records', 'attachments', 'engine_shares', 'engine_links', 'calendar_officials', 'calendar_requests', 'calendar_request_messages', 'team_notices']) {
+    for (const table of ['records', 'attachments', 'engine_shares', 'sponsor_portals', 'engine_links', 'calendar_officials', 'calendar_requests', 'calendar_request_messages', 'team_notices']) {
       let rows = fixUsers(table, data.tables[table] || []);
       if (table === 'engine_links') {
         const { rows: ts } = await c.query('SELECT id FROM tenants');

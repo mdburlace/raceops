@@ -9,13 +9,14 @@
 
 import { WORKSHOP_FORMS } from './workshopSetup.js';
 import { ENGINE_TUNE_FORMS } from './engineTune.js';
+import { PHASE5_FORMS } from './baseForms5.js';
 const CORNERS = ['LF', 'RF', 'LR', 'RR'];
 const REARS = ['LR', 'RR'];
 
 export const ASSET_CATEGORIES = [
   'Chassis', 'Engine', 'Shock', 'Torsion Bar', 'Rear End', 'Wheel',
   'Wing', 'Front Axle', 'Rear Axle', 'Torque Tube', 'Radius Rod', 'Brakes', 'Fuel System',
-  'Driveline', 'Steering', 'Safety Equipment', 'Electrical', 'Trailer / Tools', 'Other',
+  'Driveline', 'Steering', 'Safety Equipment', 'Electrical', 'Trailer / Tools', 'Vehicle', 'Other',
 ];
 
 const carForm = {
@@ -263,4 +264,4 @@ const measurementForm = {
 export { PHASE2_FORMS } from './baseForms2.js';
 import { PHASE2_FORMS } from './baseForms2.js';
 import { PHASE3_FORMS } from './baseForms3.js';
-export const BASE_FORMS = [carForm, eventForm, setupForm, maintenanceForm, assetForm, scheduleForm, measurementForm, ...PHASE2_FORMS, ...PHASE3_FORMS, ...WORKSHOP_FORMS, ...ENGINE_TUNE_FORMS];
+export const BASE_FORMS = [carForm, eventForm, setupForm, maintenanceForm, assetForm, scheduleForm, measurementForm, ...PHASE2_FORMS, ...PHASE3_FORMS, ...WORKSHOP_FORMS, ...ENGINE_TUNE_FORMS, ...PHASE5_FORMS];

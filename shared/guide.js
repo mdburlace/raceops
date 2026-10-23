@@ -28,6 +28,7 @@ export const SECTIONS = [
   { key: 'shop', label: 'Engine shop', blurb: 'Customers, jobs, handover packs and sharing engines.' },
   { key: 'analytics', label: 'Analytics', blurb: 'Trends from your own sheets: results, what worked, jetting, and when parts are due.' },
   { key: 'team', label: 'Team management', blurb: 'Members, roles, forms, reports and reviews.' },
+  { key: 'business', label: 'Business', blurb: 'Parts orders, finance, transport, partnerships and marketing — all tied to your events.' },
   { key: 'tools', label: 'Everyday tools', blurb: 'Offline use, calculators, AI, importing files and your own look.' },
   { key: 'admin', label: 'Platform admin', blurb: 'Running the server: teams, licences, plans and global settings.' },
   { key: 'reference', label: 'Reference', blurb: 'Lists and tables that are always up to date.' },

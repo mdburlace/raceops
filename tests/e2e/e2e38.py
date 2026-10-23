@@ -37,7 +37,7 @@ def member(email, role):
     st, inv = call(f'/t/{TID}/invites', OT, 'POST', {'email': email, 'role_id': r['id']}); tok = inv.get('token') or inv.get('invite', {}).get('token')
     assert call(f'/invites/{tok}/accept', method='POST', body={'name': email.split('@')[0], 'password': 'password38'})[0] == 200
     return login(email, 'password38')['token']
-MT = member('mech38@test.com', 'Mechanic'); DT = member('drv38@test.com', 'Driver / Viewer')
+MT = member('mech38@test.com', 'Mechanic'); DT = member('drv38@test.com', 'Viewer')
 new = lambda tok, vals: call(f'/t/{TID}/sync', tok, 'POST', {'changes': [{'id': str(uuid.uuid4()), 'type': 'shop_setup', 'data': {'values': vals}, 'client_updated_at': now()}]})[1]['results'][0]['status']
 assert new(MT, {'car': car71['id'], 'name': 'Car 71 shop setup'}) == 'applied'
 assert new(DT, {'car': car71['id'], 'name': 'Nope'}) == 'denied'

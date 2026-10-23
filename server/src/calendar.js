@@ -67,7 +67,7 @@ function pageText(html) {
 }
 
 // ---------------------------------------------------------------- publishing
-const PUBLIC_OPTS = ['show_tentative', 'show_results', 'show_cars'];
+const PUBLIC_OPTS = ['show_tentative', 'show_results', 'show_cars', 'show_sponsors'];
 const cleanPublish = (p) => (p?.token ? { token: p.token, created_at: p.created_at, ...Object.fromEntries(PUBLIC_OPTS.map((k) => [k, !!p[k]])) } : null);
 
 async function publicCalendar(token) {
@@ -75,7 +75,7 @@ async function publicCalendar(token) {
   need(t, 404, 'This calendar link has been turned off or doesn’t exist.');
   const opts = cleanPublish(t.settings.calendar_publish);
   const { rows } = await q(`SELECT id, type, data FROM records WHERE (tenant_id=$1 OR tenant_id IS NULL) AND NOT deleted
-      AND type IN ('event','track','series','car','fixture')`, [t.id]);
+      AND type IN ('event','track','series','car','fixture','sponsor')`, [t.id]);
   const byId = Object.fromEntries(rows.map((r) => [r.id, r.data?.values || {}]));
   const sm = seasonStart(t.settings);
   const items = [];
@@ -100,7 +100,10 @@ async function publicCalendar(token) {
   }
   items.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
   const seasons = [...new Set(items.map((i) => i.season))].sort().map((y) => ({ year: y, label: seasonLabel(y, sm) }));
-  return { team: t.name, season_start: sm, seasons, items, options: { show_results: opts.show_results, show_cars: opts.show_cars } };
+  // the team's public page also lists the signed sponsors marked "Show on our public page"
+  const sponsors = opts.show_sponsors ? rows.filter((r) => r.type === 'sponsor' && r.data?.values?.public && ['Signed', 'Renewal due'].includes(r.data.values.stage))
+    .map((r) => ({ name: r.data.values.name || '', level: r.data.values.level || '' })).filter((x) => x.name).sort((a, b) => a.name.localeCompare(b.name)) : [];
+  return { team: t.name, season_start: sm, seasons, items, sponsors, options: { show_results: opts.show_results, show_cars: opts.show_cars, show_sponsors: opts.show_sponsors } };
 }
 
 const pubHits = new Map();

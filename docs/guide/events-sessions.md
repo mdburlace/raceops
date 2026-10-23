@@ -34,6 +34,10 @@ Sessions are listed in their usual running order. **Reorder** moves them with â–
 
 - **Compare sessions** puts the event's sheets side by side. See [Compare and search setups](/help/compare-search).
 
+## Crew, logistics and money for the event
+
+Under the sessions, the event page shows everything else about the meeting from the modules your role can see: the **Crew** list, trip plans, load lists, parts orders, expenses, income, the event's **Profit & loss**, hospitality guests, photos and results posts. **+ Add** starts a record already linked to the event. See [Business, reminders and race night](/help/business).
+
 ## Multi-day events
 
 A meeting over more than one day is still **one event**: one entry on the calendar, one set of details, and one place for all its setup sheets. Each day has its own row, so the days don't have to run one after another. A practice night on Thursday and race day on Saturday leaves Friday free.

@@ -19,7 +19,7 @@ Race team, engine shop, or both. This decides what shows in the menu. See [Choos
 
 ## 2. Invite your crew and set their roles
 
-Invite people from **Team → Members & invites**. Each invite has a role. The built-in roles (Owner, Crew Chief, Mechanic, Driver / Viewer) suit most teams. See [Invite your crew](/help/members-invites) and [Roles and permissions](/help/roles-permissions).
+Invite people from **Team → Members & invites**. Each invite has a role. The built-in roles (Owner, Crew Chief, Car Chief, Mechanic, Tire Specialist, Driver, Viewer, and for the business side Transport, Business Manager, Partnerships Manager and Marketing Manager) suit most teams. Someone can hold more than one. See [Invite your crew](/help/members-invites) and [Roles and permissions](/help/roles-permissions).
 
 ## 3. Add your cars
 

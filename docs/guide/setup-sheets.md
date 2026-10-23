@@ -54,6 +54,18 @@ Press **Save** when done. Everything saves on the device first and syncs when th
 
 The Motor, Shocks, Bars and Gear fields pick from your [assets](/help/assets). Picking the real part adds this session's **laps and race meetings** to its service life, and links it to the event. You can still type a name if a part isn't in your list.
 
+## Change list
+
+**Change list** records each change the crew chief calls for the session — the change, what it was and what it is now. **Add changes from this sheet** adds everything changed against the session the sheet was copied from. The car chief ticks **Done** when it's done on the car, which records who and when. See [Car chief](/help/role-car-chief).
+
+## Tyre targets
+
+**Tyre targets** holds the crew chief's target cold pressures, stagger and rear wheel spacing. The **Tires** section then shows a **Tyre sheet**: each target beside what was set, flagged when it's off. See [Tyre specialist](/help/role-tire-specialist).
+
+## Who fills in what
+
+With part rights, a role can change only some sections of a sheet: the driver fills in **Track conditions & car feedback**, the car chief ticks the **Change list**, and the tyre specialist fills in **Tires** and **Wheels**. The sheet shows which sections you can change. See [Roles and permissions](/help/roles-permissions#other-rights).
+
 ## Baselines
 
 Tick **Save as a baseline setup** on any sheet and give it a name, e.g. *Archerfield slick*. You can recall it:

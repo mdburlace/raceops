@@ -14,6 +14,7 @@ import { SetupChecklist } from '../components/SetupChecklist.jsx';
 import { AnalyticsKpis } from './Analytics.jsx';
 import { markReleaseSeen, unseenRelease } from '../lib/releases.js';
 import DayLines from '../components/DayLines.jsx';
+import { RaceNightCard, RemindersCard } from './Business.jsx';
 
 // ---------- access gate used by routes ----------
 export function AreaGate({ area, module, children }) {
@@ -106,6 +107,8 @@ export function Landing() {
       <UpdatedNotice />
       <RequestNotice />
       <SetupChecklist />
+      <RaceNightCard />
+      <RemindersCard />
       {type !== 'engine_shop' && <AnalyticsKpis />}
       {type !== 'race' && <ShopHome />}
       <div className="area-grid">

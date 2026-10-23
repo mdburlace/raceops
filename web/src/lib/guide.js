@@ -38,10 +38,16 @@ export function rolesFor(ctx, all) {
   const primary = ctx.role?.is_owner ? 'owner'
     : shop && (m('jobs', 'edit') || m('engines', 'edit')) && ctx.teamType === 'engine_shop' ? 'engine-builder'
       : m('setups', 'edit') ? 'crew-chief'
-        : (m('maintenance', 'edit') || m('assets', 'edit')) ? 'mechanic'
-          : shop && m('jobs', 'edit') ? 'engine-builder'
-            : m('setups') ? 'driver'
-              : ctx.platformAdmin ? 'platform-admin' : null;
+        : ctx.can?.('setups.part.changes') ? 'car-chief'
+          : ctx.can?.('setups.part.tires') ? 'tire-specialist'
+            : m('transport', 'edit') ? 'transport'
+              : (m('maintenance', 'edit') || m('assets', 'edit')) ? 'mechanic'
+                : shop && m('jobs', 'edit') ? 'engine-builder'
+                  : m('finance', 'edit') ? 'business-manager'
+                    : m('partnerships', 'edit') ? 'partnerships-manager'
+                      : m('marketing', 'edit') ? 'marketing-manager'
+                        : m('setups') ? 'driver'
+                          : ctx.platformAdmin ? 'platform-admin' : null;
   const mine = roles.find((r) => r.persona === primary) || null;
   return { mine, others: roles.filter((r) => r !== mine) };
 }

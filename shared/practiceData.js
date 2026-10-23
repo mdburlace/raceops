@@ -10,6 +10,8 @@ export const PRACTICE = {
   classic: 'Valley Spring Classic',
   engineTune: '2026 v2', oldTune: '2026 v1',
   rrShock: 'RR Penske 8760', customer: 'Sam Hart', customerEngine: 'Hart 410', job: 'J-1001',
+  sponsor: 'Valley Tyres', prospect: 'Lakeside Motors', livery: '2026 main', vehicle: 'Hauler', loadTemplate: 'Sprint car race weekend',
+  partsOrder: 'RR shock rebuild kit', guest: 'Chris Lee', merch: 'Team T-shirt', licenceHolder: 'Pat Driver', contract: 'Valley Tyres sponsorship',
 };
 
 export function practiceData({ form, today = new Date(), uuid }) {
@@ -78,12 +80,14 @@ export function practiceData({ form, today = new Date(), uuid }) {
     ...v,
   });
   const tracks = ['Lakeside Raceway', 'Valley Speedway', 'Hilltop Oval'];
+  const rounds = [];
   for (let n = 0; n < 8; n++) {
     const track = tracks[n % 3];
     const ev = add('event', {
       name: `${track} — ${series.data.values.name}`, series: series.id, round: String(n + 1), date: day(-112 + n * 14), track, car: car.id, intent: 'Planned',
       ...(n === 3 ? { outcome: 'Withdrew during the event', withdraw_reason: 'Engine', withdraw_session: 'Heat 1' } : { outcome: 'Raced the feature' }),
     });
+    rounds.push(ev);
     for (const [k, [session, order]] of [['Heat 1', 10], ['Feature', 20]].entries()) {
       const stagger = 5 + (n % 4) * 0.5;
       const start = 4 + ((n * 3 + k) % 7);
@@ -107,7 +111,7 @@ export function practiceData({ form, today = new Date(), uuid }) {
   add('track_check', { event: tonight.id, car: car.id, after_session: 'Heat 1', c_pressures: { done: true }, c_lugs: { done: true }, c_fuel: { done: true, value: '2' }, issues: 'Small oil weep on the RR shock.' });
   // ---- engines: the build sheet for our engine, and its tune from the builder (two versions, the newer active)
   const build = add('engine_build', { engine: eng.id, date: day(-130), build_type: 'Fresh build', builder: 'Hart Engines', engine_type: '410 sprint', cid: '410', hp: '920',
-    engine_laps: '0', notes: 'Fresh build at the start of the season.' });
+    engine_laps: '0', rebuild_cost: '9500', notes: 'Fresh build at the start of the season.' });
   const tuneBase = {
     engine: eng.id, source: 'Engine builder', builder: 'Hart Engines', build: build.id, shared: true, induction: 'Engler 2.9', prepared_by: 'Hart Engines',
     fuel_by: 'ADR %', plugs: 'NGK R5671A-10', plug_gap: '0.024', lash_int: '0.012', lash_exh: '0.016', lash_when: 'Cold', spring_int: '280', spring_exh: '280',
@@ -177,5 +181,43 @@ export function practiceData({ form, today = new Date(), uuid }) {
     parts: [{ part_no: 'RS-410', description: 'Ring set', qty: '8', unit_cost: '45', unit_price: '60' }],
     labour: [{ date: day(-2), tech: 'Workshop', description: 'Teardown and inspection', hours: '4', rate: '120' }],
   });
+
+  // ---- business: parts orders, finance, transport, partnerships and marketing
+  const next = out.find((r) => r.type === 'event' && r.data.values.round === '9');
+  add('purchase', { item: 'RR shock rebuild kit', part_no: 'PEN-8760-RK', qty: '1', unit_cost: '180', cost: '180', event: next.id, car: car.id, needed_by: day(5), status: 'Requested',
+    notes: 'The RR shock is due for its rebuild.' });
+  const yStart = `${year}-01-01`; const yEnd = `${year}-12-31`;
+  add('budget', { season: year, start: yStart, end: yEnd, alert_pct: '80', lines: [
+    { category: 'Tyres', amount: '8000' }, { category: 'Fuel & oil', amount: '3000' }, { category: 'Engine', amount: '15000' },
+    { category: 'Travel', amount: '4000' }, { category: 'Entry fees', amount: '1500' }, { category: 'Parts', amount: '6000' }] });
+  rounds.forEach((ev, n) => {
+    const d = ev.data.values.date;
+    add('expense', { date: d, category: 'Tyres', description: `Tyres — round ${n + 1}`, supplier_name: 'Hoosier Tyres QLD', amount: '900', tax_amount: '81.82', event: ev.id, car: car.id, paid: true });
+    add('expense', { date: d, category: 'Fuel & oil', description: `Methanol — round ${n + 1}`, amount: '240', event: ev.id, paid: true });
+    add('expense', { date: d, category: 'Entry fees', description: `Entry — round ${n + 1}`, amount: '120', event: ev.id, paid: true });
+    if (n !== 3) add('income', { date: d, kind: 'Prize money', description: `Feature — round ${n + 1}`, payer: 'Valley Speedway', amount: String(500 + ((n * 170) % 700)), event: ev.id, paid: true });
+  });
+  add('expense', { date: day(-4), category: 'Engine', description: 'Engine freshen — 410 #2', supplier_name: 'Hart Engines', amount: '4800', paid: false, due_date: day(5) });
+  const contract = add('contract', { name: 'Valley Tyres sponsorship', party: 'Valley Tyres', kind: 'Sponsorship', start: yStart, end: day(45), renewal_date: day(30), value: '12000',
+    terms: 'Top wing side panels, one post per meeting, four hospitality passes a season.' });
+  const sponsor = add('sponsor', { name: 'Valley Tyres', stage: 'Signed', level: 'Major', value: '12000', start: yStart, end: day(45), contract: contract.id, public: true,
+    deliverables: [{ kind: 'Logo on car', detail: 'Top wing side panels', qty: '1', per: 'Season' }, { kind: 'Posts per event', qty: '1', per: 'Event' },
+      { kind: 'Hospitality passes', qty: '4', per: 'Season' }], pitch_crowd: '3,000', pitch_social: '4,500' });
+  add('sponsor', { name: 'Lakeside Motors', stage: 'Prospect', level: 'Associate', value: '5000', pitch_notes: 'Local dealer; their customers are at the track every week.' });
+  add('income', { date: day(-90), kind: 'Sponsorship', description: 'Valley Tyres — first half', payer: 'Valley Tyres', sponsor: sponsor.id, amount: '6000', paid: true });
+  add('livery', { name: '2026 main', car: car.id, from: yStart, sponsors: [sponsor.id],
+    positions: [{ position: 'Top wing side panels', sponsor: 'Valley Tyres', size: 'Full height' }],
+    decals: [{ decal: 'Valley Tyres top wing', stock: '1', reorder: '2', supplier: 'Sign Shop' }] });
+  const last = rounds[rounds.length - 1];
+  add('media', { caption: 'Car 17 at Hilltop — top wing', date: last.data.values.date, event: last.id, car: car.id, sponsors: [sponsor.id], logo_position: 'Top wing side panels', approved: true });
+  add('social_post', { event: last.id, status: 'Posted', text: 'Solid night at the Club Championship. Thanks Valley Tyres!', sponsors: [sponsor.id], posted_on: last.data.values.date });
+  add('guest', { event: tonight.id, name: 'Chris Lee', sponsor: sponsor.id, passes: '2', pass_type: 'Pit', notes: 'Valley Tyres sales manager and partner.' });
+  add('merch', { name: 'Team T-shirt', variant: 'L', stock: '3', reorder_at: '5', price: '35', cost: '12' });
+  const hauler = A('Hauler', 'Vehicle', { vehicle_type: 'Hauler / truck', status: 'In Service', manufacturer: 'Isuzu', rego_due: day(20), inspection_due: day(45) });
+  add('licence', { holder: 'Pat Driver', class: 'HR (heavy rigid)', expiry: day(40), country: 'Australia' });
+  add('load_list', { is_template: true, name: 'Sprint car race weekend', items: [
+    { item: 'Spare front axle', qty: '1' }, { item: 'Tyre rack (6 rears, 4 fronts)', qty: '1' }, { item: 'Methanol drums', qty: '4' },
+    { item: 'Tool boxes', qty: '2' }, { item: 'Wing spares', qty: '1' }, { item: 'Generator', qty: '1' }] });
+  add('trip', { event: next.id, vehicle: ref(hauler), depart_date: day(7), depart_time: '1:00 pm', from: 'Workshop', distance: '180', route: 'Highway the whole way; fuel at the halfway roadhouse.' });
   return out;
 }

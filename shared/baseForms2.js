@@ -1,4 +1,5 @@
 import { PHASE3_UPGRADES } from './baseForms3.js';
+import { PHASE5_UPGRADES } from './baseForms5.js';
 // Phase 2 base forms. Seeded into every team; existing teams receive any that are
 // missing on the next server start.
 
@@ -329,7 +330,7 @@ export const FORM_REPLACE = { 'gear:default': 'small', 'dyno_run:shock': 'adjust
 export function applyUpgrades(form) {
   let changed = false;
   const has = (k) => form.sections.some((s) => s.fields.some((f) => f.key === k));
-  for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES]) {
+  for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES, ...PHASE5_UPGRADES]) {
     if (u.target !== form.target) continue;
     if (u.kind && form.dyno_kind !== u.kind) continue; // e.g. shock runs only, not bar tests
     if (u.insertSection) {
@@ -358,6 +359,18 @@ export function applyUpgrades(form) {
         f[`_moved_${u.to}`] = true;
         changed = true;
       } else if (f && from === to && !f[`_moved_${u.to}`]) { f[`_moved_${u.to}`] = true; changed = true; }
+      continue;
+    }
+    if (u.addOptions) { // add choices to a pick-list, once each (a team that removes one keeps it removed)
+      const f = form.sections.flatMap((s) => s.fields).find((x) => x.key === u.key);
+      if (f && Array.isArray(f.options)) {
+        for (const o of u.addOptions) {
+          const mark = `_opt_${String(o).replace(/[^a-z0-9]+/gi, '_')}`;
+          if (f[mark]) continue;
+          if (!f.options.includes(o)) { const i = f.options.indexOf('Other'); f.options.splice(i >= 0 ? i : f.options.length, 0, o); }
+          f[mark] = true; changed = true;
+        }
+      }
       continue;
     }
     if (u.patch) {

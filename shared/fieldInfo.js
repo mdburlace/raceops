@@ -4,6 +4,8 @@
 //
 // FIELD_INFO[target][key] = [description, source?]
 
+import { FIELD_INFO5 } from './fieldInfo5.js';
+
 const WX = 'Track weather station, a handheld weather meter (e.g. Kestrel), or “Get track weather” above.';
 const CORNER = 'Each corner is recorded separately — LF, RF, LR, RR.';
 
@@ -565,6 +567,9 @@ export const COMMON_INFO = {
   purchase_date: ['When it was bought.'], cost: ['What it cost, for spend reports.'],
   operator: ['Who ran it.'], completed_by: ['Who did the work.'],
 };
+// phase 5 fields (parts orders, finance, transport, partnerships, marketing and their additions)
+for (const [target, info] of Object.entries(FIELD_INFO5)) FIELD_INFO[target] = { ...(FIELD_INFO[target] || {}), ...info };
+
 export const hasInfo = (target, key) => !!(FIELD_INFO[target]?.[key] || COMMON_INFO[key]);
 
 /** Description for a field on a form: the team's own text first, then the standard one. */

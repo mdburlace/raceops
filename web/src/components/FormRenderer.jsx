@@ -565,7 +565,7 @@ function nextOnEnter(e) {
  * changesOnly, changed: changedFields(), openAll } — the person's section order, folded sections,
  * the Before / After switch and change highlighting.
  */
-export default function FormRenderer({ form, values, onChange, data, readOnly, level, recordType, recordId = null, errors = {}, hideKeys = [], roKeys = [], sectionExtras = {}, calcCtx = null, layout = null }) {
+export default function FormRenderer({ form, values, onChange, data, readOnly: allReadOnly, level, recordType, recordId = null, errors = {}, hideKeys = [], roKeys = [], roSections = null, sectionExtras = {}, calcCtx = null, layout = null }) {
   const { membership } = useSession(); // also re-renders when the cached member list arrives
   const shopTeam = isShop(membership);
   const suggestions = useMemo(() => {
@@ -591,6 +591,8 @@ export default function FormRenderer({ form, values, onChange, data, readOnly, l
   return (
     <div className="form-sections" onKeyDown={nextOnEnter}>
       {sections.map((sec) => {
+        // part rights: only some sections can be changed (roSections lists the ones that can't)
+        const readOnly = allReadOnly || (roSections ? roSections.includes(sec.id) : false);
         let fields = sec.fields.filter((f) => !hideKeys.includes(f.key) && visible(f, values) && (!f.shopOnly || shopTeam))
           .filter((f) => f.type !== 'check' || !include || include.includes(f.freq));
         if (layout && stage !== 'all') fields = fields.filter((f) => f.type === 'heading' || (stage === 'after') === (f.stage === 'after'));

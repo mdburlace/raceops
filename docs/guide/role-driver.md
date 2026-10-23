@@ -7,10 +7,10 @@ persona: driver
 summary: See the car's setups and history, compare nights, and get your feedback into the sheet.
 for: module:setups
 team: race
-covers: role:driver-viewer
+covers: role:driver, role:viewer
 related: setup-sheets, compare-search, feedback-debrief, ask-raceops
 ---
-The built-in **Driver / Viewer** role can see events, setups, tracks, gears and cars, but not change them.
+The built-in **Driver** role can see events, setups, tracks, gears and cars, and fill in **Track conditions & car feedback** — the debrief — on each setup sheet. The rest of the sheet is read-only. The **Viewer** role (called **Driver / Viewer** in teams made before October 2026) can see the same but change nothing.
 
 ## What you can do
 
@@ -23,8 +23,9 @@ The built-in **Driver / Viewer** role can see events, setups, tracks, gears and 
 
 Your feedback drives the setup advisor, so it matters that it's recorded.
 
-- Tell the crew chief how the car was. They record it in the sheet (or use **Voice debrief** with you).
-- If your team wants you to enter it yourself, ask the owner to give your role **Edit** on setup sheets. [Roles and permissions](/help/roles-permissions)
+- **After each session:** open the sheet (on race night, **Debrief** on your Home card takes you straight there) and fill in **Track conditions & car feedback**: the track, how the car felt, and what you'd change. With the AI add-on, **Voice debrief** turns what you say into the feedback fields. Press **Save** — the crew chief sees it as soon as it syncs.
+- Everything else on the sheet is read-only for you. Your team can give your role more with [Roles and permissions](/help/roles-permissions).
+- With the **Viewer** role, tell the crew chief how the car was and they record it.
 
 ## Common jobs
 
