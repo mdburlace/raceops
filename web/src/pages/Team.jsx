@@ -272,7 +272,7 @@ export function Profile() {
             <div className="notice">The server is answering, but this device still can't sync. Something stale is stored on
               this device — tap <b>Repair this device</b> to fix it.</div>
           )}
-          <div className="inline-row">
+          <div className="inline-row wrap">
             <button type="button" className="btn" disabled={!online} onClick={() => syncNow()}>Sync now</button>
             <button type="button" className="btn ghost" disabled={!online} onClick={() => fullResync(tid)}>Re-download all data</button>
             <button type="button" className={`btn ${sync.stuck ? 'primary' : 'ghost'}`} disabled={!online} onClick={() => {
