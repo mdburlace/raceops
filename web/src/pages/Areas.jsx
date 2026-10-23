@@ -13,6 +13,7 @@ import { ShopHome } from './Shop.jsx';
 import { SetupChecklist } from '../components/SetupChecklist.jsx';
 import { AnalyticsKpis } from './Analytics.jsx';
 import { markReleaseSeen, unseenRelease } from '../lib/releases.js';
+import DayLines from '../components/DayLines.jsx';
 
 // ---------- access gate used by routes ----------
 export function AreaGate({ area, module, children }) {
@@ -213,12 +214,14 @@ export function TrackHub() {
             {ev ? (
               <Link to={`/events/${ev.id}`} className="next-event">
                 <span className="ne-date"><b>{new Date(`${v(ev, 'date')}T00:00:00`).getDate()}</b><small>{new Date(`${v(ev, 'date')}T00:00:00`).toLocaleString(undefined, { month: 'short' })}</small></span>
-                <span className="grow"><span className="row-title">{v(ev, 'name')}</span><span className="row-sub">{roundAndTrack(v(ev, 'round'), eventTrack(ev, data))}</span></span>
+                <span className="grow"><span className="row-title">{v(ev, 'name')}</span><span className="row-sub">{roundAndTrack(v(ev, 'round'), eventTrack(ev, data))}</span>
+                  <DayLines values={ev.data?.values} compact /></span>
                 <span className="btn small">Open sheets</span>
               </Link>
             ) : <p className="muted">Nothing scheduled.</p>}
             {s.nextEvents.slice(1, 4).map((e) => (
-              <Link key={e.id} to={`/events/${e.id}`} className="list-row"><span className="grow">{v(e, 'name')}<span className="row-sub">{roundAndTrack(v(e, 'round'), eventTrack(e, data))}</span></span><span className="row-meta">{fmtDate(v(e, 'date'))}</span></Link>
+              <Link key={e.id} to={`/events/${e.id}`} className="list-row"><span className="grow">{v(e, 'name')}<span className="row-sub">{roundAndTrack(v(e, 'round'), eventTrack(e, data))}</span>
+                <DayLines values={e.data?.values} compact /></span><span className="row-meta">{fmtDate(v(e, 'date'))}</span></Link>
             ))}
           </Section>
         )}

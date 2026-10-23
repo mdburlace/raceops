@@ -10,6 +10,7 @@ import { fmtDate, titleOf, useTeamData, v, platformList } from '../lib/data.js';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { dateRange } from './Events.jsx';
+import DayLines from '../components/DayLines.jsx';
 
 const place = (t) => [v(t, 'city'), v(t, 'region'), v(t, 'country')].filter(Boolean).join(', ');
 const isGlobal = (r) => !!(r?.global || r?.data?.scope === 'global');
@@ -266,8 +267,9 @@ export function TrackDetail() {
       <Section title={`Our events here (${events.length})`} actions={canType('event', 'edit') && <Link className="btn small" to={`/r/event/new?venue=${id}`}>New event here</Link>}>
         {events.length === 0 ? <p className="muted">No events recorded at this track yet.</p> : (
           <div className="list">{events.map((e) => (
-            <Link key={e.id} to={`/events/${e.id}`} className="list-row">
-              <span className="grow"><span className="row-title">{v(e, 'name')}</span><span className="row-sub">{[dateRange(e), v(e, 'round') && `Rd ${v(e, 'round')}`, data.byId[v(e, 'series')] && titleOf(data.byId[v(e, 'series')])].filter(Boolean).join(' · ')}</span></span>
+            <Link key={e.id} to={`/events/${e.id}`} className="list-row event-row" data-event={e.id}>
+              <span className="grow"><span className="row-title">{v(e, 'name')}</span><span className="row-sub">{[dateRange(e), v(e, 'round') && `Rd ${v(e, 'round')}`, data.byId[v(e, 'series')] && titleOf(data.byId[v(e, 'series')])].filter(Boolean).join(' · ')}</span>
+                <DayLines values={e.data?.values} /></span>
               <span className="row-meta">{setups.filter((s) => v(s, 'event') === e.id).length} sheets</span>
             </Link>
           ))}</div>

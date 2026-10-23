@@ -5,6 +5,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer.jsx';
 import { daysError, sheetsByDay } from '../components/DaysField.jsx';
+import DayLines from '../components/DayLines.jsx';
 import {
   AdminRequests, DuplicatesPanel, FeedPanel, FollowButton, HistoryPanel, MergeInto, OfficialsPanel, ReportResults, RequestsTab, ResultsTable, TeamNotes,
   UpdatesTab, sendRequest, useCalendarRequests, useOfficials, winnerText,
@@ -169,14 +170,15 @@ function CalendarRow({ i, data, past }) {
   const [editing, setEditing] = useState(false);
   const st = entryStatus(i.values, today());
   return (
-    <div className={`list-row cal-row${i.notGoing ? ' not-going' : ''}${i.cancelled ? ' cancelled' : ''}`} data-event={i.id}>
+    <div className={`list-row cal-row${i.days.length > 1 ? ' event-row' : ''}${i.notGoing ? ' not-going' : ''}${i.cancelled ? ' cancelled' : ''}`} data-event={i.id}>
       <span className="date-block">
         <b>{new Date(`${i.date}T00:00:00`).getDate() || '–'}</b>
         <small>{i.date ? new Date(`${i.date}T00:00:00`).toLocaleString(undefined, { month: 'short' }) : ''} {dow(i.date)}</small>
       </span>
       <span className="grow">
-        <Link className="row-title" to={`/events/${i.id}`}>{i.name}</Link>
-        <span className="row-sub">{[roundAndTrack(i.round, i.track), i.series, i.sanctioning, i.car, i.days.length > 1 && fmtDays(i.values)].filter(Boolean).join(' · ')}</span>
+        <Link className="row-title" to={`/events/${i.id}`}>{i.name}{i.days.length > 1 && <span className="pill pill-info days-pill">{i.days.length} days</span>}</Link>
+        <span className="row-sub">{[roundAndTrack(i.round, i.track), i.series, i.sanctioning, i.car].filter(Boolean).join(' · ')}</span>
+        <DayLines values={i.values} eventId={i.id} />
         {i.major && <span className="pill pill-info">★ {i.major}</span>}
         {winnerText(vals(i.fx)) && <span className="small winner">🏁 {winnerText(vals(i.fx))}</span>}
         {i.cancelled && <span className="pill pill-over">Cancelled</span>}
@@ -519,8 +521,9 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                       <small>{fv.date ? new Date(`${fv.date}T00:00:00`).toLocaleString(undefined, { month: 'short' }) : ''} {dow(fv.date)}</small>
                     </span>
                     <span className="grow">
-                      <span className="row-title">{fv.name}{eventDayList(fv).length > 1 ? <span className="muted small"> · {fmtDays(fv)}</span> : null}</span>
+                      <span className="row-title">{fv.name}{eventDayList(fv).length > 1 ? <span className="pill pill-info days-pill">{eventDayList(fv).length} days</span> : null}</span>
                       <span className="row-sub">{[roundAndTrack(fv.round, trackName(data, fv)), series && vals(series).name, sanctioningOf(fv, vals(series)), classes.join(', '), fv.start_time].filter(Boolean).join(' · ')}</span>
+                      <DayLines values={fv} />
                       {winnerText(fv) && <span className="small winner">🏁 {winnerText(fv)}{fv.entries ? ` · ${fv.entries} entries` : ''}</span>}
                       <span className="fx-flags">
                         {fv.major && <Pill level="info">{majorLabel(fv)}</Pill>}
@@ -1096,6 +1099,7 @@ export function CalendarSheet({ title, sub, items, showCar = true, showResult = 
                 <td className="cs-date">{sheetDays(i)}</td>
                 <td>
                   <b>{i.name}</b>{i.tentative && <em className="muted"> (tentative)</em>}{i.cancelled && <b className="cs-cancel"> CANCELLED</b>}
+                  {i.days?.length > 1 && <DayLines values={{ name: i.name, multi_day: true, days: i.days }} compact />}
                   {i.major && <div className="small cs-major">★ {i.major}</div>}
                   <div className="muted small">{[roundAndTrack(i.round, i.track), i.location && i.location !== i.track ? i.location : '', i.series, i.sanctioning].filter(Boolean).join(' · ')}</div>
                   {((showCar && i.car) || (showResult && i.result)) && (

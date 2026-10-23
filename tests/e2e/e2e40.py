@@ -84,7 +84,12 @@ with sync_playwright() as pw:
     row = page.locator('.list-row:has-text("Valley Spring Classic")')
     expect(row).to_have_count(1)
     expect(row).to_contain_text('2 days')
-    expect(row.locator('.row-sub')).to_contain_text('&')       # "Sat 14 & Mon 16 Nov 2026": days with a gap
+    lines = row.locator('[data-testid="day-lines"] .day-line')                       # a line for each day, under the event
+    expect(lines).to_have_count(2)
+    expect(lines.nth(0)).to_contain_text('Practice & prelims'); expect(lines.nth(0)).to_contain_text('Day 1 of 2')
+    expect(lines.nth(1)).to_contain_text('Finals'); expect(lines.nth(1)).to_contain_text('Day 2 of 2')
+    expect(page.locator('.list-row:has-text("Valley Speedway — Club night") [data-testid="day-lines"]')).to_have_count(0)   # one-day event: none
+    shot('40-00-events-list')
 
     # ---- the event: a tab per day, named; a sheet goes on the tab you're on
     page.goto(B + f"/events/{classic['id']}")
@@ -151,7 +156,10 @@ with sync_playwright() as pw:
     page.goto(B + '/calendar')
     crow = page.locator(f'.cal-row[data-event="{classic["id"]}"]')
     expect(crow).to_have_count(1)
-    expect(crow.locator('.row-sub')).to_contain_text('&')
+    clines = crow.locator('[data-testid="day-lines"] .day-line')
+    expect(clines).to_have_count(2)
+    expect(clines.nth(0)).to_have_class(re.compile(r'\boff\b'))                         # rained out: crossed out
+    expect(clines.nth(1).locator('a')).to_have_attribute('href', f'/events/{classic["id"]}?day=2')   # opens that day
     crow.locator('button:has-text("Edit")').click()
     expect(crow.locator('[data-testid="quick-edit"] .qe-days')).to_contain_text('All details')   # days with gaps: changed in the full form
     expect(crow.locator('[aria-label="End date"]')).to_have_count(0)
@@ -184,7 +192,8 @@ with sync_playwright() as pw:
     st, r = call('/admin/calendar/fixtures/new', OT, 'PUT', {'values': fx}); assert st == 200, r; FX = r['id']
     page.goto(B + '/calendar?tab=shared&show=all'); page.reload(); expect(page.locator('text=Synced')).to_be_visible(timeout=30000)
     frow = page.locator(f'[data-fixture="{FX}"]')
-    expect(frow).to_contain_text('&')
+    expect(frow).to_contain_text('2 days')
+    expect(frow.locator('.day-line')).to_have_count(2); expect(frow.locator('.day-line').nth(1)).to_contain_text('Night 2')
     frow.locator('button:has-text("Add to our calendar")').click()
     af = frow.locator('[data-testid="add-fx"]')
     af.locator('label:has-text("Car 17") input').check()
@@ -222,6 +231,7 @@ with sync_playwright() as pw:
     assert f'DTSTART;VALUE=DATE:{iso(D1, 1).replace("-", "")}' not in ics, 'the night off has no entry'
     page.goto(B + f'/c/{pub["token"]}')
     expect(page.locator(f'.cal-table tr:has-text("Valley Spring Classic") .cs-date')).to_contain_text('&')
+    expect(page.locator(f'.cal-table tr:has-text("Valley Spring Classic") .day-line').nth(1)).to_contain_text('Finals')
     shot('40-05-public')
 
     # ---- older events open as their days; the guide explains it

@@ -6,6 +6,7 @@ import { useSession } from '../lib/session.jsx';
 import { dateRange, eventDays } from './Events.jsx';
 import { useState } from 'react';
 import { FollowButton, RequestChange, TeamNotes } from '../components/SharedRequests.jsx';
+import DayLines from '../components/DayLines.jsx';
 
 const roundsOf = (data, id) => data.list('event').filter((e) => v(e, 'series') === id || (v(e, 'series') && v(data.byId[v(e, 'series')], 'shared_as') === id))
   .sort((a, b) => (num(v(a, 'round')) ?? 999) - (num(v(b, 'round')) ?? 999) || (v(a, 'date') || '').localeCompare(v(b, 'date') || ''));
@@ -94,7 +95,8 @@ export function SeriesDetail() {
                 return (
                   <tr key={e.id}>
                     <td><b>{v(e, 'round') || '—'}</b></td>
-                    <td><Link to={`/events/${e.id}`}>{v(e, 'name')}</Link>{eventDays(e) > 1 && <small className="muted"> · {eventDays(e)} days</small>}</td>
+                    <td><Link to={`/events/${e.id}`}>{v(e, 'name')}</Link>{eventDays(e) > 1 && <small className="muted"> · {eventDays(e)} days</small>}
+                      <DayLines values={e.data?.values} eventId={e.id} compact /></td>
                     <td>{data.byId[v(e, 'venue')] ? <Link to={`/tracks/${v(e, 'venue')}`}>{eventTrack(e, data)}</Link> : eventTrack(e, data)}</td>
                     <td>{dateRange(e)}</td>
                     {cars.map((c) => { const f = feature(e, c); return <td key={c.id}>{f && v(f, 'finish') ? <b>P{v(f, 'finish')}</b> : <span className="muted">—</span>}</td>; })}
