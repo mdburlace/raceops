@@ -19,7 +19,9 @@ export async function api(path, { method = 'GET', body, form } = {}) {
   if (body !== undefined) headers['content-type'] = 'application/json';
   let res;
   try {
-    res = await fetch(`/api${path}`, { method, headers, body: form || (body !== undefined ? JSON.stringify(body) : undefined) });
+    // no-store: always ask the server, never the browser cache. The app keeps its own copy of the data, and a
+    // stale cached answer (such as a cached redirect) would otherwise leave the device stuck "Offline".
+    res = await fetch(`/api${path}`, { method, headers, cache: 'no-store', body: form || (body !== undefined ? JSON.stringify(body) : undefined) });
   } catch {
     throw new ApiError(0, 'You appear to be offline');
   }

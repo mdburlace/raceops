@@ -42,6 +42,10 @@ app.disable('x-powered-by');
 // Trust it only from proxies on private networks unless TRUST_PROXY says otherwise.
 app.set('trust proxy', process.env.TRUST_PROXY || 'loopback, linklocal, uniquelocal');
 app.use(compression());
+// API answers are never cached by the browser or anything in between. The app keeps its own copy of the data,
+// and a cached answer (a redirect especially) can leave one device stuck "Offline". Routes that are meant to be
+// cached (public calendar feeds) set their own Cache-Control, which replaces this.
+app.use('/api', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
 app.use(express.json({ limit: '10mb' }));
 
 const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -274,6 +278,14 @@ const authPayload = async (user) => ({
 
 // ---------- public ----------
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+// Repair this device (Profile & device → Sync): tells the browser to empty its HTTP cache for this site, which
+// clears anything stale it is replaying (such as a cached redirect) — something page code can't do itself.
+// Only affects the browser that asks; no sign-in needed, nothing on the server changes.
+app.post('/api/device/clear-cache', (_req, res) => {
+  res.setHeader('Clear-Site-Data', '"cache"');
+  res.json({ ok: true });
+});
 
 app.get('/api/status', h(async (_req, res) => {
   const { rows } = await q('SELECT count(*)::int AS n FROM users');

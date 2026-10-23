@@ -2,7 +2,9 @@ import { api } from './api.js';
 import { db, getMeta, setMeta } from './store.js';
 
 // ---- observable status ----
-let status = { state: navigator.onLine ? 'idle' : 'offline', pending: 0, lastSync: null, error: null };
+// stuck: sync keeps failing as "offline" while the server answers its health check — something stale on this
+// device (usually its browser cache), which Repair this device fixes.
+let status = { state: navigator.onLine ? 'idle' : 'offline', pending: 0, lastSync: null, error: null, stuck: false };
 const listeners = new Set();
 const emit = (patch) => { status = { ...status, ...patch }; listeners.forEach((l) => l()); };
 export const subscribeSync = (l) => { listeners.add(l); return () => listeners.delete(l); };
@@ -11,6 +13,17 @@ export const getSyncStatus = () => status;
 let running = null;
 let again = false;
 let tenantId = null;
+let failures = 0; // sync attempts in a row that failed with no answer from the server
+
+/** True when the server answers its health check (straight from the network, never a cached copy). */
+async function serverAnswers() {
+  try {
+    const res = await fetch('/api/health', { cache: 'no-store' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 async function countPending(tid) {
   return tid ? db.records.where('[tenant_id+dirty]').equals([tid, 1]).count() : 0;
@@ -78,16 +91,21 @@ export function setSyncTenant(tid) {
 export async function syncNow() {
   const tid = tenantId;
   if (!tid) return;
-  if (!navigator.onLine) { emit({ state: 'offline', pending: await countPending(tid) }); return; }
+  if (!navigator.onLine) { emit({ state: 'offline', pending: await countPending(tid), stuck: false }); return; }
   if (running) { again = true; return running; }
   running = (async () => {
     emit({ state: 'syncing', error: null });
     try {
       await push(tid);
       await pull(tid);
-      emit({ state: 'idle', lastSync: new Date().toISOString(), pending: await countPending(tid) });
+      failures = 0;
+      emit({ state: 'idle', lastSync: new Date().toISOString(), pending: await countPending(tid), stuck: false });
     } catch (e) {
-      emit({ state: e.status === 0 ? 'offline' : 'error', error: e.message, pending: await countPending(tid) });
+      const offline = e.status === 0;
+      failures = offline ? failures + 1 : 0;
+      // Two "offline" failures in a row while the browser says it's online: is the server actually there?
+      const stuck = offline && failures >= 2 && navigator.onLine && await serverAnswers();
+      emit({ state: offline ? 'offline' : 'error', error: e.message, pending: await countPending(tid), stuck });
     } finally {
       running = null;
       if (again) { again = false; setTimeout(syncNow, 50); }
@@ -106,6 +124,38 @@ export async function fullResync(tid) {
   return syncNow();
 }
 
+/**
+ * Repair this device: what "Clear site data" does in the browser, but keeping the sign-in and any changes still
+ * waiting to sync. Empties the browser's HTTP cache for the site (the server sends Clear-Site-Data), removes the
+ * offline app files and the service worker, drops the already-synced copy of the team's data, then reloads —
+ * the app comes back fresh from the server, uploads the queued changes and downloads everything again.
+ * Stops before changing anything if the server can't be reached, so the app still works offline.
+ * Returns the number of queued changes kept (the page reloads, so callers rarely see it).
+ */
+export async function repairDevice(tid) {
+  let res;
+  try {
+    res = await fetch('/api/device/clear-cache', { method: 'POST', cache: 'no-store' });
+  } catch {
+    res = null;
+  }
+  if (!res?.ok) throw new Error("Can't reach the server, so nothing was changed. Try again when you have a connection.");
+  const regs = await navigator.serviceWorker?.getRegistrations?.().catch(() => []) || [];
+  await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
+  if (window.caches) {
+    const keys = await caches.keys().catch(() => []);
+    await Promise.all(keys.map((k) => caches.delete(k).catch(() => {})));
+  }
+  const pending = await countPending(tid);
+  if (tid) {
+    await db.records.where('[tenant_id+dirty]').equals([tid, 0]).delete(); // queued changes (dirty) stay
+    await setMeta(`since:${tid}`, 0);
+  }
+  failures = 0;
+  window.location.reload();
+  return pending;
+}
+
 let timer;
 export function startSyncLoop() {
   const kick = () => syncNow();
@@ -116,7 +166,7 @@ export function startSyncLoop() {
     debounce = setTimeout(kick, 800);
   };
   window.addEventListener('online', kick);
-  window.addEventListener('offline', () => emit({ state: 'offline' }));
+  window.addEventListener('offline', () => emit({ state: 'offline', stuck: false }));
   window.addEventListener('raceops:changed', onChange);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
   clearInterval(timer);
