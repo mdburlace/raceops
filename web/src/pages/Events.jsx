@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ContactLinks from '../components/ContactLinks.jsx';
-import { Empty, PageHeader, Section } from '../components/ui.jsx';
+import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { eventTrack, fmtDays, fmtDay, fmtTime, roundAndTrack, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
-import { eventDayList } from '@shared/calendar.js';
+import { DAY_OUTCOMES, WITHDRAW_REASONS, eventDayList, setDayResult } from '@shared/calendar.js';
 import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
 import { orderForNew, orderSessions } from '../lib/sessions.js';
@@ -267,6 +267,7 @@ export function EventDetail() {
       <div className="card entry-card" data-testid="entry-card">
         <b>Plan & result</b>
         <EntryResult ev={ev} />
+        {days > 1 && v(ev, 'outcome_auto') && <span className="muted small" data-testid="overall-auto">Worked out from the days — pick another to change it.</span>}
         {v(ev, 'withdraw_session') && <span className="muted small">Withdrew after {v(ev, 'withdraw_session')}</span>}
         {v(ev, 'outcome_notes') && <span className="muted small pre">{v(ev, 'outcome_notes')}</span>}
       </div>
@@ -286,10 +287,73 @@ export function EventDetail() {
             : [thisDay.off && `${thisDay.status} — this day didn’t run.`, thisDay.time && `Starts ${fmtTime(thisDay.time)}.`].filter(Boolean).join(' ')}
         </p>
       )}
+      {days > 1 && thisDay && !thisDay.stray && !thisDay.off && <DayResult ev={ev} day={thisDay} days={tabs} />}
+      {days > 1 && <DaysSummary ev={ev} onPick={setDay} />}
       {car ? carBlock(car, true) : <ChooseCar ev={ev} data={data} />}
       {otherCars.map((c) => carBlock(c, false))}
       <EventBusiness ev={ev} />
       <ContactLinks data={data} entity={ev} />
+    </div>
+  );
+}
+
+export const dayOutcomeLevel = (o) => (o === 'Raced the feature' ? 'ok' : o === 'Withdrew' || o === 'Did not make the feature' ? 'warn' : 'muted');
+
+/** What happened on one day of a multi-day meeting: the outcome, why we withdrew, the result in a few words, notes. */
+function DayResult({ ev, day, days }) {
+  const { tid, user, canType } = useSession();
+  const x = ev.data?.values || {};
+  const d = eventDayList(x).find((r) => r.n === day.n) || {};
+  const [text, setText] = useState({ result: d.result || '', notes: d.notes || '' });
+  useEffect(() => { setText({ result: d.result || '', notes: d.notes || '' }); }, [ev.id, day.n]); // eslint-disable-line react-hooks/exhaustive-deps
+  const canEdit = canType('event', 'edit');
+  const pos = days.find((t) => t.n === day.n)?.pos || 1;
+  const save = (patch) => saveRecord(tid, 'event', ev.id, { ...ev.data, values: setDayResult(x, day.n, patch) }, user.id);
+  const label = `Day ${pos}${day.label ? ` · ${day.label}` : ''}`;
+  if (!canEdit) {
+    if (!d.outcome && !d.result && !d.notes) return null;
+    return (
+      <div className="card day-result" data-testid="day-result">
+        <b>{label}</b>
+        {d.outcome && <Pill level={dayOutcomeLevel(d.outcome)}>{d.outcome}{d.withdraw_reason ? ` — ${d.withdraw_reason}` : ''}</Pill>}
+        {d.result && <span>{d.result}</span>}
+        {d.notes && <span className="muted small pre">{d.notes}</span>}
+      </div>
+    );
+  }
+  const future = d.date > today();
+  return (
+    <div className="card day-result" data-testid="day-result">
+      <b>{label} — what happened</b>
+      <select aria-label={`What happened on ${label}`} className={d.outcome || future ? '' : 'needs'} value={d.outcome || ''} onChange={(e) => save({ outcome: e.target.value, ...(e.target.value === 'Withdrew' ? {} : { withdraw_reason: '' }) })}>
+        <option value="">{future ? 'Still to come' : 'What happened?'}</option>
+        {DAY_OUTCOMES.map((o) => <option key={o}>{o}</option>)}
+      </select>
+      {d.outcome === 'Withdrew' && (
+        <select aria-label={`Why we withdrew on ${label}`} value={d.withdraw_reason || ''} onChange={(e) => save({ withdraw_reason: e.target.value })}>
+          <option value="">Reason…</option>
+          {[...new Set([...WITHDRAW_REASONS, ...(d.withdraw_reason ? [d.withdraw_reason] : [])])].map((o) => <option key={o}>{o}</option>)}
+        </select>
+      )}
+      <input aria-label={`Result on ${label}`} placeholder="Result, e.g. Prelim feature 5th" value={text.result}
+        onChange={(e) => setText({ ...text, result: e.target.value })} onBlur={() => text.result !== (d.result || '') && save({ result: text.result })} />
+      <textarea aria-label={`Notes on ${label}`} placeholder="Notes for the day" rows={1} value={text.notes}
+        onChange={(e) => setText({ ...text, notes: e.target.value })} onBlur={() => text.notes !== (d.notes || '') && save({ notes: text.notes })} />
+    </div>
+  );
+}
+
+/** Every day's result at a glance, under the event's overall result. */
+function DaysSummary({ ev, onPick }) {
+  const days = eventDayList(ev.data?.values);
+  if (!days.some((d) => d.outcome || d.result)) return null;
+  return (
+    <div className="days-summary" data-testid="days-summary">
+      {days.map((d, i) => (
+        <button type="button" key={d.n} className="chip" onClick={() => onPick(d.n)}>
+          {d.label || `Day ${i + 1}`}: {d.off ? d.status : d.outcome || 'not recorded'}{d.result ? ` · ${d.result}` : ''}
+        </button>
+      ))}
     </div>
   );
 }

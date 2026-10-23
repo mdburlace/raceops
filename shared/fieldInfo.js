@@ -111,7 +111,7 @@ export const FIELD_INFO = {
     date: ['Day of the meeting. For a meeting over more than one day, tick Runs over more than one day and set each day instead.'],
     end_date: ['Last day of a multi-day meeting. Set from the days, so you don’t type it.'],
     multi_day: ['Tick for a meeting over more than one day, e.g. a two-night classic or a practice day before race day. Then set each day below.'],
-    days: ['One row per day: its date, a name (e.g. Practice, Night 1, Finals), when it starts and whether it ran. Days can have gaps. Setup sheets are kept by day, and each day shows on its own on the calendar.'],
+    days: ['One row per day: its date, a name (e.g. Practice, Night 1, Finals), when it starts and whether it ran. Days can have gaps. Setup sheets are kept by day, and each day shows on its own on the calendar. What happened each day is recorded on the event’s day tabs.'],
     location: ['Town / state of the track.'],
     track_length: ['Track size, e.g. 3/8 mi or 400 m.'],
     surface: ['Surface type (clay, dirt, etc.).'],

@@ -55,16 +55,27 @@ The event's date and end date are set from the days. Days are listed by date, wh
 
 **On the event,** each day gets its own tab, named after the day (or *Day 1*, *Day 2*…) with its date. While the meeting is on, it opens on today's day. A sheet you add goes on the tab you're on. On a setup sheet, **Day** lists the event's days, so you can move a sheet to another day.
 
+**What happened each day, and overall.** On the event, each day's tab has **what happened** for that day:
+
+1. Open the event and press the day's tab.
+2. Pick what happened: **Raced the feature**, **Did not make the feature**, **Withdrew** (then the reason) or **Did not race**.
+3. Type the **result** in a few words, e.g. *Prelim feature 5th*, and any **notes** for the day.
+
+It saves as you go. The days' results show as a row of chips under **Plan & result** — tap one to open that day.
+
+The meeting's overall result under **Plan & result** is worked out from the days until you pick one yourself: it's **Raced the feature** if you raced a feature on any day; otherwise **Withdrew during the event** (with that day's reason) if you withdrew on any day; otherwise **Did not make the feature**. Every day **Did not race** makes it **Did not attend**, and every day rained out or cancelled makes it **Event cancelled**. Pick a different overall result and it stays as you set it. The year's totals on the Calendar count each meeting once, by its overall result.
+
 **In lists** (**Events**, **Calendar**, the shared calendars, a series' rounds, a track's events, **At the Track** and the printed calendar), the event is one row marked **2 days** (or however many). Under it there's a line for each day, joined to the event by a line down the left:
 
 - the day's date, e.g. *Sat 14 Nov*;
 - its name, e.g. *Finals*, or *Day 1 of 2* if it hasn't got one;
 - its start time;
-- **Rained out** or **Cancelled**, with the day crossed out.
+- **Rained out** or **Cancelled**, with the day crossed out;
+- what happened that day and its result, once they're recorded.
 
 Days already past are greyed, and today's day says *today*. On the **Calendar** and a series' rounds, tap a day's line to open the event on that day.
 
-**Elsewhere,** the calendar's month view marks each day the event runs, not the days in between. Your published calendar and its **Subscribe** link have one entry per day. The weather on a setup sheet starts at that day's date and start time.
+**Elsewhere,** the calendar's month view marks each day the event runs, not the days in between. Your published calendar and its **Subscribe** link have one entry per day. With **Show results** on, the published page shows each day's result too (never withdraw reasons or notes). A day's result stays with your team: it's never sent to the shared calendars, and an update from the shared calendar keeps it. The weather on a setup sheet starts at that day's date and start time.
 
 **Taking a day off:** a day that has setup sheets can't be removed, and you can't untick **Runs over more than one day** while a later day has sheets. Open each sheet, change its **Day**, then remove the day.
 

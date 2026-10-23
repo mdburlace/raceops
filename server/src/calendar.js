@@ -89,7 +89,10 @@ async function publicCalendar(token) {
     const fx = byId[v.fixture];
     const cancelled = fx?.status === 'Cancelled' || v.outcome === 'Event cancelled';
     items.push({
-      id: r.id, name: v.name || 'Event', date: v.date, end_date: v.end_date || '', days: eventDayList(v).length > 1 ? eventDayList(v) : undefined,
+      id: r.id, name: v.name || 'Event', date: v.date, end_date: v.end_date || '',
+      // each day's result only with "Show results"; withdraw reasons and notes never
+      days: eventDayList(v).length > 1 ? eventDayList(v).map(({ outcome, result, withdraw_reason, notes, ...d }) => ({ ...d, ...(opts.show_results && !d.off && (outcome || result) // eslint-disable-line no-unused-vars
+        ? { outcome: outcome === 'Withdrew' ? 'Withdrew' : outcome || '', result: result || '' } : {}) })) : undefined,
       track: venue?.name || v.track || '', location: [venue?.city || v.location, venue?.region].filter(Boolean).join(', '),
       series: series?.name || '', round: v.round || '', tentative: v.intent === 'Tentative', cancelled,
       car: opts.show_cars && car ? [car.number && `#${car.number}`, car.name].filter(Boolean).join(' ') : '',
