@@ -34,6 +34,23 @@ Tables of roles, permissions, plans, settings, calculators, themes and shock adj
 
 Writing style: plain Australian English, short sentences, bold for things on screen, "you" for the reader.
 
+## Training pack — every release must keep it current
+
+The training pack (`docs/guide/training*.md`, Help & guide → Training) is reviewed **in the same change** as every
+enhancement, so the exercises always match the app:
+
+1. **Exercises, cards and quick start:** update every step, label and "When it's right" that the change affects
+   (`training-<role>.md`, `training-cards.md`, `training-quick-start.md`). A new feature a role will use gets an
+   exercise in that role's article, with a **Check yourself** question if it's easy to get wrong.
+2. **Practice data** (`shared/practiceData.js`): add demo records the new exercise needs. Keep the names the articles
+   list in their `demo:` front matter — the guide check fails if one disappears.
+3. **Videos:** if a screen shown in a video changed, re-record it: `python3 tools/training_videos.py --email … --password …`
+   against a test server (`--only <name>` for one), and change the script in that file to match.
+4. **Tests:** keep `tests/e2e/e2e34.py` (practice team and the crew chief exercise) passing; extend it for new exercises.
+5. **Sign the review:** set `reviewed:` in `docs/guide/training.md` to the title of the newest `whats-new.md` line
+   (without the bold or full stop). `node tools/check-guide.mjs` fails until it matches, so every release gets a review —
+   even when the answer is "nothing in the training changes".
+
 ## Design document — every release must keep it current
 
 `docs/design/DESIGN.md` describes the system well enough to rebuild it if the repo or server is lost;

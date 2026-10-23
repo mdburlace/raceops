@@ -45,6 +45,22 @@ for (const a of articles) {
   for (const img of helpImages(a.body)) if (!fs.existsSync(path.join(GUIDE, img))) bad(`${a.file}: image ${img} is missing from docs/guide`);
   for (const e of helpEmbeds(a.body)) if (!EMBEDS[e] && !APP_EMBEDS.includes(e)) bad(`${a.file}: {{${e}}} isn't a known live table (${Object.keys(EMBEDS).join(', ')})`);
 }
+// ---- the training pack stays current ----
+// Every training article lists the demo names it relies on (demo:), which must still be in the practice data.
+const practiceSrc = fs.readFileSync(path.join(ROOT, 'shared/practiceData.js'), 'utf8');
+for (const a of articles.filter((x) => x.section === 'training')) {
+  for (const n of String(a.demo || '').split(',').map((x) => x.trim()).filter(Boolean)) {
+    if (!practiceSrc.includes(n)) bad(`${a.file}: uses the demo name "${n}", which isn't in shared/practiceData.js any more. Update the exercise or the practice data.`);
+  }
+}
+// The training pack is reviewed for every release: training.md's reviewed: names the newest What's new entry it was checked against.
+const latestNew = /^- \*\*(.+?)\.?\*\*/m.exec(files['whats-new.md'] || '')?.[1];
+const reviewed = byId.get('training')?.reviewed;
+if (latestNew && reviewed !== latestNew) {
+  bad(`The training pack hasn't been reviewed for "${latestNew}" (newest in What's new; last reviewed: "${reviewed || 'never'}"). `
+    + 'Check the training articles, cards, quick start, practice data, videos and e2e34 against this change and update what it affects, '
+    + `then set "reviewed: ${latestNew}" in docs/guide/training.md. See CLAUDE.md → "Training pack".`);
+}
 for (const c of CHECKLIST) if (!byId.has(c.article)) bad(`Setup checklist item "${c.id}" points at article "${c.article}", which doesn't exist`);
 const covers = new Set(articles.flatMap((a) => a.covers));
 const forTokens = new Set(articles.flatMap((a) => a.for));

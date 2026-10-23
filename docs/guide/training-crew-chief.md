@@ -8,6 +8,7 @@ for: module:setups
 team: race
 covers: option:training-crew-chief
 related: training, role-crew-chief, setup-sheets, setup-sheet-layout, setup-advisor, compare-search
+demo: Car 17, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick
 ---
 **Time:** about 45 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
 

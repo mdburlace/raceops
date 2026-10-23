@@ -12,6 +12,7 @@ Every RaceOps update adds a line here, and the articles it links to are updated 
 
 ## October 2026
 
+- **Training kept up to date with every release.** The training pack is now checked against every update, and the trainer's guide says what to do when one lands. The quick start and cards now cover **Can’t sync** and **Repair this device**. [Trainer's guide and rollout plan](/help/training-trainers), [Quick reference cards](/help/training-cards)
 - **Training pack.** A new **Training** section in Help & guide: a quick start, hands-on exercises for each role with checks of understanding, printable quick reference cards, short videos, and a trainer's guide with a rollout plan. Platform admins can create a **practice team** loaded with demo data, and its owner can reset it between groups. [Training — start here](/help/training)
 - **Repair this device.** If one device stays **Offline** while the app works everywhere else, **Profile & device → Repair this device** clears what that browser has stored for RaceOps and downloads your data again, keeping your sign-in and any changes waiting to sync. The badge now says **Can’t sync** and points you there when it spots the problem, and the app no longer lets the browser cache its connection to the server. [Sign in, install, and work offline](/help/offline-sync)
 - **Save at the top of event forms.** The quick edit on **Our calendar** and the event form (from **Events** or **All details**) now have **Save** and **Cancel** at the top. [Calendar](/help/calendar), [Events and sessions](/help/events-sessions)

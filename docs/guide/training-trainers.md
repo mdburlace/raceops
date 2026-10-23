@@ -79,6 +79,18 @@ Someone's ready when they can do their sign-off task without help.
 | Owner | Every real crew member invited with the right role, and confirmed they can see what they need |
 | Platform admin | A practice team created, trainees invited, and reset after training |
 
+## Keeping the training current
+
+RaceOps is updated regularly, and the training pack is updated in the same release: the exercises, cards, quick start and videos always match the app you're using. When an update lands:
+
+1. Read **Help & guide → What's new**. Each line links to the article that explains it.
+2. Reset the practice team (**Team Management → Members & invites → Practice team → Reset practice data**), so it has the latest demo data.
+3. Run through the exercises for the roles the update touches, before you train anyone on them.
+4. Reprint the [quick reference cards](/help/training-cards) if they changed, and swap the old ones in the trailer and workshop.
+5. Tell trained crew what's new in their role. A five-minute run-through at the next race meeting is usually enough.
+
+If an exercise doesn't match what you see, send it through **Feedback & roadmap**.
+
 ## Tips
 
 - **Reset between groups**, so everyone starts from the same place. Forms and roles you change aren't reset.

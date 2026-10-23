@@ -171,16 +171,17 @@ A simpler first step that needs no GitOps: keep deploying by hand in Portainer, 
 ### 5.4 Production release checklist
 
 1. Staging runs the release candidate and has been signed off. Sign-off covers the release's features, login, sync on an installed phone, offline edit then reconnect, and the e2e run is green.
-2. Confirm the release's `CHANGELOG.md` manual steps, such as new environment variables added to the production stack **before** deploying.
-3. Take a database dump: `pg_dump -Fc` → `pre-1.6.0.dump`, copied off the host.
-4. Announce if needed: **Platform admin → Settings → announcement banner** (e.g. "Update tonight 9pm, about 2 minutes").
-5. Update the production image tag and redeploy. Migrations and form upgrades run on start. Watch the logs for `Applying migration` and `RaceOps listening`.
-6. Smoke test:
+2. The training pack is current: the guide check passes (it requires `reviewed:` in `docs/guide/training.md` to match the newest What's new entry), the training videos were re-recorded if their screens changed, and the e2e suite for the practice team is green. On staging, reset a practice team and run the exercises for the roles the release touches.
+3. Confirm the release's `CHANGELOG.md` manual steps, such as new environment variables added to the production stack **before** deploying.
+4. Take a database dump: `pg_dump -Fc` → `pre-1.6.0.dump`, copied off the host.
+5. Announce if needed: **Platform admin → Settings → announcement banner** (e.g. "Update tonight 9pm, about 2 minutes").
+6. Update the production image tag and redeploy. Migrations and form upgrades run on start. Watch the logs for `Applying migration` and `RaceOps listening`.
+7. Smoke test:
    - `/api/health`;
    - sign in;
    - **System & activity** shows the new version and migrations;
    - open a team, check sync, open the guide.
-7. Watch for errors for the first hour. Keep the previous tag noted for rollback.
+8. Watch for errors for the first hour. Keep the previous tag noted for rollback.
 
 Pick deploy windows away from race nights (Friday and Saturday evenings), when teams are offline at the track and will sync later.
 

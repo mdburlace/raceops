@@ -8,6 +8,7 @@ for: everyone
 team: race
 covers: option:training-driver
 related: training, role-driver, setup-sheets, compare-search, calendar, analytics, feedback
+demo: Valley Speedway — Club night, Heat 1, Lakeside Raceway
 ---
 **Time:** about 25 minutes. **You need:** the practice team on your phone, signed in as a driver. The **Driver / Viewer** role can read everything at the track but doesn't change it.
 

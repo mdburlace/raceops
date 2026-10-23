@@ -53,11 +53,13 @@ Print these and keep them where the work happens: in the trailer, on the worksho
 | **Syncing** | Sending or fetching now |
 | **Waiting to sync** | Saved on this phone. It goes up when there's signal |
 | **Offline** | No connection. Keep working as normal |
+| **Can’t sync** | This device is stuck. Tap the badge → **Repair this device** |
 
 **Do**
 - Install RaceOps on your phone, so it opens without signal.
 - Open the app once in signal before you leave for the track, so it has the latest.
 - Let it reach **Synced** before you sign out or swap phones.
+- Stuck on **Offline** or **Can’t sync** while it works on other phones? **Profile & device → Repair this device**. It keeps your sign-in and anything waiting to sync.
 
 **Don't**
 - Clear your browser's data while it says **Waiting to sync**. Those changes are only on the phone.

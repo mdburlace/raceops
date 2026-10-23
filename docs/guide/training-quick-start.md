@@ -46,6 +46,7 @@ Everything you enter saves on your phone first, then syncs when there's a connec
 | **Syncing** | Sending or fetching now |
 | **Waiting to sync** | Saved on this phone. It goes up when you're back in signal |
 | **Offline** | No connection. Keep working |
+| **Can’t sync** | The server answers but this device can't sync. Tap the badge, then **Repair this device** |
 
 Try it:
 1. Turn on flight mode.

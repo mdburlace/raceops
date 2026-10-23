@@ -7,6 +7,7 @@ summary: Hands-on exercises in the practice team — between-round checks, what'
 for: module:maintenance, module:assets
 covers: option:training-mechanic
 related: training, role-mechanic, between-round-checks, maintenance, assets, dyno, gears
+demo: Car 17, Valley Speedway — Club night, Small oil weep on the RR shock, Oil and filter change, RR shock rebuild, RR Penske 8760, Spare Penske, Hoosier
 ---
 **Time:** about 45 minutes. **You need:** the practice team, signed in as a mechanic.
 

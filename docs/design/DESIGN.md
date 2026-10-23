@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `014_feedback.sql` |
-| Last updated | October 2026 (training pack: practice teams, exercises, cards, videos; Repair this device) |
+| Last updated | October 2026 (training pack reviewed every release) |
 
 ---
 
@@ -617,6 +617,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
 - `shared/guide.js` parses articles; the web app bundles them (`@docs` alias) and shows them at `/help`, with search, role filtering, the **?** link per page and `{{embed}}` tables generated from code (`EMBEDS` in `shared/guideData.js`: roles, permissions, plans, settings, calculators, themes, shock adjusters).
 - `shared/guideData.js SETTINGS` lists every setting; `shared/guideChecklist.js CHECKLIST` is the first-run checklist on Home.
 - `tools/check-guide.mjs` fails the build if any page, record type, module, licence feature, admin right, team type, built-in role, setting read in the code, link, image or field description is undocumented.
+- Training pack upkeep: `tools/check-guide.mjs` fails if `training.md`'s `reviewed:` isn't the newest What's new entry (so every release reviews the training), or if a name in a training article's `demo:` front matter is no longer in `shared/practiceData.js`.
 - Screenshots: `tools/guide_shots.py` against a test server. Videos: `tools/training_videos.py` (needs ffmpeg), into `docs/guide/video/` with posters in `docs/guide/img/`.
 - `helpImages` collects `img/…` and `video/…` references; the check fails if a referenced file is missing.
 
@@ -696,6 +697,7 @@ This document is updated **in the same commit** as the change it describes. For 
 | adds in-memory state or a timer | §14 |
 | changes build, test or deployment | §5, §18, `ROLLOUT.md` |
 | changes backup or recovery | §19 |
+| changes anything a user does | the training pack too (`CLAUDE.md` → Training pack): exercises, cards, practice data, videos, `reviewed:` in `training.md` |
 
 Then set **Last updated** in the header. `node tools/check-design.mjs` checks that every migration file, every environment variable read in `server/src`, every file in `server/src` and every record type appears in this document; the build fails otherwise.
 

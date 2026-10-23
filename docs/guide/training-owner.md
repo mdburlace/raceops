@@ -7,6 +7,7 @@ summary: Hands-on exercises in the practice team — invite people with the righ
 for: owner, admin
 covers: option:training-owner
 related: training, role-owner, members-invites, roles-permissions, calendar, reports, training-trainers
+demo: Car 17, Lakeside Raceway
 ---
 **Time:** about 40 minutes. **You need:** the practice team, signed in as its owner.
 

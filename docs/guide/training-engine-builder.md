@@ -8,6 +8,7 @@ for: module:jobs, module:engines
 team: shop
 covers: option:training-engine-builder
 related: training, role-engine-builder, shop-jobs, engine-builds, handover-pack, share-engine-page, customers
+demo: Sam Hart, Hart 410, J-1001, Freshen after 480 laps
 ---
 **Time:** about 40 minutes. **You need:** the practice team (it's a race team and an engine shop), signed in as someone who can edit jobs.
 
