@@ -96,8 +96,11 @@ demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — 
 3. Press **Finals**, then **+ Add session** and add a **Feature** sheet. Save it.
 4. Open the sheet again and look at **Day**: it lists both days by name and date.
 5. Press **Edit event**. Set **Practice & prelims** to **Rained out** and save.
+6. On the **Finals** tab, under **Day 2 · Finals — what happened**, pick **Raced the feature** and type *Feature 6th* as the result.
 
-**When it's right:** the Feature sheet is on the **Finals** tab only. **Practice & prelims** is crossed out, and the **Calendar → Month** view marks just the two race days, not the day between. See [Multi-day events](/help/events-sessions#multi-day-events).
+**When it's right:** the Feature sheet is on the **Finals** tab only. **Practice & prelims** is crossed out, and the **Calendar → Month** view marks just the two race days, not the day between. **Plan & result** shows **Raced the feature**, worked out from the days, and the day lines under the event show *Raced the feature · Feature 6th* on Finals. See [Multi-day events](/help/events-sessions#multi-day-events).
+
+**Check yourself:** you pick **Did not attend** for the whole meeting under Plan & result. Does recording a day's result change it? (No — a result you pick for the whole event stays. Only a worked-out one follows the days.)
 
 ## Check yourself
 
