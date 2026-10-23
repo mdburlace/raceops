@@ -194,7 +194,11 @@ export default function RecordEdit() {
     const first = engineRef.current === undefined;
     if (!first && eid === engineRef.current) return;
     engineRef.current = eid;
-    if (first && !isNew) return;
+    if (first && !isNew) return; // an existing record keeps its tune
+    const cur = data.byId[values.engine_tune];
+    if (cur && v(cur, 'engine') === eid) return; // already a tune for this motor
+    // a sheet copied from another session leaves it empty (the panel shows the active tune): not a change you made
+    if (!cur && values.copied_from) return;
     const t = eid ? activeTune(data.list('engine_tune'), eid) : null;
     if ((values.engine_tune || '') !== (t?.id || '')) setValues((x) => ({ ...x, engine_tune: t?.id || '' }));
   }, [values?.engine, data, hasTuneField]); // eslint-disable-line react-hooks/exhaustive-deps
