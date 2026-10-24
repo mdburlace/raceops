@@ -3,13 +3,13 @@ id: training-business
 title: "Training: business and race-night roles"
 section: training
 order: 16
-summary: Hands-on exercises in the practice team — the crew list and race night, the change list, tyre sheet and debrief, parts orders, finance, transport, partnerships, marketing, and sponsor payments and crew pay.
+summary: Hands-on exercises in the practice team — the crew list and race night, the change list, tyre sheet and debrief, parts orders, finance, transport, partnerships, marketing, sponsor payments and crew pay, and the forecast and asset register.
 for: everyone
 covers: option:training-business
 related: training, business, parts-orders, finance, transport, partnerships, marketing, role-car-chief, role-tire-specialist
 demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres, Lakeside Motors, 2026 main, Chris Lee, Hauler, Sprint car race weekend, Team T-shirt, Pat Driver, Valley Tyres sponsorship
 ---
-**Time:** about 70 minutes (do the exercises for your job). **You need:** the practice team. The owner can do every exercise; otherwise sign in with the role named.
+**Time:** about 80 minutes (do the exercises for your job). **You need:** the practice team. The owner can do every exercise; otherwise sign in with the role named.
 
 **The story:** it's club night at Valley Speedway. The crew each have a job, the business side keeps the money and sponsors right, and round 9 is next week.
 
@@ -113,6 +113,18 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 **When it's right:** *Valley Tyres* shows nothing outstanding and the income lists both payments. **In-kind sponsorship** income and a *Tyres* cost of the same amount are in Finance. Two bills to pay — your per diem and pay — are in **Expenses** and **Reminders**.
 
 **Check yourself:** why record in-kind tyres in Finance if the income and cost cancel out? (So the budget shows what the season really costs — the tyres would cost that without the sponsor — and the sponsor gets the credit for them.)
+
+## Exercise 11: Forecast, owed and the asset register (business manager, 10 min)
+
+1. **Business → Finance → Forecast**. Read the top line: over or under budget, and by how much. Find the meetings still planned and the cost per meeting.
+2. Scroll to **Cash flow — the next 8 weeks**. The practice budget has *8,000* in the bank, so each week shows a balance.
+3. Open **Owed**. Find the unpaid engine freshen from *Hart Engines* under **We owe**.
+4. Open **Assets**. The *Hauler* and engine *410 #3* depreciate on a straight line; *Old Ohlins LR* was sold last month.
+5. Open **Season P&L** and find **Net after depreciation**.
+
+**When it's right:** the forecast shows a total for the season against the budget, the cash flow has a balance each week, the engine freshen is under **We owe**, and the sold shock shows its gain or loss in **Assets** and in the season P&L.
+
+**Check yourself:** the forecast says you're heading over budget. What two things would bring it back? (Spend less per meeting — the per-meeting column shows where — or go to fewer meetings. Changing a meeting to **Tentative** or **Not going** takes it out of the forecast.)
 
 ## Sign-off
 

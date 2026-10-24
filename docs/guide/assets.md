@@ -46,6 +46,7 @@ An asset's page shows:
 - **Maintenance schedules** for it (**+ Schedule**).
 - **Installed components.**
 - For shocks: its dyno runs.
+- **Value** (people who can see costs): its depreciation, book value today, or its sale and the gain or loss. Set it under **Value & depreciation** when you edit the asset. See [Finance](/help/finance#asset-register-and-depreciation).
 - **Spent on this** (people who can see costs): what it was bought for, and every expense and parts order with it as the **Inventory item** — services, repairs, rebuilds. See [Finance](/help/finance#expenses-and-the-inventory).
 
 Assets near or over their limit show under **Needs attention** on Home and the Workshop hub.

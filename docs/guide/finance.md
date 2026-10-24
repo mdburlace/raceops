@@ -3,7 +3,7 @@ id: finance
 title: Finance
 section: business
 order: 30
-summary: Season budget in groups with a contingency reserve and an income budget, expenses with receipts read by the AI, income, contracts, a profit and loss for every event, and the export to accounting software.
+summary: Season budget in groups with a contingency reserve and an income budget, the season forecast and cash flow, what's owed both ways, the asset register with depreciation, expenses with receipts read by the AI, income, contracts, a profit and loss for every event, and the export to accounting software.
 for: module:finance
 pages: /finance, /r/expense/*, /r/income/*, /r/budget/*, /r/contract/*
 covers: type:expense, type:income, type:budget, type:contract, module:finance, feature:finance, setting:accounting
@@ -60,6 +60,36 @@ Expenses in **Crash & failure repairs**, and any expense ticked **Paid from the 
 
 Under **Income budget**, list the income you expect by kind: sponsorship, prize money, seat fees, stipends. The Budget tab compares it with what's been received, and shows the net so far against the budgeted net.
 
+## Season forecast
+
+**Finance → Forecast** answers "will we finish the season on budget?" For each category:
+
+- **Spent** so far this season;
+- **On order**: approved and ordered parts not yet recorded as expenses;
+- **Per meeting**: what the category has cost per meeting so far, from expenses tagged to past meetings;
+- **Forecast** = spent + on order + per meeting × the meetings still **Planned** on your calendar.
+
+The top line says whether you're heading over or under the budget, and by how much. Tentative meetings aren't counted, but it tells you what going to them would add.
+
+The income side adds what's been received, what's still to come (sponsor instalments not yet received and income with **Received** unticked) and prize money per meeting so far × the meetings left, for a **Season net forecast**.
+
+It's a forecast from what you've recorded: the more expenses you tag to their meeting, the better it gets.
+
+### Cash flow
+
+Under the forecast, **Cash flow — the next 8 weeks** shows money in (sponsor instalments and income due) and out (unpaid bills by their due date, and each planned meeting at the average cost per meeting) week by week. Anything overdue counts in the first week.
+
+Add **Cash in the bank** (and the date) to the season budget for a running balance. If it would go below zero, the page warns you.
+
+## What's owed
+
+**Finance → Owed** lists:
+
+- **Owed to us**: sponsor instalments not yet received, and income with **Received** unticked;
+- **We owe**: expenses with **Paid** unticked (including crew pay), and parts on order that haven't been billed yet.
+
+Each side has a table by age — **Not due**, **1–30 days**, **31–60 days**, **61–90 days**, **Over 90 days** late — and a list with how many days late each one is. Tap one to open it.
+
 ## Profit and loss for each event
 
 **Event P&L** lists your past meetings with their net result. Open one to see:
@@ -68,7 +98,20 @@ Under **Income budget**, list the income you expect by kind: sponsorship, prize 
 - **Costs** tagged to the event, by category, plus parts orders not yet recorded as expenses;
 - **Wear**, estimated from the laps run there: each tyre's cost shared by its laps, the engine's last **Rebuild cost** (on its build sheet) spread over its laps to the next freshen, and other parts with a cost and a life in laps.
 
-The event page shows the same totals. **Season P&L** adds up any period.
+The event page shows the same totals. **Season P&L** adds up any period. Under **Not paid in cash** it takes off the depreciation of your assets for the period and adds any gain (or takes off any loss) on assets sold or scrapped, for a **Net after depreciation**.
+
+## Asset register and depreciation
+
+Cars, engines, the hauler and other big items lose value. On an asset, under **Value & depreciation**, set:
+
+- **Depreciation**: **Straight line** (evenly over its **Useful life** in years, from its purchase date) or **Per lap** (by the laps it runs against its life limit in laps);
+- **Value at the end of its life**: what you expect to get for it at the end.
+
+When it's sold, scrapped, returned or written off, fill in **Sold or scrapped on**, **How it went** and the **Sale or scrap value**. It stops depreciating, and the gain or loss against its book value on the day goes into the season's profit and loss.
+
+**Finance → Assets** lists every depreciating asset with its cost, how much it's depreciated, its **Book value** today and its depreciation this season, and each disposal with its gain or loss. The asset's own page shows the same under **Value**.
+
+These are estimates for planning — your accountant's tax depreciation may differ. Each meeting's profit and loss already counts wear on tyres, engines and parts by the laps run, so depreciation is only in the season view.
 
 ## Contracts
 
