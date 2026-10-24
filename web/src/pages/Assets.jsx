@@ -2,11 +2,12 @@ import { Fragment, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Attachments, Empty, History, LifeBar, LineChart, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { assetLife, scheduleStatus, setupsByAsset } from '../lib/compute.js';
-import { allFields, display, fmtDate, formFor, num, optionsOf, titleOf, useTeamData, v } from '../lib/data.js';
+import { allFields, display, fmtDate, formFor, num, optionsOf, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { scheduleText } from './Maintenance.jsx';
 import { EngineJobs } from './Shop.jsx';
 import { spendOn } from '@shared/finance.js';
+import { assetValue } from '@shared/ledger.js';
 import { useMoney } from './Business.jsx';
 
 const STATUS_LEVEL = { 'In Service': 'ok', Spare: 'info', 'Out for Service': 'warn', 'On Order': 'info', Retired: 'muted' };
@@ -148,6 +149,31 @@ export function AssetDetail() {
         </Section>
       </div>
 
+      {canMoney && (() => {
+        const val = assetValue(data, a, today(), byAsset[id] || []);
+        if (val.method === 'None' && !val.disposedOn) return null;
+        return (
+          <Section title="Value">
+            <dl className="kv" data-testid="asset-value">
+              <dt>Depreciation</dt><dd>{val.method}{val.perYear ? ` · ${money(val.perYear)} a year` : ''}{val.perLap ? ` · ${money(val.perLap)} a lap` : ''}{val.residual ? <span className="muted small"> · down to {money(val.residual)}</span> : null}</dd>
+              <dt>Cost</dt><dd>{money(val.cost)}</dd>
+              {val.disposed ? (
+                <>
+                  <dt>{val.disposal || 'Disposed of'}</dt><dd>{fmtDate(val.disposedOn)} for {money(val.disposalValue)}</dd>
+                  <dt>Book value then</dt><dd>{money(val.bookAtDisposal)}</dd>
+                  <dt>{val.gain >= 0 ? 'Gain' : 'Loss'}</dt><dd><Pill level={val.gain >= 0 ? 'ok' : 'warn'}>{money(Math.abs(val.gain))}</Pill></dd>
+                </>
+              ) : (
+                <>
+                  <dt>Depreciated so far</dt><dd>{money(val.accumulated)}</dd>
+                  <dt>Book value today</dt><dd><b>{money(val.book)}</b></dd>
+                </>
+              )}
+            </dl>
+            <p className="muted small">An estimate for planning and the season’s profit and loss — your accountant’s tax depreciation may differ.</p>
+          </Section>
+        );
+      })()}
       {canMoney && (canType('expense', 'view') || canType('purchase', 'view')) && (() => {
         const sp = spendOn(data, id, membership?.settings || {});
         if (!sp.rows.length && !sp.cost) return null;

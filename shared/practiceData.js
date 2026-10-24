@@ -31,7 +31,8 @@ export function practiceData({ form, today = new Date(), uuid }) {
 
   // ---- assets: engines, shocks, bars, wheels, wings
   const A = (name, category, extra = {}) => add('asset', { name, category, status: 'In Service', ...extra });
-  const eng = A('410 #3', 'Engine', { car: car.id, life_unit: 'Laps', life_limit: '600', manufacturer: 'Hart Engines' });
+  const eng = A('410 #3', 'Engine', { car: car.id, life_unit: 'Laps', life_limit: '600', manufacturer: 'Hart Engines',
+    cost: '42000', purchase_date: day(-400), depreciation: 'Straight line', useful_life: '5', residual: '8000' });
   A('410 #2', 'Engine', { status: 'Out for Service', life_unit: 'Laps', life_limit: '600', manufacturer: 'Hart Engines', notes: 'At the rebuilder for a freshen.' });
   const shocks = {};
   for (const [c, n, t] of [['LF', 'Penske 7500', 'Two-way'], ['RF', 'Penske 7500', 'Two-way'], ['LR', 'QA1 fixed', 'Non-adjustable'], ['RR', 'Penske 8760', 'Three-way']]) {
@@ -39,6 +40,9 @@ export function practiceData({ form, today = new Date(), uuid }) {
       ...(c === 'RR' ? { life_unit: 'Races', life_limit: '10' } : {}) });
   }
   A('Spare Penske', 'Shock', { status: 'Spare', adjust_type: 'Two-way', manufacturer: 'Penske' });
+  // sold last month: its gain or loss shows in Finance → Assets and the season's P&L
+  A('Old Ohlins LR', 'Shock', { status: 'Retired', cost: '1800', purchase_date: day(-800), depreciation: 'Straight line', useful_life: '3',
+    disposed_on: day(-15), disposal: 'Sold', disposal_value: '500' });
   const bars = {};
   for (const [c, rate] of [['LF', '900'], ['RF', '1000'], ['LR', '850'], ['RR', '1100']]) {
     bars[c] = A(`${c} bar ${rate}`, 'Torsion Bar', { position: c, car: car.id, spec: `${rate} lb/in` });
@@ -194,7 +198,7 @@ export function practiceData({ form, today = new Date(), uuid }) {
   add('budget', { season: year, start: yStart, end: yEnd, alert_pct: '80', lines: [
     { category: 'Tyres', amount: '8000' }, { category: 'Fuel & oil', amount: '3000' }, { category: 'Engine', amount: '15000' },
     { category: 'Travel', amount: '4000' }, { category: 'Entry fees', amount: '1500' }, { category: 'Parts', amount: '6000' }],
-    contingency_pct: '15', income_lines: [{ kind: 'Sponsorship', amount: '12000' }, { kind: 'Prize money', amount: '6000' }, { kind: 'Seat fee / driver contribution', amount: '3000' }] });
+    contingency_pct: '15', cash_on_hand: '8000', cash_date: day(0), income_lines: [{ kind: 'Sponsorship', amount: '12000' }, { kind: 'Prize money', amount: '6000' }, { kind: 'Seat fee / driver contribution', amount: '3000' }] });
   rounds.forEach((ev, n) => {
     const d = ev.data.values.date;
     add('expense', { date: d, category: 'Tyres', description: `Tyres — round ${n + 1}`, supplier_name: 'Hoosier Tyres QLD', amount: '900', tax_amount: '81.82', event: ev.id, car: car.id, paid: true });
@@ -232,7 +236,8 @@ export function practiceData({ form, today = new Date(), uuid }) {
   add('social_post', { event: last.id, status: 'Posted', text: 'Solid night at the Club Championship. Thanks Valley Tyres!', sponsors: [sponsor.id], posted_on: last.data.values.date });
   add('guest', { event: tonight.id, name: 'Chris Lee', sponsor: sponsor.id, passes: '2', pass_type: 'Pit', notes: 'Valley Tyres sales manager and partner.' });
   add('merch', { name: 'Team T-shirt', variant: 'L', stock: '3', reorder_at: '5', price: '35', cost: '12' });
-  const hauler = A('Hauler', 'Vehicle', { vehicle_type: 'Hauler / truck', status: 'In Service', manufacturer: 'Isuzu', rego_due: day(20), inspection_due: day(45) });
+  const hauler = A('Hauler', 'Vehicle', { vehicle_type: 'Hauler / truck', status: 'In Service', manufacturer: 'Isuzu', rego_due: day(20), inspection_due: day(45),
+    cost: '85000', purchase_date: day(-900), depreciation: 'Straight line', useful_life: '10', residual: '15000' });
   add('licence', { holder: 'Pat Driver', class: 'HR (heavy rigid)', expiry: day(40), country: 'Australia' });
   add('load_list', { is_template: true, name: 'Sprint car race weekend', items: [
     { item: 'Spare front axle', qty: '1' }, { item: 'Tyre rack (6 rears, 4 fronts)', qty: '1' }, { item: 'Methanol drums', qty: '4' },

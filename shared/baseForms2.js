@@ -2,6 +2,7 @@ import { PHASE3_UPGRADES } from './baseForms3.js';
 import { PHASE5_UPGRADES } from './baseForms5.js';
 import { SETUP_SHEET_UPGRADES } from './setupQuickAdd.js';
 import { BUDGET_SPONSOR_UPGRADES, BUDGET_SPONSOR_UPGRADES_B } from './budgetSponsors.js';
+import { LEDGER_UPGRADES } from './ledger.js';
 // Phase 2 base forms. Seeded into every team; existing teams receive any that are
 // missing on the next server start.
 
@@ -332,7 +333,7 @@ export const FORM_REPLACE = { 'gear:default': 'small', 'dyno_run:shock': 'adjust
 export function applyUpgrades(form) {
   let changed = false;
   const has = (k) => form.sections.some((s) => s.fields.some((f) => f.key === k));
-  for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES, ...PHASE5_UPGRADES, ...SETUP_SHEET_UPGRADES, ...BUDGET_SPONSOR_UPGRADES, ...BUDGET_SPONSOR_UPGRADES_B]) {
+  for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES, ...PHASE5_UPGRADES, ...SETUP_SHEET_UPGRADES, ...BUDGET_SPONSOR_UPGRADES, ...BUDGET_SPONSOR_UPGRADES_B, ...LEDGER_UPGRADES]) {
     if (u.target !== form.target) continue;
     if (u.kind && form.dyno_kind !== u.kind) continue; // e.g. shock runs only, not bar tests
     if (u.insertSection) {
