@@ -135,7 +135,7 @@ with sync_playwright() as pw:
     ne.locator('button:has-text("Save idea")').click()
     det = pa.locator('[data-testid="fb-detail"]')
     expect(det).to_be_visible(timeout=15000)
-    expect(det).to_contain_text('Attachments on ideas')
+    expect(det).to_contain_text('Ideas can carry files too.')
     pa.wait_for_load_state('networkidle')   # the new idea's panel reloads once after saving, which drops a file chosen too early
     det.locator('label:has-text("Add file") input').set_input_files(f'{FIX}/ai-printout.pdf')
     expect(det.locator('[data-testid="fb-file"]:has-text("ai-printout.pdf")')).to_be_visible(timeout=15000)
