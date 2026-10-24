@@ -144,9 +144,12 @@ with sync_playwright() as pw:
     nav.locator('.sn-chip:text-is("Weather")').click()
     expect(page.locator('#f-temp')).to_be_visible()
     nav.locator('.sn-chip:text-is("Race")').click()
-    # wait for the smooth scroll to finish (the section stops moving)
-    page.wait_for_function('''() => new Promise((ok) => { const a = document.getElementById('sec-race').getBoundingClientRect().top;
-      setTimeout(() => ok(Math.abs(document.getElementById('sec-race').getBoundingClientRect().top - a) < 1), 250); })''', timeout=5000)
+    # the smooth scroll brings the section up under the title
+    try:
+        page.wait_for_function('''() => { const t = document.getElementById('sec-race').getBoundingClientRect().top;
+          const h = document.querySelector('.page-head').getBoundingClientRect().bottom; return t >= h - 2 && t <= h + 60; }''', timeout=6000)
+    except Exception:
+        pass   # the assert below reports where it ended up
     top = page.evaluate("document.getElementById('sec-race').getBoundingClientRect().top")
     head = page.evaluate("document.querySelector('.page-head').getBoundingClientRect().bottom")
     assert head - 2 <= top <= head + 60, (top, head)
