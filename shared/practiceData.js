@@ -193,7 +193,8 @@ export function practiceData({ form, today = new Date(), uuid }) {
   const yStart = `${year}-01-01`; const yEnd = `${year}-12-31`;
   add('budget', { season: year, start: yStart, end: yEnd, alert_pct: '80', lines: [
     { category: 'Tyres', amount: '8000' }, { category: 'Fuel & oil', amount: '3000' }, { category: 'Engine', amount: '15000' },
-    { category: 'Travel', amount: '4000' }, { category: 'Entry fees', amount: '1500' }, { category: 'Parts', amount: '6000' }] });
+    { category: 'Travel', amount: '4000' }, { category: 'Entry fees', amount: '1500' }, { category: 'Parts', amount: '6000' }],
+    contingency_pct: '15', income_lines: [{ kind: 'Sponsorship', amount: '12000' }, { kind: 'Prize money', amount: '6000' }, { kind: 'Seat fee / driver contribution', amount: '3000' }] });
   rounds.forEach((ev, n) => {
     const d = ev.data.values.date;
     add('expense', { date: d, category: 'Tyres', description: `Tyres — round ${n + 1}`, supplier_name: 'Hoosier Tyres QLD', amount: '900', tax_amount: '81.82', event: ev.id, car: car.id, paid: true });
@@ -201,13 +202,21 @@ export function practiceData({ form, today = new Date(), uuid }) {
     add('expense', { date: d, category: 'Entry fees', description: `Entry — round ${n + 1}`, amount: '120', event: ev.id, paid: true });
     if (n !== 3) add('income', { date: d, kind: 'Prize money', description: `Feature — round ${n + 1}`, payer: 'Valley Speedway', amount: String(500 + ((n * 170) % 700)), event: ev.id, paid: true });
   });
+  add('expense', { date: day(-30), category: 'Crash & failure repairs', description: 'Front axle and RF radius rod after the turn 3 crash', supplier_name: 'Speedway Supplies',
+    amount: '1350', car: car.id, from_contingency: true, paid: true });
   add('expense', { date: day(-4), category: 'Engine', description: 'Engine freshen — 410 #2', supplier_name: 'Hart Engines', amount: '4800', paid: false, due_date: day(5) });
   const contract = add('contract', { name: 'Valley Tyres sponsorship', party: 'Valley Tyres', kind: 'Sponsorship', start: yStart, end: day(45), renewal_date: day(30), value: '12000',
     terms: 'Top wing side panels, one post per meeting, four hospitality passes a season.' });
   const sponsor = add('sponsor', { name: 'Valley Tyres', stage: 'Signed', level: 'Major', value: '12000', start: yStart, end: day(45), contract: contract.id, public: true,
     deliverables: [{ kind: 'Logo on car', detail: 'Top wing side panels', qty: '1', per: 'Season' }, { kind: 'Posts per event', qty: '1', per: 'Event' },
-      { kind: 'Hospitality passes', qty: '4', per: 'Season' }], pitch_crowd: '3,000', pitch_social: '4,500' });
-  add('sponsor', { name: 'Lakeside Motors', stage: 'Prospect', level: 'Associate', value: '5000', pitch_notes: 'Local dealer; their customers are at the track every week.' });
+      { kind: 'Hospitality passes', qty: '4', per: 'Season' },
+      { kind: 'Suit / helmet', detail: 'Driver suit sleeve', qty: '1', per: 'Season', status: 'Approved by sponsor', status_date: day(-10) }],
+    pitch_crowd: '3,000', pitch_social: '4,500',
+    industry: 'Tyres', exclusive: true, exclusivity: 'The only tyre brand on the car and the trailer.', links: 'https://valleytyres.example\nhttps://instagram.com/valleytyres',
+    renewal_likelihood: 'Maybe', renewal_discussed: day(-20), activation: 'Wants a 10% discount code for fans at the pit gate.',
+    interactions: [{ date: day(-60), kind: 'Meeting', note: 'Mid-season catch-up at their store', follow_up: '' },
+      { date: day(-20), kind: 'Call', note: 'Talked renewal — keen if results hold up', follow_up: day(7) }] });
+  add('sponsor', { name: 'Lakeside Motors', stage: 'Prospect', level: 'Associate', value: '5000', industry: 'Car dealer', pitch_notes: 'Local dealer; their customers are at the track every week.' });
   add('income', { date: day(-90), kind: 'Sponsorship', description: 'Valley Tyres — first half', payer: 'Valley Tyres', sponsor: sponsor.id, amount: '6000', paid: true });
   add('livery', { name: '2026 main', car: car.id, from: yStart, sponsors: [sponsor.id],
     positions: [{ position: 'Top wing side panels', sponsor: 'Valley Tyres', size: 'Full height' }],

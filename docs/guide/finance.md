@@ -3,7 +3,7 @@ id: finance
 title: Finance
 section: business
 order: 30
-summary: Season budget, expenses with receipts read by the AI, income, contracts, a profit and loss for every event, and the export to accounting software.
+summary: Season budget in groups with a contingency reserve and an income budget, expenses with receipts read by the AI, income, contracts, a profit and loss for every event, and the export to accounting software.
 for: module:finance
 pages: /finance, /r/expense/*, /r/income/*, /r/budget/*, /r/contract/*
 covers: type:expense, type:income, type:budget, type:contract, module:finance, feature:finance, setting:accounting
@@ -15,7 +15,7 @@ related: parts-orders, region-currency, business, reports
 
 1. Press **New expense**.
 2. Take a photo of the receipt with **Fill from photo** (AI add-on). It reads the supplier, their business number (ABN, GST number, VAT number or EIN), the receipt number, the amount and the tax.
-3. Check the **Category** and pick the **Event** it was for.
+3. Check the **Category** and pick the **Event** it was for. For crash damage or a mechanical failure, use **Crash & failure repairs**, or tick **Paid from the contingency reserve** (see [Budget](#budget)).
 4. Paid in another currency? Pick the **Currency** and the **Rate to team currency** for the day.
 5. Not paid yet? Untick **Paid** and set **Due by** — it shows in Reminders.
 
@@ -23,11 +23,36 @@ If you leave **Tax included** blank, the page shows the tax worked out from your
 
 ## Income
 
-**Income → New income** records prize money, sponsorship (pick the sponsor deal), engine jobs (pick the job), merchandise and anything else.
+**Income → New income** records prize money, sponsorship (pick the sponsor deal), engine jobs (pick the job), merchandise, appearance money, **seat fees or driver contributions**, **series stipends or subsidies**, and **in-kind sponsorship** (goods or services given instead of cash — record their fair value as the amount).
 
 ## Budget
 
-**Budget → New season budget**: the season's dates, then an amount for each category. The Budget tab shows each category's spend against its budget. When a category reaches the warning level (80% unless you change it) it shows in Reminders.
+**Budget → New season budget**: the season's dates, then an amount for each category, and the income you expect.
+
+The **Budget** tab shows spend against budget for each category, under the groups of a race team's budget:
+
+| Group | Categories |
+|---|---|
+| **Vehicle & hardware** | Car purchase & lease, Engine |
+| **Parts, maintenance & consumables** | Parts, Tyres, Fuel & oil, Workshop |
+| **Personnel & payroll** | Wages & contractors, Per diems & catering |
+| **Logistics & travel** | Transport, Travel, Accommodation |
+| **Event & administrative** | Entry fees, Licences & memberships, Insurance, Track hire & testing |
+| **Marketing & hospitality** | Marketing, Hospitality, Merchandise |
+| **Contingency** | Crash & failure repairs |
+| **Other** | Other, and any category you type yourself |
+
+When a category reaches the warning level (80% unless you change it) it shows in Reminders.
+
+### Contingency reserve
+
+Most teams keep 10–20% of the budget aside for crash repairs and mechanical failures. Set **Contingency reserve** on the budget to that share, e.g. *15*. Any budget lines in **Crash & failure repairs** add to it.
+
+Expenses in **Crash & failure repairs**, and any expense ticked **Paid from the contingency reserve**, come out of the reserve. **Contingency reserve** on the Budget tab shows the reserve, how much is used and how much is left. It shows in Reminders when it reaches the warning level.
+
+### Income budget
+
+Under **Income budget**, list the income you expect by kind: sponsorship, prize money, seat fees, stipends. The Budget tab compares it with what's been received, and shows the net so far against the budgeted net.
 
 ## Profit and loss for each event
 

@@ -4,6 +4,8 @@
 //    and media tagged with the sponsor;
 //  - Posts per event: results posts marked Posted that tag the sponsor (per event when the promise is per event);
 //  - Hospitality passes: guests of the sponsor who checked in (passes count).
+// Other promises (suit, signage, website, PA announcement…) have a status: Planned, Designed, Approved by
+// sponsor, Deployed — Deployed counts as done. Every row can carry a status and a proof photo.
 // Runs on the device and on the server (the sponsor portal), so it only uses plain records.
 
 const num = (x) => { const v = Number(String(x ?? '').replace(/,/g, '')); return Number.isFinite(v) ? v : 0; };
@@ -51,13 +53,14 @@ export function deliverableProgress(list, sponsor, today = '') {
         evidence: [...onCar.map((l) => ({ type: 'livery', id: l.id, label: vals(l).name || 'Paint scheme', date: vals(l).from || '' })),
           ...photos.map((m) => ({ type: 'media', id: m.id, label: vals(m).caption || 'Photo', date: vals(m).date || '' }))] };
     }
-    return { ...r, target: qty, done: 0, evidence: [], manual: true };
+    // promises the app can't count: their status says where they're up to (Deployed = done)
+    return { ...r, target: qty, done: r.status === 'Deployed' ? qty : 0, evidence: [], manual: true };
   });
 }
 
 /** One line per sponsor: deliverables met / total, for lists. */
 export function sponsorSummary(list, sponsor, today = '') {
-  const p = deliverableProgress(list, sponsor, today).filter((r) => !r.manual);
+  const p = deliverableProgress(list, sponsor, today).filter((r) => !r.manual || r.status);
   return { total: p.length, met: p.filter((r) => r.done >= r.target).length, rows: p };
 }
 

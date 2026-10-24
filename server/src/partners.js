@@ -30,7 +30,7 @@ async function portalView(p) {
   const { rows: [t] } = await q('SELECT name FROM tenants WHERE id=$1', [p.tenant_id]);
   const today = new Date().toISOString().slice(0, 10);
   const v = vals(sponsor);
-  const progress = deliverableProgress(data.list, sponsor, today).map((r) => ({ kind: r.kind || '', detail: r.detail || '', per: r.per || '', target: r.target, done: r.done, manual: !!r.manual }));
+  const progress = deliverableProgress(data.list, sponsor, today).map((r) => ({ kind: r.kind || '', detail: r.detail || '', per: r.per || '', target: r.target, done: r.done, manual: !!r.manual, status: r.status || '' }));
   const media = data.list('media').filter((m) => (vals(m).sponsors || []).includes(sponsor.id) && vals(m).approved);
   const files = media.length ? (await q(`SELECT id, record_id, filename, mime FROM attachments WHERE tenant_id=$1 AND record_id = ANY($2) AND mime LIKE 'image/%' ORDER BY created_at DESC`,
     [p.tenant_id, media.map((m) => m.id)])).rows : [];

@@ -10,9 +10,33 @@ import { regionOf } from './regions.js';
 
 export const FINANCE_CATEGORIES = [
   'Tyres', 'Fuel & oil', 'Engine', 'Parts', 'Travel', 'Accommodation', 'Entry fees', 'Licences & memberships',
-  'Insurance', 'Transport', 'Workshop', 'Marketing', 'Hospitality', 'Merchandise', 'Wages & contractors', 'Other',
+  'Insurance', 'Transport', 'Workshop', 'Marketing', 'Hospitality', 'Merchandise', 'Wages & contractors',
+  // October 2026: the rest of a full race-team budget
+  'Car purchase & lease', 'Per diems & catering', 'Track hire & testing', 'Crash & failure repairs', 'Other',
 ];
-export const INCOME_KINDS = ['Prize money', 'Sponsorship', 'Engine jobs', 'Merchandise', 'Appearance money', 'Other'];
+/** Categories added after the first release, put into existing teams' forms by an upgrade. */
+export const NEW_FINANCE_CATEGORIES = ['Car purchase & lease', 'Per diems & catering', 'Track hire & testing', 'Crash & failure repairs'];
+
+/**
+ * Expense categories in the groups of a race team's budget. A category a team typed itself counts as Other.
+ * Contingency is the crash-repair and mechanical-failure reserve: spending in it (or an expense ticked
+ * "Paid from the contingency reserve") draws the reserve down.
+ */
+export const FINANCE_GROUPS = [
+  { key: 'vehicle', label: 'Vehicle & hardware', categories: ['Car purchase & lease', 'Engine'] },
+  { key: 'parts', label: 'Parts, maintenance & consumables', categories: ['Parts', 'Tyres', 'Fuel & oil', 'Workshop'] },
+  { key: 'people', label: 'Personnel & payroll', categories: ['Wages & contractors', 'Per diems & catering'] },
+  { key: 'logistics', label: 'Logistics & travel', categories: ['Transport', 'Travel', 'Accommodation'] },
+  { key: 'event', label: 'Event & administrative', categories: ['Entry fees', 'Licences & memberships', 'Insurance', 'Track hire & testing'] },
+  { key: 'marketing', label: 'Marketing & hospitality', categories: ['Marketing', 'Hospitality', 'Merchandise'] },
+  { key: 'contingency', label: 'Contingency', categories: ['Crash & failure repairs'] },
+  { key: 'other', label: 'Other', categories: ['Other'] },
+];
+export const groupOf = (category) => FINANCE_GROUPS.find((g) => g.categories.includes(category)) || FINANCE_GROUPS[FINANCE_GROUPS.length - 1];
+
+export const INCOME_KINDS = ['Prize money', 'Sponsorship', 'Engine jobs', 'Merchandise', 'Appearance money',
+  'Seat fee / driver contribution', 'Series stipend / subsidy', 'In-kind sponsorship', 'Other'];
+export const NEW_INCOME_KINDS = ['Seat fee / driver contribution', 'Series stipend / subsidy', 'In-kind sponsorship'];
 
 export const CONNECTORS = [
   { key: 'xero', label: 'Xero', kind: 'file', note: 'Bills and sales invoices import (CSV).' },

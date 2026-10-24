@@ -6,6 +6,7 @@
 // sheets that used it (compute.js setupsByAsset). Amounts are in the team's currency: records in
 // another currency are converted at their own rate.
 import { regionOf } from './regions.js';
+import { FINANCE_GROUPS, groupOf } from './accounting.js';
 
 const num = (x) => { const v = Number(String(x ?? '').replace(/,/g, '')); return Number.isFinite(v) ? v : 0; };
 const vals = (r) => r?.data?.values || {};
@@ -104,8 +105,42 @@ export function periodPnl(data, { from = '', to = '', settings = {} } = {}) {
     pct: planned[c] ? Math.round(((spent[c] || 0) / planned[c]) * 100) : null }));
   const totalSpent = round(Object.values(spent).reduce((a, x) => a + x, 0));
   const totalIncome = round(Object.values(earned).reduce((a, x) => a + x, 0));
-  return { rows, income: Object.entries(earned).map(([k, x]) => ({ label: k, amount: round(x) })), totalSpent, totalIncome, net: round(totalIncome - totalSpent),
-    budget, totalBudget: round(Object.values(planned).reduce((a, x) => a + x, 0)), currency: regionOf(settings).currency };
+  // the same, in the budget's groups (Vehicle & hardware, Parts…, Contingency, Other)
+  const groups = FINANCE_GROUPS.map((g) => {
+    const mine = rows.filter((r) => groupOf(r.category).key === g.key);
+    const sp = mine.reduce((a, r) => a + r.spent, 0); const bu = mine.reduce((a, r) => a + (r.budget || 0), 0);
+    return { key: g.key, label: g.label, rows: mine, spent: round(sp), budget: bu ? round(bu) : null, pct: bu ? Math.round((sp / bu) * 100) : null };
+  }).filter((g) => g.rows.length);
+  // income against the income budget
+  const expected = {};
+  for (const l of Array.isArray(vals(budget).income_lines) ? vals(budget).income_lines : []) if (l.kind && num(l.amount)) expected[l.kind] = (expected[l.kind] || 0) + num(l.amount);
+  const kinds = [...new Set([...Object.keys(earned), ...Object.keys(expected)])].sort();
+  const incomeRows = kinds.map((k) => ({ kind: k, received: round(earned[k] || 0), expected: expected[k] ? round(expected[k]) : null,
+    pct: expected[k] ? Math.round(((earned[k] || 0) / expected[k]) * 100) : null }));
+  const reserve = contingency(data, budget, { from, to, settings });
+  return { rows, groups, income: Object.entries(earned).map(([k, x]) => ({ label: k, amount: round(x) })), incomeRows,
+    totalExpected: round(Object.values(expected).reduce((a, x) => a + x, 0)), totalSpent, totalIncome, net: round(totalIncome - totalSpent),
+    budget, totalBudget: round(Object.values(planned).reduce((a, x) => a + x, 0)), reserve, currency: regionOf(settings).currency };
+}
+
+/**
+ * The contingency reserve: the budget's Contingency share of the rest of its lines, plus any lines in the
+ * Contingency group; drawn down by expenses ticked "Paid from the contingency reserve" or in that group.
+ * Null when the budget sets no reserve.
+ */
+export function contingency(data, budget, { from = '', to = '', settings = {} } = {}) {
+  if (!budget) return null;
+  const lines = Array.isArray(vals(budget).lines) ? vals(budget).lines : [];
+  const inGroup = (c) => groupOf(c).key === 'contingency';
+  const rest = lines.filter((l) => l.category && !inGroup(l.category)).reduce((a, l) => a + num(l.amount), 0);
+  const own = lines.filter((l) => l.category && inGroup(l.category)).reduce((a, l) => a + num(l.amount), 0);
+  const pct = num(vals(budget).contingency_pct);
+  const amount = rest * pct / 100 + own;
+  if (!amount) return null;
+  const f = from || vals(budget).start || ''; const t = to || vals(budget).end || '';
+  const draws = data.list('expense').filter((e) => { const d = vals(e).date || ''; return (!f || d >= f) && (!t || d <= t) && (vals(e).from_contingency || inGroup(vals(e).category)); });
+  const used = draws.reduce((a, e) => a + baseAmount(e, settings), 0);
+  return { pct, amount: round(amount), used: round(used), left: round(amount - used), usedPct: Math.round((used / amount) * 100), count: draws.length };
 }
 
 /** The budget whose season covers a date (or the newest). */
@@ -121,5 +156,8 @@ export function budgetAlerts(data, { today, settings = {} } = {}) {
   if (!b) return [];
   const pct = num(vals(b).alert_pct) || 80;
   const p = periodPnl(data, { from: vals(b).start, to: vals(b).end, settings });
-  return p.rows.filter((r) => r.pct !== null && r.pct >= pct).map((r) => ({ ...r, season: vals(b).season, budgetId: b.id, threshold: pct }));
+  const out = p.rows.filter((r) => r.pct !== null && r.pct >= pct).map((r) => ({ ...r, season: vals(b).season, budgetId: b.id, threshold: pct }));
+  // the contingency reserve running low counts too
+  if (p.reserve && p.reserve.usedPct >= pct) out.push({ category: 'Contingency reserve', spent: p.reserve.used, budget: p.reserve.amount, pct: p.reserve.usedPct, season: vals(b).season, budgetId: b.id, threshold: pct, reserve: true });
+  return out;
 }

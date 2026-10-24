@@ -57,9 +57,11 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 
 1. **Business → Finance → New expense**. Category *Tyres*, amount *900*, event *Valley Speedway — Club night*. Save.
 2. Open **Event P&L** and pick tonight's event.
-3. Open **Budget**.
+3. Open **Budget**. Find *Tyres* under **Parts, maintenance & consumables**, then look at **Contingency reserve** and the income expected against received.
 
-**When it's right:** tonight's P&L shows the tyres under Costs. The budget shows *Tyres* over its warning level, and Reminders lists it.
+**When it's right:** tonight's P&L shows the tyres under Costs. The budget shows *Tyres* over its warning level, and Reminders lists it. The contingency reserve (15% of the budget) shows the crash repair already taken out of it.
+
+**Check yourself:** the car hits the wall and needs a new front axle. Where does the cost go? (Category **Crash & failure repairs** — it comes out of the contingency reserve. Or tick **Paid from the contingency reserve** on an expense in another category.)
 
 ## Exercise 7: Load the hauler (transport, 10 min)
 
@@ -76,7 +78,12 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 3. Go to **Hospitality**, pick tonight's event and **Check in** *Chris Lee*.
 4. Back on *Valley Tyres*, press **Make a sponsor page link**, then **Open**.
 
-**When it's right:** hospitality passes show *2 / 4*, and the sponsor page shows the deal without its value.
+5. Under **Relationship**, add a **Call** today: *Sent the season report*, follow up in a week. Press **Add to history**.
+6. Press **Edit**, set the *Suit / helmet* promise's **Status** to **Deployed** and save.
+
+**When it's right:** hospitality passes show *2 / 4*, and the sponsor page shows the deal without its value. Your call is at the top of the interaction history, the follow-up shows on the sponsor and in Reminders, and the suit promise shows **Done**.
+
+**Check yourself:** you're about to sign *Lakeside Motors*, who sell tyres too. What warns you? (Give them the industry *Tyres*: *Valley Tyres* is exclusive, so both pages show **Exclusivity clash**.)
 
 ## Exercise 9: A results post (marketing, 5 min)
 

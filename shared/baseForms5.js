@@ -20,7 +20,8 @@ const cb = (key, label, extra = {}) => ({ key, label, type: 'checkbox', ...extra
 
 export const PURCHASE_STATUSES = ['Requested', 'Approved', 'Ordered', 'Received', 'Declined'];
 export const SPONSOR_STAGES = ['Prospect', 'Pitched', 'Signed', 'Renewal due', 'Ended'];
-export const DELIVERABLE_KINDS = ['Logo on car', 'Posts per event', 'Hospitality passes', 'Appearance', 'Other'];
+export const DELIVERABLE_KINDS = ['Logo on car', 'Posts per event', 'Hospitality passes', 'Appearance', 'Suit / helmet', 'Pit & trailer signage', 'Website', 'Newsletter',
+  'Social shout-out', 'PA announcement', 'Podium / award', 'Car display', 'Other'];
 export const POST_STATUSES = ['Draft', 'Approved', 'Posted'];
 export const CONTACT_TAGS = ['Sponsor', 'Supplier', 'Engine customer', 'Promoter', 'Hospitality guest', 'Transport driver', 'Media', 'Official'];
 export const VEHICLE_TYPES = ['Hauler / truck', 'Toterhome / motorhome', 'Trailer', 'Tow vehicle', 'Other'];
