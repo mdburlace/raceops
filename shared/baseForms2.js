@@ -1,6 +1,7 @@
 import { PHASE3_UPGRADES } from './baseForms3.js';
 import { PHASE5_UPGRADES } from './baseForms5.js';
 import { SETUP_SHEET_UPGRADES } from './setupQuickAdd.js';
+import { BUDGET_SPONSOR_UPGRADES } from './budgetSponsors.js';
 // Phase 2 base forms. Seeded into every team; existing teams receive any that are
 // missing on the next server start.
 
@@ -331,7 +332,7 @@ export const FORM_REPLACE = { 'gear:default': 'small', 'dyno_run:shock': 'adjust
 export function applyUpgrades(form) {
   let changed = false;
   const has = (k) => form.sections.some((s) => s.fields.some((f) => f.key === k));
-  for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES, ...PHASE5_UPGRADES, ...SETUP_SHEET_UPGRADES]) {
+  for (const u of [...FORM_UPGRADES, ...PHASE3_UPGRADES, ...PHASE5_UPGRADES, ...SETUP_SHEET_UPGRADES, ...BUDGET_SPONSOR_UPGRADES]) {
     if (u.target !== form.target) continue;
     if (u.kind && form.dyno_kind !== u.kind) continue; // e.g. shock runs only, not bar tests
     if (u.insertSection) {
@@ -370,6 +371,31 @@ export function applyUpgrades(form) {
           if (f[mark]) continue;
           if (!f.options.includes(o)) { const i = f.options.indexOf('Other'); f.options.splice(i >= 0 ? i : f.options.length, 0, o); }
           f[mark] = true; changed = true;
+        }
+      }
+      continue;
+    }
+    if (u.addColumnOptions || u.addColumn) { // a table field's columns: add choices to one, or add a column, once each
+      const f = form.sections.flatMap((s) => s.fields).find((x) => x.key === u.key);
+      if (!f || !Array.isArray(f.columns)) continue;
+      if (u.addColumn) {
+        const mark = `_col_${u.addColumn.key}`;
+        if (!f[mark]) {
+          if (!f.columns.some((c) => c.key === u.addColumn.key)) {
+            const i = u.afterColumn ? f.columns.findIndex((c) => c.key === u.afterColumn) : -1;
+            f.columns.splice(i >= 0 ? i + 1 : f.columns.length, 0, structuredClone(u.addColumn));
+          }
+          f[mark] = true; changed = true;
+        }
+      } else {
+        const col = f.columns.find((c) => c.key === u.column);
+        if (col && Array.isArray(col.options)) {
+          for (const o of u.addColumnOptions) {
+            const mark = `_colopt_${u.column}_${String(o).replace(/[^a-z0-9]+/gi, '_')}`;
+            if (f[mark]) continue;
+            if (!col.options.includes(o)) { const i = col.options.indexOf('Other'); col.options.splice(i >= 0 ? i : col.options.length, 0, o); }
+            f[mark] = true; changed = true;
+          }
         }
       }
       continue;

@@ -1721,3 +1721,15 @@ input[data-quick] { -webkit-touch-callout: none; }
 .team-row.has-photo .team-switch, .team-row.has-photo .team-name { margin-bottom: 0; padding-bottom: 0; }
 .team-row .avatar.square { border-radius: 8px; }
 .side-me { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+
+/* ---------------------------------------------------------------- budget groups and the reserve */
+.budget-table .budget-group th { background: var(--surface-2); font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+.budget-table .budget-cat td:first-child { padding-left: 22px; }
+.budget-total th { border-top: 2px solid var(--line-2); }
+.reserve .meter { height: 10px; border-radius: 6px; background: var(--surface-2); overflow: hidden; margin: 6px 0 4px; border: 1px solid var(--line); }
+.reserve .meter span { display: block; height: 100%; background: var(--ok); }
+.reserve .meter span.warn { background: var(--warn); }
+.reserve .meter span.over { background: var(--over); }
+.interaction-add { margin-top: 10px; align-items: end; }
+.interaction-add .span-2 { grid-column: span 2; }
+@media (max-width: 640px) { .interaction-add .span-2 { grid-column: auto; } }

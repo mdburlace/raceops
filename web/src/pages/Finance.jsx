@@ -90,21 +90,55 @@ function Budget() {
         {cur && canType('budget', 'edit') && <Link className="btn" to={`/r/budget/${cur.id}`}>Edit {v(cur, 'season')} budget</Link>}
         {canType('budget', 'edit') && <Link className="btn primary" to="/r/budget/new">New season budget</Link>}
       </div>
-      {!cur ? <Empty>No budget yet. Set one up for the season by category — tyres, fuel, engine, travel and so on.</Empty> : (
+      {!cur ? <Empty>No budget yet. Set one up for the season by category — car, engine, parts, crew, travel, entry fees and a contingency reserve — with the income you expect.</Empty> : (
         <Section title={`${v(cur, 'season')} — budget vs spent`}>
-          <table className="table" data-testid="budget-table">
+          <div className="table-scroll-x"><table className="table budget-table" data-testid="budget-table">
             <thead><tr><th>Category</th><th>Budget</th><th>Spent</th><th /></tr></thead>
             <tbody>
-              {p.rows.map((r) => (
-                <tr key={r.category}>
-                  <td>{r.category}</td><td>{r.budget === null ? '—' : money(r.budget)}</td><td>{money(r.spent)}</td>
-                  <td>{r.pct === null ? <span className="muted small">no budget</span> : <Pill level={r.pct >= 100 ? 'over' : r.pct >= warn ? 'warn' : 'ok'}>{r.pct}%</Pill>}</td>
-                </tr>
+              {p.groups.map((g) => [
+                <tr key={`g-${g.key}`} className="budget-group" data-testid="budget-group">
+                  <th>{g.label}</th><th>{g.budget === null ? '—' : money(g.budget)}</th><th>{money(g.spent)}</th>
+                  <th>{g.pct === null ? null : <Pill level={g.pct >= 100 ? 'over' : g.pct >= warn ? 'warn' : 'ok'}>{g.pct}%</Pill>}</th>
+                </tr>,
+                ...g.rows.map((r) => (
+                  <tr key={r.category} className="budget-cat">
+                    <td>{r.category}</td><td>{r.budget === null ? '—' : money(r.budget)}</td><td>{money(r.spent)}</td>
+                    <td>{r.pct === null ? <span className="muted small">no budget</span> : <Pill level={r.pct >= 100 ? 'over' : r.pct >= warn ? 'warn' : 'ok'}>{r.pct}%</Pill>}</td>
+                  </tr>
+                )),
+              ])}
+              <tr className="budget-total"><th>Total</th><th>{money(p.totalBudget)}</th><th>{money(p.totalSpent)}</th><th /></tr>
+            </tbody>
+          </table></div>
+          <p className="muted small">A category shows in Reminders when its spend reaches {warn}% of its budget.</p>
+        </Section>
+      )}
+      {cur && p.reserve && (
+        <Section title="Contingency reserve">
+          <div className="reserve" data-testid="reserve">
+            <dl className="kv">
+              <dt>Reserve</dt><dd>{money(p.reserve.amount)}{p.reserve.pct ? <span className="muted small"> ({p.reserve.pct}% of the rest of the budget)</span> : null}</dd>
+              <dt>Used</dt><dd>{money(p.reserve.used)} <span className="muted small">· {p.reserve.count} expense{p.reserve.count === 1 ? '' : 's'}</span></dd>
+              <dt>Left</dt><dd><Pill level={p.reserve.left < 0 ? 'over' : p.reserve.usedPct >= warn ? 'warn' : 'ok'}>{money(p.reserve.left)}</Pill></dd>
+            </dl>
+            <div className="meter" aria-hidden="true"><span style={{ width: `${Math.min(100, Math.max(0, p.reserve.usedPct))}%` }} className={p.reserve.usedPct >= 100 ? 'over' : p.reserve.usedPct >= warn ? 'warn' : ''} /></div>
+          </div>
+          <p className="muted small">Crash damage and mechanical failures: expenses in <b>Crash &amp; failure repairs</b>, or ticked <b>Paid from the contingency reserve</b>, come out of it. It shows in Reminders at {warn}% used.</p>
+        </Section>
+      )}
+      {cur && p.incomeRows.length > 0 && (
+        <Section title={`${v(cur, 'season')} — income expected vs received`}>
+          <table className="table" data-testid="income-budget">
+            <thead><tr><th>Kind</th><th>Expected</th><th>Received</th><th /></tr></thead>
+            <tbody>
+              {p.incomeRows.map((r) => (
+                <tr key={r.kind}><td>{r.kind}</td><td>{r.expected === null ? '—' : money(r.expected)}</td><td>{money(r.received)}</td>
+                  <td>{r.pct === null ? <span className="muted small">not budgeted</span> : <Pill level={r.pct >= 100 ? 'ok' : 'warn'}>{r.pct}%</Pill>}</td></tr>
               ))}
-              <tr><th>Total</th><th>{money(p.totalBudget)}</th><th>{money(p.totalSpent)}</th><th /></tr>
+              <tr className="budget-total"><th>Total</th><th>{money(p.totalExpected)}</th><th>{money(p.totalIncome)}</th><th /></tr>
             </tbody>
           </table>
-          <p className="muted small">A category shows in Reminders when its spend reaches {warn}% of its budget.</p>
+          <p className="muted small">Net so far: <b>{money(p.net)}</b>{p.totalExpected ? <> · budgeted net {money(p.totalExpected - p.totalBudget)}</> : null}</p>
         </Section>
       )}
       {budgets.length > 1 && (
