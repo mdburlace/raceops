@@ -20,3 +20,4 @@ The built-in **Marketing Manager** role runs [Marketing](/help/marketing) and ca
 ## Every month
 
 - Check merchandise stock — low items are in Reminders.
+- Keep the team photo fresh: **Team → Team profile → Change team photo** (new livery, new season). See [Team and member photos](/help/team-photos).

@@ -78,6 +78,7 @@ export const ADMIN_PERMISSIONS = [
   { key: 'members.manage', label: 'Invite & manage members' },
   { key: 'roles.manage', label: 'Create & edit roles' },
   { key: 'team.manage', label: 'Edit team settings' },
+  { key: 'team.photo', label: 'Change the team photo' },
   { key: 'backup.manage', label: 'Back up, restore & export team data' },
   { key: 'trash.manage', label: 'Recover anyone’s deleted items' },
 ];
@@ -306,7 +307,7 @@ export const DEFAULT_ROLES = [
     permissions: [
       ...areas('team'),
       ...mod(['cars', 'events', 'calendar', 'contacts', 'ai'], ['view']),
-      ...mod(['marketing'], ACTIONS), ...mod(['partnerships'], ['view', 'edit']),
+      ...mod(['marketing'], ACTIONS), ...mod(['partnerships'], ['view', 'edit']), 'team.photo',
     ],
   },
 ];

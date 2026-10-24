@@ -118,7 +118,7 @@ demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — 
 1. Open the **Heat 1** sheet at *Valley Speedway — Club night* (unlock it first if you locked it in Exercise 11).
 2. In **Chassis**, long-press the **RF** box of **Block height** (right-click on a computer). The quick add screen opens: **Enter RF Block height**.
 3. Look at **Common values**: the block heights this car has run. Press **Clear**, then **1** and **+ 1/4**. The box shows *1.25* and *= 1 1/4"*. Press **OK**.
-4. Long-press the **RR** box of **Turns**, press **Clear**, then **5** and **+ 1/2**, and **OK**.
+4. Long-press the **RR** box of **Turns**. **Last session (Feature)** shows what it was on round 8. Press **Clear**, then **5** and **+ 1/2**, and **OK**. Then press **−** and **+** beside it: each moves it half a turn. Leave it on *5.5*.
 5. In **Wing**, long-press **Top wing angle**. Pick **13.5°** and press **OK**.
 6. On a phone, long-press **Chassis rake** and press **Angle finder**. Lay the phone flat on a table and press **Zero**, then tilt it and watch the angle change. Press the red **✕** to leave the box as it was.
 7. Press **Save**.

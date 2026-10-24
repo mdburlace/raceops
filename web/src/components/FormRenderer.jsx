@@ -597,7 +597,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly: a
   const setup = form.data.target === 'setup';
 
   return (
-    <QuickAddProvider enabled={!allReadOnly && QUICK_ADD_TARGETS.includes(form.data.target)} data={data} recordType={recordType} car={values?.car}>
+    <QuickAddProvider enabled={!allReadOnly && QUICK_ADD_TARGETS.includes(form.data.target)} data={data} recordType={recordType} values={values} recordId={recordId}>
     <div className="form-sections" onKeyDown={nextOnEnter}>
       {sections.map((sec) => {
         // part rights: only some sections can be changed (roSections lists the ones that can't)

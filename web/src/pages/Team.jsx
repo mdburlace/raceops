@@ -11,6 +11,8 @@ import { CURRENCIES, REGIONS, regionOf } from '@shared/regions.js';
 import { CONNECTORS, FINANCE_CATEGORIES } from '@shared/accounting.js';
 import { Appearance } from '../components/Appearance.jsx';
 import { ShopSettings } from './Shop.jsx';
+import { Avatar, PhotoButtons } from '../components/Avatar.jsx';
+import { teamPhotoUrl, userPhotoUrl } from '../lib/photos.js';
 
 export function OnlineOnly({ children }) {
   const online = useOnline();
@@ -66,6 +68,18 @@ export function Team() {
       <PageHeader title="Team" sub={membership?.tenant_name} />
       <OnlineOnly>
         {err && <div className="notice error">{err}</div>}
+        <Section title="Team profile">
+          <div className="profile-row" data-testid="team-profile">
+            <Avatar src={teamPhotoUrl(tid, membership?.settings?.photo?.at)} name={membership?.tenant_name} size={112} square testid="team-photo" />
+            <div className="stack">
+              <span className="row-title">{membership?.tenant_name}</span>
+              {can('team.photo') || can('team.manage')
+                ? <PhotoButtons path={`/t/${tid}/photo`} has={!!membership?.settings?.photo?.at} label="team photo" onDone={() => refresh()} />
+                : <p className="muted small">{membership?.settings?.photo?.at ? 'The team photo' : 'A team photo'} is added by the team manager, or a role they give <b>Change the team photo</b>.</p>}
+              <p className="muted small">A team picture, car shot or logo. It shows on this page and beside the team’s name in the menu.</p>
+            </div>
+          </div>
+        </Section>
         <Section title="Licence">
           <dl className="kv">
             <dt>Plan</dt><dd>{membership?.plan_label || membership?.plan}</dd>
@@ -114,8 +128,13 @@ export function Team() {
           {!members.data ? <p className="muted">{members.err || 'Loading…'}</p> : (
             <div className="list">
               {members.data.map((m) => (
-                <div key={m.id} className="list-row">
-                  <span className="grow"><span className="row-title">{m.name}{m.id === user.id ? ' (you)' : ''}</span><span className="row-sub">{m.email}</span></span>
+                <div key={m.id} className="list-row member-row" data-testid="member-row">
+                  <Avatar src={userPhotoUrl(m.id, m.photo_at)} name={m.name} size={44} testid="member-photo" />
+                  <span className="grow"><span className="row-title">{m.name}{m.id === user.id ? ' (you)' : ''}</span><span className="row-sub">{m.email}</span>
+                    {(m.id === user.id || (manage && (!(m.role_id && (roles.data || []).find((x) => x.id === m.role_id)?.is_owner) || membership?.role?.is_owner))) && (
+                      <PhotoButtons small path={m.id === user.id ? '/me/photo' : `/t/${tid}/members/${m.id}/photo`} has={!!m.photo_at} label="photo"
+                        onDone={async () => { await reloadMembers(); if (m.id === user.id) await refresh(); }} />
+                    )}</span>
                   {manage && m.id !== user.id ? (
                     <span className="role-pick">
                       <select aria-label={`${m.name}’s main role`} value={m.role_id} onChange={(e) => act(async () => { await api(`/t/${tid}/members/${m.id}`, { method: 'PATCH', body: { role_id: e.target.value } }); reloadMembers(); })}>
@@ -300,6 +319,15 @@ export function Profile() {
       <PageHeader title="Profile & device" />
       {msg && <div className="notice info">{msg}</div>}
       <div className="grid-2">
+        <Section title="Your photo">
+          <div className="profile-row" data-testid="my-photo">
+            <Avatar src={userPhotoUrl(user?.id, user?.photo_at)} name={user?.name} size={96} testid="profile-photo" />
+            <div className="stack">
+              {online ? <PhotoButtons path="/me/photo" has={!!user?.photo_at} label="photo" onDone={() => refresh()} /> : <p className="muted small">Adding a photo needs a connection.</p>}
+              <p className="muted small">Your teammates see it beside your name. Your team manager can add or change it too.</p>
+            </div>
+          </div>
+        </Section>
         <Section title="Email notifications">
           <label className="check-row"><input type="checkbox" checked={prefs.email_notices !== false} onChange={(e) => setPrefs({ email_notices: e.target.checked })} />
             Email me about shared-calendar requests, the series and tracks my team follows, and my feedback</label>

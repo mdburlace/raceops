@@ -1660,6 +1660,9 @@ input[data-quick] { -webkit-touch-callout: none; }
 .qa-text { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .qa-frac { font-size: 17px; color: var(--ink-2); }
 .qa-common { display: flex; flex-direction: column; gap: 4px; }
+.qa-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.qa-tools .chip { font-size: 14px; padding: 6px 12px; }
+.qa-say { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .qa-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .qa-chips .chip { cursor: pointer; font-size: 15px; padding: 6px 12px; }
 .qa-keys { display: grid; grid-template-columns: 1fr; gap: 8px; }
@@ -1702,3 +1705,19 @@ input[data-quick] { -webkit-touch-callout: none; }
   .qa-finder-read { font-size: 64px; padding: 8px 0; }
   .qa-round { width: 64px; height: 64px; font-size: 26px; }
 }
+
+/* ---------------------------------------------------------------- photos */
+.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; border-radius: 50%; overflow: hidden; background: var(--accent-soft); color: var(--accent); font-weight: 800; letter-spacing: .02em; }
+.avatar.square { border-radius: 12px; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.profile-row .stack { gap: 6px; min-width: 0; flex: 1 1 220px; }
+.photo-buttons { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.member-row { align-items: center; gap: 12px; }
+.member-row .photo-buttons { margin-top: 4px; }
+.team-row { display: flex; align-items: center; gap: 10px; }
+.team-row .team-switch, .team-row .team-name { flex: 1; min-width: 0; }
+.team-row.has-photo { margin-bottom: 12px; }
+.team-row.has-photo .team-switch, .team-row.has-photo .team-name { margin-bottom: 0; padding-bottom: 0; }
+.team-row .avatar.square { border-radius: 8px; }
+.side-me { display: flex; align-items: center; gap: 8px; text-decoration: none; }
