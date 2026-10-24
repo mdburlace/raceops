@@ -22,6 +22,8 @@ demo: Car 17, Car 71, Lakeside Raceway
 
 ## Exercise 2: Make a role (10 min)
 
+![Video: Make a role and choose what it can see and change](video/training-role.webm)
+
 1. Go to **Team Management → Roles & permissions** and press **New role**.
 2. Name it *Tyre person*. Tick **At the Track**, then View for **Setup sheets & advisor** and View / Edit for **Gears & tires**.
 3. Press **Save role**.
@@ -52,6 +54,8 @@ demo: Car 17, Car 71, Lakeside Raceway
 **When it's right:** you know what the crew has to do this week, and where the money's gone.
 
 ## Exercise 6: Back up the team and put it back (10 min)
+
+![Video: Back up the team and put it back](video/training-backup.webm)
 
 1. Go to **Team Management → Backups & export**.
 2. Under **Back up now**, choose **Download to this computer** and press **Back up now**. Wait for **Backed up**.

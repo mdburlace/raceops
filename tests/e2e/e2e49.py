@@ -84,7 +84,7 @@ with sync_playwright() as pw:
 
     # a role's exercises still have their video at the top
     page.goto(B + '/help/training-crew-chief')
-    expect(page.locator('figure.guide-video video')).to_have_count(1, timeout=15000)
+    expect(page.locator('figure.guide-video video')).to_have_count(2, timeout=15000)  # the role's video, and quick add with its exercise
     page.screenshot(path=f'{OUT}/03-role-video.png')
     br.close()
 

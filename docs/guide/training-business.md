@@ -23,6 +23,8 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 
 ## Exercise 2: Call changes and tick them off (crew chief, then car chief, 10 min)
 
+![Video: Race night: call the changes and tick them off](video/training-change-list.webm)
+
 1. On the event, add a **Feature** session for Car 17. It copies Heat 1.
 2. Change **Stagger cold** to *5* and **Wing angle** to *12*.
 3. Scroll to **Change list** and press **Add changes from this sheet**. Press **Save**.
@@ -33,6 +35,8 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 **Check yourself:** a car chief can't change the stagger itself — why not? (Part rights: only the change list is open to them.)
 
 ## Exercise 3: The tyre sheet (crew chief and tyre specialist, 5 min)
+
+![Video: The tyre sheet and a tyre's work log](video/training-tyre-sheet.webm)
 
 1. On the Feature sheet, under **Tyre targets**, set target cold pressures, e.g. RR *15*.
 2. Under **Tires**, set **Pressure cold** RR to *16* and save.
@@ -47,6 +51,8 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 **When it's right:** the sheet says you can change *Track conditions & car feedback*, and only that section has boxes to type in.
 
 ## Exercise 5: Approve a parts order (crew chief, 5 min)
+
+![Video: Approve a parts order and see it in the meeting's profit and loss](video/training-parts-order.webm)
 
 1. Go to **Business → Parts orders**.
 2. Beside *RR shock rebuild kit*, press **Approve**.
@@ -65,6 +71,8 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 
 ## Exercise 7: Load the hauler (transport, 10 min)
 
+![Video: Load the hauler for round 9](video/training-load-list.webm)
+
 1. **Business → Transport → Load lists → New load list**. Pick round 9 (*Lakeside Raceway — Club Championship*) and the vehicle *Hauler*.
 2. Pick the template *Sprint car race weekend* and press **Add the event's car, engines and the template**. Save.
 3. Tick **Loaded** on three items and save.
@@ -72,6 +80,8 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 **When it's right:** the list shows *3 loaded* and each tick shows who and when.
 
 ## Exercise 8: A sponsor's deliverables and page (partnerships, 10 min)
+
+![Video: A sponsor's promises, guest check-in, payments and in kind](video/training-sponsor.webm)
 
 1. **Business → Partnerships** and open *Valley Tyres*.
 2. Read **What we promised**: the logo, a post per event and four hospitality passes.
