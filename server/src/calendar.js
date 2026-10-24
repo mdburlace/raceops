@@ -97,7 +97,7 @@ async function publicCalendar(token) {
       track: venue?.name || v.track || '', location: [venue?.city || v.location, venue?.region].filter(Boolean).join(', '),
       // every series the meeting counts towards; the main series' round with its prefix (Round 3, Night 2, Prelude)
       series: links.map((l, i) => (i === 0 ? byId[l.series]?.name : [byId[l.series]?.name, roundLabel(l.prefix, l.round)].filter(Boolean).join(' '))).filter(Boolean).join(' · '),
-      round: links[0] ? roundLabel(links[0].prefix, links[0].round) : '', tentative: v.intent === 'Tentative', cancelled,
+      round: links[0] ? roundLabel(links[0].prefix, links[0].round) : roundLabel(v.round_prefix, v.round), tentative: v.intent === 'Tentative', cancelled,
       car: opts.show_cars && car ? [car.number && `#${car.number}`, car.name].filter(Boolean).join(' ') : '',
       result: opts.show_results && v.outcome && !cancelled ? (v.outcome === 'Withdrew during the event' ? 'Withdrew' : v.outcome) : '',
       note: v.public_note || '', season: seasonOf(v.date, sm),

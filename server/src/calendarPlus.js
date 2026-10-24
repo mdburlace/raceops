@@ -168,7 +168,7 @@ async function sharedCalendar(type, id) {
   const items = fx.map((f) => {
     const v = f.values; const t = byId[v.venue];
     // on a series' page, the round is this series' one; elsewhere the main series
-    const link = (type === 'series' && linkFor(v, id)) || seriesLinks(v)[0] || null; const s = byId[link?.series];
+    const link = (type === 'series' && linkFor(v, id)) || seriesLinks(v)[0] || { prefix: v.round_prefix, round: v.round }; const s = byId[link?.series];
     const win = Array.isArray(v.results) ? v.results.find((r) => String(r.pos) === '1') : null;
     return { id: f.id, name: v.name, date: v.date, end_date: v.end_date || '', days: eventDayList(v).length > 1 ? eventDayList(v) : undefined, track: t?.name || v.track || '', location: [t?.city, t?.region].filter(Boolean).join(', '),
       series: seriesLinks(v).map((l) => byId[l.series]?.name).filter(Boolean).join(', '), round: roundLabel(link?.prefix, link?.round), cancelled: v.status === 'Cancelled', tentative: v.status === 'Postponed', major: v.major ? v.major_name || 'Major event' : '',

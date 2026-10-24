@@ -523,7 +523,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                 const classes = fixtureClasses(fv, vals(series));
                 const change = team ? changeFor(f) : null;
                 // on a series' calendar, the round is this series' one
-                const link = (kind === 'series' && id && linkFor(fv, id, (x) => canon(data, x))) || seriesLinks(fv)[0];
+                const link = (kind === 'series' && id && linkFor(fv, id, (x) => canon(data, x))) || seriesLinks(fv)[0] || { prefix: fv.round_prefix, round: fv.round };
                 return (
                   <div key={f.id} className={`list-row fx-row${fv.status === 'Cancelled' ? ' cancelled' : ''}`} data-fixture={f.id}>
                     <span className="date-block">
