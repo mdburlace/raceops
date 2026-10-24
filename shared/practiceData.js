@@ -217,7 +217,13 @@ export function practiceData({ form, today = new Date(), uuid }) {
     interactions: [{ date: day(-60), kind: 'Meeting', note: 'Mid-season catch-up at their store', follow_up: '' },
       { date: day(-20), kind: 'Call', note: 'Talked renewal — keen if results hold up', follow_up: day(7) }] });
   add('sponsor', { name: 'Lakeside Motors', stage: 'Prospect', level: 'Associate', value: '5000', industry: 'Car dealer', pitch_notes: 'Local dealer; their customers are at the track every week.' });
-  add('income', { date: day(-90), kind: 'Sponsorship', description: 'Valley Tyres — first half', payer: 'Valley Tyres', sponsor: sponsor.id, amount: '6000', paid: true });
+  const firstHalf = add('income', { date: day(-90), kind: 'Sponsorship', description: 'Valley Tyres — first half', payer: 'Valley Tyres', sponsor: sponsor.id, amount: '6000', reference: 'INV-101', paid: true });
+  // the deal's payment schedule (first half received, second half invoiced) and the tyres they give in kind
+  Object.assign(sponsor.data.values, {
+    payments: [{ due: day(-90), amount: '6000', invoice_no: 'INV-101', invoiced: day(-100), received: day(-90), income: firstHalf.id },
+      { due: day(10), amount: '6000', invoice_no: 'INV-102', invoiced: day(-5) }],
+    in_kind: [{ item: 'Hoosier race tyres', qty: '8', value: '1600', category: 'Tyres' }],
+  });
   add('livery', { name: '2026 main', car: car.id, from: yStart, sponsors: [sponsor.id],
     positions: [{ position: 'Top wing side panels', sponsor: 'Valley Tyres', size: 'Full height' }],
     decals: [{ decal: 'Valley Tyres top wing', stock: '1', reorder: '2', supplier: 'Sign Shop' }] });

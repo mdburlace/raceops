@@ -28,6 +28,8 @@ Only a role with **Approve or decline parts orders** can approve or decline — 
 
 Change the status to **Ordered**, then **Received**. With Finance in your plan, **Record as an expense** opens a new expense filled in from the order. Saving it links the two and marks the order received, so its cost lands in the event's profit and loss once.
 
+Once it's **Received**, **Add to inventory** makes the part (or tyre) in the inventory with its cost, part number and supplier, and links it to the order. Its page shows the cost under **Spent on this**.
+
 ## Costs and amounts
 
 Costs on parts orders (and amounts in Finance and sponsor deals) only show to roles with **See costs, prices and amounts**. Without it, the cost fields don't appear and the server never sends them to the device, so the crew can see an order exists without seeing what it cost.

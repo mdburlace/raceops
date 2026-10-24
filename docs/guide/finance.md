@@ -21,6 +21,12 @@ related: parts-orders, region-currency, business, reports
 
 If you leave **Tax included** blank, the page shows the tax worked out from your region's rate, and the export uses it.
 
+### Expenses and the inventory
+
+- **Inventory item** says what an expense paid for: a new part, or a service or repair on something you already have — the hauler's service, an engine freshen, a shock rebuild. The item's page then shows everything spent on it under **Spent on this**.
+- **Add to inventory** (below a saved expense) makes the item for you: pick what it is (an asset category, or **Tyre**), its name and the car. Its cost, supplier and purchase date come from the expense, and it's linked back. Received parts orders have the same button. See [Parts orders](/help/parts-orders).
+- **For (crew member)** says whose per diem or pay an expense is.
+
 ## Income
 
 **Income → New income** records prize money, sponsorship (pick the sponsor deal), engine jobs (pick the job), merchandise, appearance money, **seat fees or driver contributions**, **series stipends or subsidies**, and **in-kind sponsorship** (goods or services given instead of cash — record their fair value as the amount).
@@ -67,6 +73,20 @@ The event page shows the same totals. **Season P&L** adds up any period.
 ## Contracts
 
 **Contracts** keeps sponsorship, supply, driver and venue agreements with their value and renewal or notice date — shown in Reminders 60 days before.
+
+## Crew pay and per diems
+
+1. For each paid crew member or driver, add a contract of kind **Crew / contractor** or **Driver**, pick the **Team member**, and set their **Per diem (each day)** and **Pay per meeting**. The contract's start and end dates say which meetings it covers.
+2. Put them on the event's **Crew** list.
+3. On the event page, the **Crew** card shows **Crew pay**: each person's per diem (rate × the meeting's racing days) and pay. Press **Add crew costs to Finance**.
+
+They're added as bills to pay (due a week after the meeting) under **Per diems & catering** and **Wages & contractors**, with the person in **For (crew member)**, and show in Reminders until they're marked paid. Anything already added for that person and meeting isn't added twice.
+
+**Who can do this:** people who can add expenses and see costs and amounts.
+
+## Trip costs
+
+On a trip plan with fuel stops and tolls, **Add to Finance** records them as one **Transport** expense for the event, linked to the trip and the vehicle. If the costs change, **Update the expense** brings it into line. See [Transport](/help/transport).
 
 ## Export to accounting software
 

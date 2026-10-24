@@ -15,7 +15,8 @@ The built-in **Business Manager** role runs [Finance](/help/finance), can see co
 
 - Add expenses as receipts come in — **Fill from photo** reads them.
 - Record prize money and sponsorship income against the event.
-- Check **Reminders** for bills due, contract renewals and budget categories near their limit.
+- Check **Reminders** for bills due (including crew pay), sponsor payments due, contract renewals and budget categories near their limit.
+- After each meeting, press **Add crew costs to Finance** on the event page, and **Add to Finance** on its trip plan.
 
 ## Every month or quarter
 
