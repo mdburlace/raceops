@@ -8,3 +8,4 @@ __pycache__/
 server/backups/
 *.raceops
 tools/.tts-cache/
+tools/.video-failures/

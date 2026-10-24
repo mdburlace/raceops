@@ -26,6 +26,9 @@ says') lets the voice explain more than the caption; the captions file follows t
 The default, auto, uses Azure when AZURE_SPEECH_KEY is set, Amazon Polly when AWS credentials or AWS_PROFILE are
 set, Piper when PIPER_VOICE is set, and otherwise none.
 Every line is turned into speech before recording starts, so the video doesn't pause while a voice is made.
+
+If a video can't be finished (a screen didn't look as the script expects), the others still record, the old video is
+kept, and a screenshot and the page's text are saved in tools/.video-failures/ (ignored by Git).
 """
 import argparse, ast, json, os, shutil, subprocess, sys, tempfile, urllib.error, urllib.request
 from playwright.sync_api import sync_playwright, expect
@@ -281,7 +284,8 @@ try:
     with sync_playwright() as pw:
         br = pw.chromium.launch(slow_mo=60)
         tmp = tempfile.mkdtemp()
-        made = []
+        made, failed = [], []
+        FAIL_DIR = os.path.normpath(os.path.join(ROOT, 'tools', '.video-failures'))  # ignored by Git
         for fn in VIDEOS:
             name = fn.__name__.replace('_', '-')
             if ONLY and name not in ONLY:
@@ -293,13 +297,35 @@ try:
             s = {'token': login['token'], 'user': login['user'], 'memberships': login['memberships'], 'platform': login.get('platform'), 'tenantId': TID}
             page.goto(B); page.evaluate(f"localStorage.setItem('raceops.session', {json.dumps(json.dumps(s))})")
             page.goto(B); synced(page); page.wait_for_timeout(800)
+            ok = False
             try:
                 fn(page)
+                ok = True
+            except Exception as e:  # keep the others going; leave a picture of the screen it stopped on
+                os.makedirs(FAIL_DIR, exist_ok=True)
+                shot = os.path.join(FAIL_DIR, f'{name}.png')
+                try:
+                    page.screenshot(path=shot, full_page=True)
+                except Exception:
+                    shot = None
+                info = {'video': name, 'url': page.url, 'error': str(e).splitlines()[0][:400]}
+                try:
+                    info['page'] = page.evaluate("() => document.querySelector('main')?.innerText.slice(0, 2000) || document.body.innerText.slice(0, 2000)")
+                except Exception:
+                    pass
+                with open(os.path.join(FAIL_DIR, f'{name}.json'), 'w', encoding='utf-8') as f:
+                    json.dump(info, f, ensure_ascii=False, indent=1)
+                failed.append(name)
+                print(f'  {name}: FAILED — {info["error"]}\n    screen saved to {shot or os.path.join(FAIL_DIR, name + ".json")}; the video was not changed')
             finally:
                 raw = page.video.path()
                 if TIMELINE:
                     TIMELINE.stop()
                 ctx.close()
+            if not ok:
+                call(f'/t/{TID}/practice/reset', T, 'POST', {})
+                RECS[:] = call(f'/t/{TID}/sync?since=0', T)[1]['records']
+                continue
             out = encode(raw, name, TIMELINE)
             made.append((name, os.path.getsize(out)))
             print(f'  {name}.webm  {os.path.getsize(out) // 1024} KB, {narration.duration(out):.0f} s' + (', with voice-over and captions' if TIMELINE else ''))
@@ -311,3 +337,5 @@ try:
 finally:
     restore_prefs()
 print(f'Recorded {len(made)} videos into docs/guide/video. Remember to delete the "Practice — videos" team on that server.')
+if failed:
+    sys.exit(f'{len(failed)} failed: {", ".join(failed)}. See tools/.video-failures for what the screen showed.')
