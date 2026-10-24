@@ -509,6 +509,12 @@ async function partialChange(c, tid, cur, incoming, sections) {
   return { ...cur.data, values };
 }
 
+/** Values that differ on a locked setup sheet, ignoring the running order. */
+function lockedChanges(was, got) {
+  const keys = new Set([...Object.keys(was), ...Object.keys(got)]);
+  return [...keys].filter((k) => k !== 'order' && JSON.stringify(was[k] ?? null) !== JSON.stringify(got[k] ?? null));
+}
+
 /** Keep the stored costs and amounts (MONEY_FIELDS) when a role that can't see them saves a record. */
 function keepMoney(cur, incoming, type) {
   const values = { ...(incoming?.values || {}) };
@@ -550,6 +556,7 @@ async function applyChange(c, req, ch) {
   if (isGlobal ? !(GLOBAL_TYPES.includes(type) && req.user.is_platform_admin && viewable) : !fullEdit && !parts.length) {
     return { id, status: 'denied', record: viewable ? current(cur) : null };
   }
+  const wantLocked = !!data?.values?.locked;
   if (parts.length) data = await partialChange(c, req.tid, cur, data, parts);
   // costs and amounts: a role that can't see them can't change them either (its device never had them)
   if (!isGlobal && !deleted && moneyFields(type).length && !canSeeMoney(req.role)) data = keepMoney(cur, data, type);
@@ -558,6 +565,20 @@ async function applyChange(c, req, ch) {
     const st = data?.values?.status; const was = cur?.data?.values?.status;
     if (['Approved', 'Declined'].includes(st) && st !== was && !can(req.role, 'purchases.approve')) {
       return { id, status: 'denied', record: current(cur) };
+    }
+  }
+  // locked setup sheets: nothing changes (except the running order) until someone with setups.unlock unlocks
+  // it, and nobody deletes one. Locking needs the full edit right.
+  if (type === 'setup' && !isGlobal) {
+    const was = cur?.data?.values || {};
+    if (was.locked) {
+      if (deleted || (wantLocked && lockedChanges(was, incoming?.values || {}).length)) return { id, status: 'denied', record: current(cur) };
+      if (!wantLocked) {
+        if (!can(req.role, 'setups.unlock')) return { id, status: 'denied', record: current(cur) };
+        data = { ...cur.data, values: { ...was, locked: false, locked_by: '', locked_at: '', unlocked_by: req.user.id, unlocked_at: new Date().toISOString() } };
+      } else data = { ...cur.data, values: { ...was, order: incoming?.values?.order ?? was.order } };
+    } else if (data?.values?.locked && !canType(req.role, req.ent, 'setup', 'edit')) {
+      data = { ...data, values: { ...data.values, locked: false } };
     }
   }
   const owner = isGlobal ? null : req.tid;

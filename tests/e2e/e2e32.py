@@ -48,13 +48,13 @@ with sync_playwright() as pw:
     # ---- event lists: round and track first
     page.goto(B + '/events')
     row = page.locator('a.list-row:has-text("Spring night")')
-    expect(row.locator('.row-sub')).to_contain_text('Rd 4 · Rounds Park Speedway · Rounds Display Series')
+    expect(row.locator('.row-sub')).to_contain_text('Round 4 · Rounds Park Speedway · Rounds Display Series')
     page.goto(B + '/track')
-    expect(page.locator('.next-event')).to_contain_text('Rd 4 · Rounds Park Speedway')
+    expect(page.locator('.next-event')).to_contain_text('Round 4 · Rounds Park Speedway')
     page.goto(B + '/calendar')
-    expect(page.locator('.list-row:has-text("Spring night") .row-sub')).to_contain_text('Rd 4 · Rounds Park Speedway')
+    expect(page.locator('.list-row:has-text("Spring night") .row-sub')).to_contain_text('Round 4 · Rounds Park Speedway')
     page.goto(f"{B}/tracks/{track['id']}")
-    expect(page.locator('.list-row:has-text("Spring night")')).to_contain_text('Rd 4')
+    expect(page.locator('.list-row:has-text("Spring night")')).to_contain_text('Round 4')
     shot = lambda n: page.screenshot(path=f'{OUT}/{n}.png', full_page=True)
 
     # ---- Our calendar quick edit and the event form: Save and Cancel at the top
@@ -79,7 +79,7 @@ with sync_playwright() as pw:
     # ---- the calendar date form: Save and Cancel above the fields
     page.goto(B + '/calendar?tab=shared&show=all')
     r = page.locator('.list-row:has-text("Display Rd 2")')
-    expect(r.locator('.row-sub')).to_contain_text('Rd 2 · Rounds Park Speedway')
+    expect(r.locator('.row-sub')).to_contain_text('Round 2 · Rounds Park Speedway')
     r.locator('button:has-text("Edit")').click()
     ed = page.locator('[data-testid="fx-editor"]')
     head = ed.locator('.fx-editor-head')

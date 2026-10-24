@@ -40,6 +40,7 @@ Changes reach each person's device at their next sync. Anything they can no long
     - **the change list** — the car chief ticks off each change (built-in Car Chief);
     - **the tyre and wheel sections** — the tyre specialist (built-in Tire Specialist).
   The server only accepts changes in those sections; the rest of the sheet stays as it was.
+- **Unlock locked setup sheets** — usually the crew chief (the built-in Crew Chief role has it for new teams). The team owner can always unlock. For an existing team, tick it on the roles that should have it. See [Lock a finished sheet](/help/setup-sheets#lock-a-finished-sheet).
 - **Approve or decline parts orders** — usually the crew chief. See [Parts orders](/help/parts-orders).
 - **See costs, prices and amounts** — costs on parts orders, amounts in Finance, sponsor deal values, rebuild costs and merchandise costs. Without it those fields are hidden and the server never sends them to the device.
 

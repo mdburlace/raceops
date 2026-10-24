@@ -13,7 +13,13 @@ export const FIELD_INFO5 = {
     change_list: ['Each change the crew chief calls for this session (e.g. “RR rebound −1”, was 9, now 8). The car chief ticks Done when it’s been done on the car, which records who and when. Fill it from the sheet’s changes with Add changes from this sheet.'],
   },
   event: {
+    round_prefix: ['The word before the round number in lists and the calendar — Round, Night or Prelude (pick from the list, type your own, or leave it blank for “Round”). A prefix with no number, like Prelude, shows on its own.'],
+    more_series: ['Other series this meeting counts towards — parallel series, even in the same class. Each has its own round and prefix, and the event shows in each series.'],
     crew: ['Who’s going to this meeting and their job on the night (e.g. Tyres, Car chief, Hauler). Each person sees their own race-night jobs on Home.'],
+  },
+  fixture: {
+    round_prefix: ['The word before the round number — Round, Night or Prelude (or your own). Blank shows “Round”; a prefix with no number shows on its own.'],
+    more_series: ['Other series this date counts towards, each with its own round. Teams that add the date get every series.'],
   },
   tire: {
     work_log: ['Everything done to this tyre: mounted, cut, siped, ground, and the circumference and durometer readings each time, with who did it.'],

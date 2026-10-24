@@ -33,7 +33,7 @@ demo: Valley Speedway — Club night, Heat 1, Lakeside Raceway
 1. Go to **Team Management → Calendar**.
 2. Find the next meeting on **Our calendar**.
 
-**When it's right:** you've found *Rd 9 · Lakeside Raceway* next week.
+**When it's right:** you've found *Round 9 · Lakeside Raceway* next week.
 
 ## Exercise 4: How have I been going? (5 min)
 

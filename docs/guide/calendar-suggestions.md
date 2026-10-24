@@ -30,6 +30,7 @@ Choose a view:
 - **Edit**: change a date. The form opens under that date, with **Save** and **Cancel** at the top, so you don't have to scroll past the whole form. Every team's entry that came from it changes too.
 - **Delete**: removes the date from the shared calendar. Teams that already added it keep their own entry. To keep it visible but show it's off, edit it and set **Status** to **Cancelled** instead.
 - **New series** (in the Series view): adds a series every team can use. Name and season are required.
+- **Dates in a series** (open a series and press **Edit series**): **Dates in this series** lists its dates with their rounds; **Take out** removes one from this series only. Under **Add shared dates**, search the shared dates, tick each one that belongs, set its **Prefix** (**Round**, **Night**, **Prelude**, or blank) and **Round**, and press **Add N dates to …**. A date already in another series keeps it and counts towards both. Teams' entries from those dates follow.
 - **Import a calendar**: read the dates from a link, iCal feed, PDF, photo, screenshot or pasted text, check them, then save. The AI reading counts against the team you're signed in to, so that team needs the AI add-on (iCal doesn't).
 
 ### Tools for a series or track

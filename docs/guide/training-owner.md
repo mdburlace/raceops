@@ -31,7 +31,7 @@ demo: Car 17, Car 71, Lakeside Raceway
 ## Exercise 3: Plan the next round (10 min)
 
 1. Go to **Team Management → Calendar → Our calendar**.
-2. Find *Rd 9 · Lakeside Raceway* and set **Going?** to **Tentative**.
+2. Find *Round 9 · Lakeside Raceway* and set **Going?** to **Tentative**.
 3. Press **Edit** on it. In the quick edit, add a **Sanctioning body** and press **Save** at the top.
 4. Press **Print** to see the year on paper.
 

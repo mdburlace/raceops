@@ -3,14 +3,14 @@ id: training-crew-chief
 title: "Training: crew chief"
 section: training
 order: 10
-summary: Hands-on exercises in the practice team — read tonight's heat, set up the feature, use the advisor and Compare, find what worked, save a baseline and run a two-night meeting.
+summary: Hands-on exercises in the practice team — read tonight's heat, set up the feature, use the advisor and Compare, find what worked, save a baseline, run a two-night meeting and lock a finished sheet.
 for: module:setups
 team: race
 covers: option:training-crew-chief
 related: training, role-crew-chief, engine-tunes, setup-sheets, setup-sheet-layout, setup-advisor, compare-search
 demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick, Valley Spring Classic, Practice & prelims, Finals
 ---
-**Time:** about 50 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
+**Time:** about 55 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
 
 **The story:** it's club night at Valley Speedway. Car 17 has run **Heat 1** and the driver says it was loose off the corners. You set the car up for the **Feature**.
 
@@ -101,6 +101,17 @@ demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — 
 **When it's right:** the Feature sheet is on the **Finals** tab only. **Practice & prelims** is crossed out, and the **Calendar → Month** view marks just the two race days, not the day between. **Plan & result** shows **Raced the feature**, worked out from the days, and the day lines under the event show *Raced the feature · Feature 6th* on Finals. See [Multi-day events](/help/events-sessions#multi-day-events).
 
 **Check yourself:** you pick **Did not attend** for the whole meeting under Plan & result. Does recording a day's result change it? (No — a result you pick for the whole event stays. Only a worked-out one follows the days.)
+
+## Exercise 11: Lock a finished sheet (5 min)
+
+1. Open **Events**, then *Valley Speedway — Club night*, and open the **Heat 1** sheet.
+2. Press **Lock sheet**.
+3. The sheet shows **🔒 Locked by** you, with the date, and every field is read-only. **Delete** is gone.
+4. Press **Unlock**. The fields can be changed again. Press **Lock sheet** once more to leave it locked.
+
+**When it's right:** **Heat 1** shows 🔒 in the event's session list. See [Lock a finished sheet](/help/setup-sheets#lock-a-finished-sheet).
+
+**Check yourself:** a mechanic on your team needs to fix a typo on a locked sheet. Can they unlock it? (Only if their role has **Unlock locked setup sheets**. The owner can give it in **Roles**; otherwise ask the crew chief or owner to unlock it.)
 
 ## Check yourself
 
