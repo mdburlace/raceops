@@ -7,7 +7,8 @@ Run against a TEST server (it creates a practice team called "Practice — video
     python3 tools/training_videos.py --url http://localhost:8080 --email admin@example.com --password '…'
     python3 tools/training_videos.py … --only training-owner
 
-The account must be a platform admin. Each video is a scripted walkthrough of one training exercise,
+The account must be a platform admin. While it records, the account uses the standard look and layout (theme,
+sidebar sections open, standard setup sheet layout, Calendar list view); its own settings are put back at the end. Each video is a scripted walkthrough of one training exercise,
 with a visible pointer, recorded by Playwright (Chromium) and re-encoded with ffmpeg (VP9 WebM, 1280×720).
 Change a script below when the screens change, and re-run it.
 
@@ -68,6 +69,11 @@ st, team = call('/admin/tenants', T, 'POST', {'name': 'Practice — videos', 'pl
 if st != 200:
     sys.exit(f'Could not create the practice team ({st}): {team} — the account must be a platform admin.')
 TID = team['id']
+# Record with the standard look and layout, whatever this account has chosen (theme, folded sidebar sections,
+# setup sheet layout, Calendar list or month), and put the account's own settings back at the end.
+STANDARD_PREFS = {'theme': 'system', 'nav_collapsed': [], 'setup_layout': {}, 'calendar_view': 'agenda'}
+OWN_PREFS = {k: v for k, v in (login['user'].get('prefs') or {}).items() if k in STANDARD_PREFS}
+call('/me', T, 'PATCH', {'prefs': STANDARD_PREFS})
 login = call('/auth/login', method='POST', body={'email': args.email, 'password': args.password})[1]
 RECS = call(f'/t/{TID}/sync?since=0', T)[1]['records']
 by_name = lambda type, name: next(r for r in RECS if r['type'] == type and (r['data'].get('values') or {}).get('name' if type != 'job' else 'job_no') == name)
@@ -263,36 +269,44 @@ def encode(raw, name, timeline=None):
     return out
 
 
-if NARRATOR:
-    prepare_voice()
-with sync_playwright() as pw:
-    br = pw.chromium.launch(slow_mo=60)
-    tmp = tempfile.mkdtemp()
-    made = []
-    for fn in VIDEOS:
-        name = fn.__name__.replace('_', '-')
-        if ONLY and name not in ONLY:
-            continue
-        ctx = br.new_context(viewport={'width': 1280, 'height': 720}, record_video_dir=tmp, record_video_size={'width': 1280, 'height': 720})
-        ctx.add_init_script(INIT)
-        page = ctx.new_page()
-        TIMELINE = narration.Timeline() if NARRATOR else None  # recording starts with the page
-        s = {'token': login['token'], 'user': login['user'], 'memberships': login['memberships'], 'platform': login.get('platform'), 'tenantId': TID}
-        page.goto(B); page.evaluate(f"localStorage.setItem('raceops.session', {json.dumps(json.dumps(s))})")
-        page.goto(B); synced(page); page.wait_for_timeout(800)
-        try:
-            fn(page)
-        finally:
-            raw = page.video.path()
-            if TIMELINE:
-                TIMELINE.stop()
-            ctx.close()
-        out = encode(raw, name, TIMELINE)
-        made.append((name, os.path.getsize(out)))
-        print(f'  {name}.webm  {os.path.getsize(out) // 1024} KB, {narration.duration(out):.0f} s' + (', with voice-over and captions' if TIMELINE else ''))
-        # each video starts from the original demo data
-        call(f'/t/{TID}/practice/reset', T, 'POST', {})
-        RECS[:] = call(f'/t/{TID}/sync?since=0', T)[1]['records']
-    shutil.rmtree(tmp, ignore_errors=True)
-    br.close()
+def restore_prefs():
+    if OWN_PREFS:
+        call('/me', T, 'PATCH', {'prefs': OWN_PREFS})
+
+
+try:
+    if NARRATOR:
+        prepare_voice()
+    with sync_playwright() as pw:
+        br = pw.chromium.launch(slow_mo=60)
+        tmp = tempfile.mkdtemp()
+        made = []
+        for fn in VIDEOS:
+            name = fn.__name__.replace('_', '-')
+            if ONLY and name not in ONLY:
+                continue
+            ctx = br.new_context(viewport={'width': 1280, 'height': 720}, record_video_dir=tmp, record_video_size={'width': 1280, 'height': 720})
+            ctx.add_init_script(INIT)
+            page = ctx.new_page()
+            TIMELINE = narration.Timeline() if NARRATOR else None  # recording starts with the page
+            s = {'token': login['token'], 'user': login['user'], 'memberships': login['memberships'], 'platform': login.get('platform'), 'tenantId': TID}
+            page.goto(B); page.evaluate(f"localStorage.setItem('raceops.session', {json.dumps(json.dumps(s))})")
+            page.goto(B); synced(page); page.wait_for_timeout(800)
+            try:
+                fn(page)
+            finally:
+                raw = page.video.path()
+                if TIMELINE:
+                    TIMELINE.stop()
+                ctx.close()
+            out = encode(raw, name, TIMELINE)
+            made.append((name, os.path.getsize(out)))
+            print(f'  {name}.webm  {os.path.getsize(out) // 1024} KB, {narration.duration(out):.0f} s' + (', with voice-over and captions' if TIMELINE else ''))
+            # each video starts from the original demo data
+            call(f'/t/{TID}/practice/reset', T, 'POST', {})
+            RECS[:] = call(f'/t/{TID}/sync?since=0', T)[1]['records']
+        shutil.rmtree(tmp, ignore_errors=True)
+        br.close()
+finally:
+    restore_prefs()
 print(f'Recorded {len(made)} videos into docs/guide/video. Remember to delete the "Practice — videos" team on that server.')
