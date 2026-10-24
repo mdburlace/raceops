@@ -573,7 +573,7 @@ function nextOnEnter(e) {
  * changesOnly, changed: changedFields(), openAll } — the person's section order, folded sections,
  * the Before / After switch and change highlighting.
  */
-export default function FormRenderer({ form, values, onChange, data, readOnly: allReadOnly, level, recordType, recordId = null, errors = {}, hideKeys = [], roKeys = [], roSections = null, sectionExtras = {}, calcCtx = null, layout = null }) {
+export default function FormRenderer({ form, values, onChange, data, readOnly: allReadOnly, level, recordType, recordId = null, errors = {}, hideKeys = [], roKeys = [], roSections = null, sectionExtras = {}, sectionAfter = {}, calcCtx = null, layout = null }) {
   const { membership } = useSession(); // also re-renders when the cached member list arrives
   const shopTeam = isShop(membership);
   const suggestions = useMemo(() => {
@@ -628,6 +628,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly: a
         const folded = !!layout && layout.collapsed?.has(sec.id) && !hasError && !layout.changesOnly;
         const nChanged = changed ? shown.filter((f) => changed[f.key]).length : 0;
         const extras = !layout || (stage !== 'after' && !layout.changesOnly) ? sectionExtras[sec.id] || null : null;
+        const after = !layout || (stage !== 'after' && !layout.changesOnly) ? sectionAfter[sec.id] || null : null; // shown under the section's fields
         const shockCards = setup && sec.id === 'shocks';
         const props = { values, onChange, data, form, readOnly, errors, suggestions, calcCtx, changed, recordId };
         return (
@@ -653,6 +654,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly: a
                       ? <h4 key={`h${i}`} className="subhead span-all">{r.field.label}</h4>
                       : <Field key={r.field.key} f={r.field} {...props} readOnly={readOnly || roKeys.includes(r.field.key)} />))}
                 </div>
+                {after}
               </>
             )}
           </section>

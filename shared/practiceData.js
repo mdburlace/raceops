@@ -189,6 +189,20 @@ export function practiceData({ form, today = new Date(), uuid }) {
     parts: [{ part_no: 'RS-410', description: 'Ring set', qty: '8', unit_cost: '45', unit_price: '60' }],
     labour: [{ date: day(-2), tech: 'Workshop', description: 'Teardown and inspection', hours: '4', rate: '120' }],
   });
+  // the teardown of that engine, half done: a tired intake spring on #4 and a lean plug to find
+  const jobRec = out[out.length - 1];
+  const cy = (vals) => Object.fromEntries(vals.map((x, i) => [`#${i + 1}`, x]));
+  add('engine_teardown', {
+    engine: custEngine.id, date: day(-2), job: jobRec.id, reason: 'Down on power', engine_laps: '480', symptoms: 'Down on power at the top end.',
+    spring_new_seat: { Int: '280', Exh: '280' }, spring_loss_max: '10', valve_new_len: { Int: '5.300', Exh: '5.300' }, valve_stretch_max: '0.002',
+    deck_flat_max: '0.001', deck_parity_max: '0.001', bore_taper_max: '0.0005', bore_oor_max: '0.0005',
+    plug_read: cy(['Good', 'Good', 'Good', 'Lean (white / blistered)', 'Good', 'Good', 'Good', 'Good']),
+    filter_cut: true, filter_ferrous: 'None', filter_nonferrous: 'None', debris_source: 'None', oil_condition: 'Normal',
+    spring_seat_int: cy(['272', '270', '274', '246', '271', '269', '273', '270']),
+    spring_seat_exh: cy(['268', '270', '266', '271', '269', '267', '270', '268']),
+    valve_len_exh: cy(['5.3005', '5.3004', '5.3006', '5.3005', '5.3004', '5.3007', '5.3005', '5.3006']),
+    deck_flat_l: '0.0004', deck_flat_r: '0.0005',
+  });
 
   // ---- business: parts orders, finance, transport, partnerships and marketing
   const next = out.find((r) => r.type === 'event' && r.data.values.round === '9');

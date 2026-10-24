@@ -3,11 +3,11 @@ id: training-engine-builder
 title: "Training: engine builder"
 section: training
 order: 13
-summary: Hands-on exercises in the practice team — work a customer job, start a build sheet, print the handover pack, share the engine with its owner, write its tune, and check your own engine's life.
+summary: Hands-on exercises in the practice team — work a customer job, read its teardown, start a build sheet, print the handover pack, share the engine with its owner, write its tune, and check your own engine's life.
 for: module:jobs, module:engines
 team: shop
 covers: option:training-engine-builder
-related: training, role-engine-builder, shop-jobs, engine-builds, engine-tunes, handover-pack, share-engine-page, customers
+related: training, role-engine-builder, shop-jobs, engine-teardown, engine-builds, engine-tunes, handover-pack, share-engine-page, customers
 demo: Sam Hart, Hart 410, J-1001, Freshen after 480 laps
 ---
 **Time:** about 40 minutes. **You need:** the practice team (it's a race team and an engine shop), signed in as someone who can edit jobs.
@@ -70,10 +70,25 @@ demo: Sam Hart, Hart 410, J-1001, Freshen after 480 laps
 
 **When it's right:** you can say how many laps it has done since the build.
 
+## Exercise 8: Read the teardown (10 min)
+
+*Hart 410* is already half torn down for job **J-1001**.
+
+1. Go to **Engine Shop → Build sheets**. On *Hart 410*'s card, open the **Teardown** (*Down on power*).
+2. Look under **1. Forensic clean & visual log** and **2. High-stress valvetrain** for what's flagged.
+3. Scroll to **Findings & decisions**. Read **What the evidence points to**.
+4. Press **Fill in 1 suggested decision**. Set **Root cause** to *Metal fatigue*, and under **Tuning limits for the next build** write *Check the #4 injector*.
+5. Press **Save**, open the teardown again and press **Print**.
+
+**When it's right:** the intake spring on cylinder 4 is flagged (12% down on the new 280 lb), **Valve springs** is set to **Replace** in the table, and the printout lists the findings. See [Engine teardown & pre-check](/help/engine-teardown).
+
 ## Check yourself
 
 <details><summary>You've tried a tune on the dyno that the customer shouldn't see yet. How do you keep it to yourself?</summary>
 Untick <b>Share with the engine’s owner</b> on that version. Only shared versions show on the owner's engine page and in their linked team.
+</details>
+<details><summary>A spring tests 12% under new and your limit is 10%. Does RaceOps replace it?</summary>
+No — it flags the spring and suggests <b>Replace</b>. You make the decision in the <b>Reuse, machine or replace</b> table, and the limits are yours to set under <b>Limits &amp; new-part baseline</b>.
 </details>
 <details><summary>Does the customer ever see your parts costs?</summary>
 No. Customers see prices only on jobs where you tick <b>Show prices to the customer</b>, and never costs, margins or internal notes.

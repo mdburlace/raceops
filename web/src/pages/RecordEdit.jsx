@@ -5,6 +5,7 @@ import { AiTools } from '../components/Ai.jsx';
 import { WeatherTools, useWeatherUnits, withWeatherUnits } from '../components/Weather.jsx';
 import { calcContext } from '../components/Calculator.jsx';
 import { EngineChecks } from '../components/EngineChecks.jsx';
+import { BuildTeardown, TeardownSection, TeardownSummary } from '../components/EngineTeardown.jsx';
 import { FuelPlanner, useFuelUnits } from '../components/FuelPlanner.jsx';
 import { BarResults } from '../components/BarTests.jsx';
 import { InitialClash, ShockVsInitial } from '../components/DynoInitial.jsx';
@@ -36,7 +37,7 @@ export const TYPE_LABEL = {
   schedule: 'Maintenance schedule', measurement: 'Measurement', track_check: 'Between-rounds check',
   gear: 'Gear set', gear_list: 'Gear list', tire: 'Tire', track: 'Track', team_track: 'Team track', contact: 'Contact',
   supplier: 'Supplier', contact_link: 'Contact role', series: 'Series', dyno_run: 'Dyno run', engine_build: 'Engine build', review: 'Performance review',
-  customer: 'Customer', job: 'Job', shop_setup: 'Workshop setup', engine_tune: 'Engine tune', engine_check: 'Engine check',
+  customer: 'Customer', job: 'Job', shop_setup: 'Workshop setup', engine_tune: 'Engine tune', engine_check: 'Engine check', engine_teardown: 'Engine teardown',
   purchase: 'Parts order', expense: 'Expense', income: 'Income', budget: 'Budget', contract: 'Contract',
   trip: 'Trip plan', load_list: 'Load list', pre_trip: 'Pre-trip check', licence: 'Driver licence',
   sponsor: 'Sponsor', livery: 'Paint scheme', guest: 'Hospitality guest', media: 'Photo', social_post: 'Results post', merch: 'Merchandise item',
@@ -48,6 +49,8 @@ const CARRY = {
   engine_build: { match: 'engine', skip: ['engine', 'date', 'build_type', 'engine_laps', 'builder', 'notes'], label: 'build' },
   shop_setup: { match: 'car', skip: ['car', ...SHOP_SETUP_SKIP], label: 'workshop setup' },
   // a new version of an engine's tune starts from its newest version
+  // a new teardown takes the limits and new-part figures from the engine's last one (the rest isn't carried)
+  engine_teardown: { match: 'engine', skip: [], label: 'teardown', note: ' — limits and new-part figures copied; the readings start blank.' },
   engine_tune: { match: 'engine', skip: ['engine', 'name', 'date', 'active', 'notes', 'builder_tune', 'builder_updated'], label: 'version' },
 };
 
@@ -89,7 +92,7 @@ function afterSave(type, rec) {
     case 'gear_list': return '/track/gears?tab=lists';
     case 'tire': return '/track/gears?tab=tires';
     case 'dyno_run': return '/workshop/dyno';
-    case 'engine_build': return '/engines';
+    case 'engine_build': case 'engine_teardown': return '/engines';
     case 'review': return '/team/reviews';
     case 'shop_setup': return '/workshop/setups';
     case 'engine_tune': return '/tunes';
@@ -210,6 +213,11 @@ export default function RecordEdit() {
     if (type === 'event' && !init.car) {
       const active = data.list('car').filter((c) => v(c, 'active') !== false);
       if (active.length === 1) init.car = active[0].id; // the only car the team runs
+    }
+    // a teardown is of the engine's latest build unless another is picked
+    if (type === 'engine_teardown' && init.engine && !init.build) {
+      const last = data.list('engine_build').filter((b) => v(b, 'engine') === init.engine).sort((a, b) => String(v(b, 'date') || '').localeCompare(String(v(a, 'date') || '')))[0];
+      if (last) init.build = last.id;
     }
     if (type === 'event' && init.venue) Object.assign(init, trackDetails(data.byId[init.venue]));
     const cfg = CARRY[type];
@@ -441,7 +449,7 @@ export default function RecordEdit() {
     </select>
   ) : null;
   const startedText = carried
-    ? <span>Started from <b>{carried.type === 'shop_setup' ? `workshop setup “${v(carried, 'name') || 'Workshop setup'}”` : v(carried, 'baseline') ? `baseline “${v(carried, 'baseline_name') || titleOf(carried, data)}”` : titleOf(carried, data)}</b>{type === 'setup' ? ' — hot values, travel, race, feedback and notes left blank.' : ' — measurements copied; check every value.'}</span>
+    ? <span>Started from <b>{carried.type === 'shop_setup' ? `workshop setup “${v(carried, 'name') || 'Workshop setup'}”` : v(carried, 'baseline') ? `baseline “${v(carried, 'baseline_name') || titleOf(carried, data)}”` : titleOf(carried, data)}</b>{type === 'setup' ? ' — hot values, travel, race, feedback and notes left blank.' : cfg?.note || ' — measurements copied; check every value.'}</span>
     : <span className="muted">Copy settings from a previous {cfg?.label}{type === 'setup' ? ' or baseline' : ''}:</span>;
   const choosingStart = type === 'setup' && choosing && !readOnly && (thisEvent.length || earlier.length || baselines.length > 0 || shopSetups.length > 0);
 
@@ -459,6 +467,7 @@ export default function RecordEdit() {
         {type === 'job' && !isNew && <Link className="btn ghost" to={`/print/job/${id}`}>Job sheet / handover pack</Link>}
         {type === 'engine_tune' && !isNew && <Link className="btn ghost" to={`/print/tune/${id}`}>Print</Link>}
         {type === 'engine_check' && !isNew && <Link className="btn ghost" to={`/print/engine-check/${id}`}>Print</Link>}
+        {type === 'engine_teardown' && !isNew && <Link className="btn ghost" to={`/print/teardown/${id}`}>Print</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
         {type === 'setup' && !isNew && <Link className="btn ghost advisor-link" to={`/track/advisor?setup=${id}`} title="What’s worked before for this handling problem, and what the tuning guides suggest">Setup advisor</Link>}
         {type === 'setup' && !isNew && canModule('dyno') && <Link className="btn ghost" to={`/workshop/dyno?setup=${id}`}>Shock dyno</Link>}
@@ -577,6 +586,9 @@ export default function RecordEdit() {
         level={type === 'maintenance' ? values.level || 'weekly' : null} recordType={type} recordId={isNew ? null : id} errors={errors}
         hideKeys={[...(type === 'setup' && evDays.length <= 1 && !(num(values.day) > 1) ? ['day'] : []), ...(canMoney ? [] : moneyFields(type))]}
         roSections={partial ? form.data.sections.map((x) => x.id).filter((x) => !parts.includes(x)) : null}
+        sectionAfter={type === 'engine_teardown' ? {
+          ...Object.fromEntries(['visual', 'valvetrain', 'rotating', 'ndt'].map((sec) => [sec, <TeardownSection key={sec} section={sec} values={values} data={data} />])),
+        } : undefined}
         sectionExtras={type === 'dyno_run' && form?.data?.dyno_kind === 'bar' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, rate: <BarResults data={data} id={id} values={values} /> }
           : type === 'dyno_run' ? { run: <InitialClash data={data} id={isNew ? null : id} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />, data: <ShockVsInitial data={data} id={isNew ? null : id} values={values} /> } : type === 'setup' ? { weather: <WeatherTools data={data} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           engine: <TunePanel type="setup" form={form} values={values} readOnly={readOnly} units={wxUnits} setValues={(fn) => { setValues(fn); setDirty(true); }} />,
@@ -586,9 +598,11 @@ export default function RecordEdit() {
             setValues={(fn) => { setValues(fn); setDirty(true); }} />,
           tires: <TyreTargets values={values} /> }
           : type === 'expense' || type === 'income' ? { amount: <TaxHint values={values} /> }
+          : type === 'engine_teardown' ? { decision: <TeardownSummary rec={isNew ? null : rec} values={values} data={data} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> }
           : type === 'shop_setup' ? { engine: <TunePanel type="shop_setup" form={form} values={values} readOnly={readOnly} setValues={(fn) => { setValues(fn); setDirty(true); }} /> } : undefined}
         calcCtx={FIELD_CALCS[type] ? calcContext(data, values, { prev: prevSession?.data?.values, units: wxUnits }) : null} />
       {type === 'engine_build' && <EngineChecks values={values} />}
+      {type === 'engine_build' && <BuildTeardown rec={isNew ? null : rec} values={values} />}
       {type === 'job' && <JobExtras id={id} values={values} isNew={isNew} />}
       {type === 'shop_setup' && !isNew && <ShopSetupLinks rec={rec} values={values} />}
       {type === 'engine_tune' && !isNew && <TuneVersions rec={rec} values={values} />}

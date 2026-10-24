@@ -21,6 +21,7 @@ related: shop-jobs, engine-builds, handover-pack, share-engine-page, link-owner-
 - Move the status along: *In progress*, *Waiting on parts*, *Ready for pickup*.
 - Add **parts** and **labour** as you go. A blank labour rate uses the shop rate.
 - Record findings, work done and recommendations.
+- **Teardown** on the engine's card as it comes apart: plugs, chambers, oil filter, springs, valves, bores, mains, rods, pistons, crank and crack tests. It flags what's over your limits, points to the root cause and suggests what to reuse, machine or replace. [Engine teardown & pre-check](/help/engine-teardown)
 - **New build sheet** on the job: specs, measurements, clearances, torque and dyno. The **Clearances & checks** card works itself out. [Engine build sheets](/help/engine-builds)
 
 ## Handing it back
@@ -41,6 +42,7 @@ related: shop-jobs, engine-builds, handover-pack, share-engine-page, link-owner-
 | See what's due or waiting | Home → In the shop |
 | Write a tune for a customer's engine and share it | [Engine tune sheets](/help/engine-tunes) |
 | Work out compression or dynamic compression | [Calculators](/help/calculators) |
+| Find out why an engine failed and what to replace | [Engine teardown & pre-check](/help/engine-teardown) |
 | Compare two builds | [Engine build sheets](/help/engine-builds) |
 | Change the labour rate or terms | [Shop settings](/help/shop-settings) |
 | Report a problem, or ask for a feature | [Feedback and the roadmap](/help/feedback) |
