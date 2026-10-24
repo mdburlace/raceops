@@ -54,12 +54,13 @@ export function rolesFor(ctx, all) {
 
 marked.use({ gfm: true, breaks: false });
 const renderer = new marked.Renderer();
-// A video gets its poster (img/<name>.webp) and, when it has a voice-over, its captions (video/<name>.vtt), shown by default.
+// A video gets its poster (img/<name>.webp) and, when it has a voice-over, captions of the words spoken (video/<name>.vtt),
+// off to start with: the short caption bar is already in the picture, and CC shows the full words.
 const videoHtml = (href, text) => {
   const poster = IMG[href.replace(/^video\//, 'img/').replace(/\.(webm|mp4)$/i, '.webp')];
   const vtt = VID[href.replace(/\.(webm|mp4)$/i, '.vtt')];
   return `<figure class="guide-video"><video src="${VID[href] || href}" controls preload="none" playsinline${poster ? ` poster="${poster}"` : ''}>`
-    + `${vtt ? `<track kind="captions" src="${vtt}" srclang="en" label="English" default />` : ''}</video><figcaption>${text || ''}</figcaption></figure>`;
+    + `${vtt ? `<track kind="captions" src="${vtt}" srclang="en" label="English" />` : ''}</video><figcaption>${text || ''}</figcaption></figure>`;
 };
 renderer.image = ({ href, text }) => (/\.(webm|mp4)$/i.test(href)
   ? videoHtml(href, text)

@@ -18,7 +18,7 @@ Voices (--tts on training_videos.py):
           Check the voice's licence before you commit videos made with it: each Piper voice has the licence
           of the recordings it was trained on, and some (e.g. the lessac voices, from the Blizzard 2013 data)
           are for research only. RaceOps is a product, so use a voice whose licence allows commercial use.
-  none    No voice: the caption bar is burned into the picture instead, as before narration.
+  none    No voice: just the caption bar in the picture, as before narration.
   auto    azure if AZURE_SPEECH_KEY is set, else polly if AWS credentials or AWS_PROFILE are set,
           else piper if PIPER_VOICE is set, else none.
 

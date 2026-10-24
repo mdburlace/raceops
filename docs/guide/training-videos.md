@@ -13,7 +13,7 @@ Each video shows one common job being done in the practice team, in a minute or 
 ## Watching the videos
 
 - **Press play.** Turn the sound up to hear the voice-over.
-- **Captions** show what the voice says, and are on to start with. Turn them off or on with the player's captions button (**CC**), or in its **⋮** menu on some browsers. They help in a noisy workshop or at the track, or with the sound off.
+- **Captions:** each step's caption shows in a bar at the bottom of the picture. To read every word the voice says as well, turn on the player's captions button (**CC**), or use its **⋮** menu on some browsers. Captions help in a noisy workshop or at the track, or with the sound off.
 - **Full screen:** use the player's full-screen button, or turn your phone sideways.
 - **You need an internet connection.** The videos are too big to keep on your phone for offline use, unlike the rest of Help & guide. Watch them before you head to the track.
 
@@ -55,4 +55,4 @@ The business and race-night roles — car chief, tyre specialist, transport, fin
 
 ## For trainers
 
-Play the role's video on the room's screen before the trainees start their exercises, with the sound on and captions showing (see the [trainer's guide](/help/training-trainers)). Check the room has internet first. The videos are re-recorded whenever the screens they show change, so they always match the app you're using.
+Play the role's video on the room's screen before the trainees start their exercises, with the sound on (see the [trainer's guide](/help/training-trainers)). Check the room has internet first. The videos are re-recorded whenever the screens they show change, so they always match the app you're using.

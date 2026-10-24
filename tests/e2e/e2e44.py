@@ -1,5 +1,5 @@
 # Training videos: the Training videos page lists every video, each with its poster, and a video with a voice-over
-# has an audio track and its captions (a default English captions track that loads and shows the words being said);
+# has an audio track and captions of the words spoken (an English captions track, off until CC, that shows the words when on);
 # the training start page and a role's exercises link to it, and a video without a .vtt gets no track.
 import json, os, re, subprocess, sys, urllib.request, urllib.error
 from playwright.sync_api import sync_playwright, expect
@@ -47,7 +47,7 @@ with sync_playwright() as pw:
     expect(page.locator('h1:has-text("Training videos")')).to_be_visible(timeout=15000)
     page.screenshot(path=f'{OUT}/01-videos-page.png', full_page=True)
 
-    # every video, with its poster; the narrated ones with a default English captions track
+    # every video, with its poster; the narrated ones with an English captions track that's off to start with
     figs = page.locator('figure.guide-video')
     expect(figs).to_have_count(len(videos))
     info = page.evaluate("""() => [...document.querySelectorAll('figure.guide-video video')].map(v => ({
@@ -59,7 +59,7 @@ with sync_playwright() as pw:
     with_track = [i for i in info if i['track']]
     assert len(with_track) == len(narrated), (len(with_track), narrated)
     for i in with_track:
-        assert i['track']['kind'] == 'captions' and i['track']['lang'] == 'en' and i['track']['def'], i
+        assert i['track']['kind'] == 'captions' and i['track']['lang'] == 'en' and not i['track']['def'], i
         # small captions files are inlined by the build (a data: link), bigger ones are served as files
         st = page.evaluate('src => fetch(src).then(r => r.text())', i['track']['src'])
         assert st.startswith('WEBVTT'), i
@@ -69,7 +69,8 @@ with sync_playwright() as pw:
         n = next(k for k, i in enumerate(info) if i['track'])
         vid = page.locator('figure.guide-video video').nth(n)
         vid.scroll_into_view_if_needed()
-        vid.evaluate('v => { v.muted = true; return v.play(); }')
+        assert vid.evaluate('v => v.textTracks[0].mode') != 'showing'  # off until the viewer turns on CC
+        vid.evaluate("v => { v.textTracks[0].mode = 'showing'; v.muted = true; return v.play(); }")  # as pressing CC does
         page.wait_for_function("""(n) => { const v = document.querySelectorAll('figure.guide-video video')[n];
             const t = v.textTracks[0]; return t && t.mode === 'showing' && t.cues && t.cues.length > 0 && v.currentTime > 0.5; }""", arg=n, timeout=20000)
         vid.evaluate('v => { v.pause(); v.currentTime = v.textTracks[0].cues[0].startTime + 0.5; }')

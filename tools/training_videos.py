@@ -12,15 +12,16 @@ sidebar sections open, standard setup sheet layout, Calendar list view); its own
 with a visible pointer, recorded by Playwright (Chromium) and re-encoded with ffmpeg (VP9 WebM, 1280×720).
 Change a script below when the screens change, and re-run it.
 
-Voice-over: each say() line is spoken by a text-to-speech voice and written to a captions file
-(docs/guide/video/<name>.vtt) that the guide's player shows. say(page, 'short caption', speak='what the voice
+Voice-over: each say() line is spoken by a text-to-speech voice. The short caption shows in the caption bar in the
+picture, as it always has, and the words spoken go in a captions file (docs/guide/video/<name>.vtt) that viewers
+can turn on with the player's CC button. say(page, 'short caption', speak='what the voice
 says') lets the voice explain more than the caption; the captions file follows the voice. Pick the voice with
 --tts (see tools/narration.py):
 
     AZURE_SPEECH_KEY=… AZURE_SPEECH_REGION=australiaeast python3 tools/training_videos.py --tts azure …
     AWS_PROFILE=raceops-voice python3 tools/training_videos.py --tts polly …      # Amazon Polly, Olivia (needs boto3)
     python3 tools/training_videos.py --tts piper --voice ~/voices/en_GB-alba-medium.onnx …
-    python3 tools/training_videos.py --tts none …     # silent, with the caption bar burned into the picture
+    python3 tools/training_videos.py --tts none …     # silent, with just the caption bar
 
 The default, auto, uses Azure when AZURE_SPEECH_KEY is set, Amazon Polly when AWS credentials or AWS_PROFILE are
 set, Piper when PIPER_VOICE is set, and otherwise none.
@@ -43,7 +44,7 @@ args = ap.parse_args()
 TTS, VOICE = narration.choose(args.tts, args.voice)
 NARRATOR = narration.Narrator(TTS, VOICE) if TTS != 'none' else None
 TIMELINE = None  # the video being recorded, when narrated
-print(f'Voice-over: {TTS}' + (f' ({VOICE})' if VOICE else ' — caption bar in the picture, no audio'))
+print(f'Voice-over: {TTS}' + (f' ({VOICE})' if VOICE else ' — caption bar only, no audio'))
 B = args.url.rstrip('/')
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 VIDEO_DIR = os.path.join(ROOT, 'docs', 'guide', 'video')
@@ -105,10 +106,10 @@ video = lambda f: VIDEOS.append(f) or f
 
 
 def say(page, text, wait=2200, speak=None):
-    """Show a caption, or with a voice-over speak the line (speak= if given, else the caption) and wait until it's said.
-    say(page, '') ends the last line."""
+    """Show the caption in the caption bar. With a voice-over, also speak the line (speak= if given, else the caption)
+    and wait until it's said. say(page, '') ends the last line."""
+    page.evaluate("t => { sessionStorage.setItem('tv-cap', t); const c = document.getElementById('tv-cap'); if (c) c.textContent = t; }", text)
     if not NARRATOR:
-        page.evaluate("t => { sessionStorage.setItem('tv-cap', t); const c = document.getElementById('tv-cap'); if (c) c.textContent = t; }", text)
         page.wait_for_timeout(wait)
         return
     words = speak or text
