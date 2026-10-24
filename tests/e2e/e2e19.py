@@ -143,7 +143,10 @@ with sync_playwright() as pw:
     # jump bar opens a folded section and scrolls to it
     nav.locator('.sn-chip:text-is("Weather")').click()
     expect(page.locator('#f-temp')).to_be_visible()
-    nav.locator('.sn-chip:text-is("Race")').click(); page.wait_for_timeout(900)
+    nav.locator('.sn-chip:text-is("Race")').click(); page.wait_for_timeout(300)
+    # the jump is a smooth scroll, and a long sheet takes a while: wait until the section stops moving, then check where it landed
+    page.wait_for_function("""() => { const y = Math.round(document.getElementById('sec-race').getBoundingClientRect().top);
+        const still = window.__lastTop === y; window.__lastTop = y; return still; }""", polling=250, timeout=8000)
     top = page.evaluate("document.getElementById('sec-race').getBoundingClientRect().top")
     head = page.evaluate("document.querySelector('.page-head').getBoundingClientRect().bottom")
     assert head - 2 <= top <= head + 60, (top, head)
