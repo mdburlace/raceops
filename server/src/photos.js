@@ -46,7 +46,7 @@ export function mountPhotos(app, T, { UPLOAD_DIR }) {
     fs.writeFileSync(path.join(UPLOAD_DIR, rel), file.buffer);
     return rel;
   };
-  const remove = (rel) => { const p = inUploads(rel); if (p) fs.rmSync(p, { force: true }); };
+  const remove = (rel) => { const p = /^(users\/|[0-9a-f-]{36}\/team-photo-)/.test(String(rel || '')) && inUploads(rel); if (p) fs.rmSync(p, { force: true }); };
   const send = (res, rel) => {
     const p = inUploads(rel);
     need(p && fs.existsSync(p), 404, 'No photo');
@@ -68,7 +68,8 @@ export function mountPhotos(app, T, { UPLOAD_DIR }) {
   };
   T.get('/photo', h(async (req, res) => {
     const { rows: [t] } = await q('SELECT settings FROM tenants WHERE id=$1', [req.tid]);
-    send(res, t?.settings?.photo?.path);
+    const rel = t?.settings?.photo?.path;
+    send(res, rel && rel.startsWith(`${req.tid}/team-photo-`) ? rel : null);   // only ever this team's own file
   }));
   T.put('/photo', upload.single('file'), tooBig, h(async (req, res) => {
     need(canTeamPhoto(req), 403, 'Your role can’t change the team photo.');
@@ -102,7 +103,8 @@ export function mountPhotos(app, T, { UPLOAD_DIR }) {
       need(rows.length, 404, 'No photo');
     }
     const { rows: [u] } = await q('SELECT photo FROM users WHERE id=$1', [uid]);
-    send(res, u?.photo?.path);
+    const rel = u?.photo?.path;
+    send(res, rel && rel.startsWith(`users/${uid}-`) ? rel : null);
   }));
   // a team manager, for a member of their team
   const canMemberPhoto = async (req) => {
