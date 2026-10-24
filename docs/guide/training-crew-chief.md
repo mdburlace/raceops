@@ -3,14 +3,14 @@ id: training-crew-chief
 title: "Training: crew chief"
 section: training
 order: 10
-summary: Hands-on exercises in the practice team — read tonight's heat, set up the feature, use the advisor and Compare, find what worked, save a baseline, run a two-night meeting and lock a finished sheet.
+summary: Hands-on exercises in the practice team — read tonight's heat, set up the feature, use the advisor and Compare, find what worked, save a baseline, run a two-night meeting, use the quick add screen and lock a finished sheet.
 for: module:setups
 team: race
 covers: option:training-crew-chief
 related: training, role-crew-chief, engine-tunes, setup-sheets, setup-sheet-layout, setup-advisor, compare-search
 demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — Club night, Heat 1, Loose off turn 2, Tacky, Slick, Valley Spring Classic, Practice & prelims, Finals
 ---
-**Time:** about 55 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
+**Time:** about 60 minutes. **You need:** the practice team, signed in as a crew chief. A phone is best, as at the track.
 
 **The story:** it's club night at Valley Speedway. Car 17 has run **Heat 1** and the driver says it was loose off the corners. You set the car up for the **Feature**.
 
@@ -112,6 +112,20 @@ demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — 
 **When it's right:** **Heat 1** shows 🔒 in the event's session list. See [Lock a finished sheet](/help/setup-sheets#lock-a-finished-sheet).
 
 **Check yourself:** a mechanic on your team needs to fix a typo on a locked sheet. Can they unlock it? (Only if their role has **Unlock locked setup sheets**. The owner can give it in **Roles**; otherwise ask the crew chief or owner to unlock it.)
+
+## Exercise 12: Quick add and the angle finder (5 min)
+
+1. Open the **Heat 1** sheet at *Valley Speedway — Club night* (unlock it first if you locked it in Exercise 11).
+2. In **Chassis**, long-press the **RF** box of **Block height** (right-click on a computer). The quick add screen opens: **Enter RF Block height**.
+3. Look at **Common values**: the block heights this car has run. Press **Clear**, then **1** and **+ 1/4**. The box shows *1.25* and *= 1 1/4"*. Press **OK**.
+4. Long-press the **RR** box of **Turns**, press **Clear**, then **5** and **+ 1/2**, and **OK**.
+5. In **Wing**, long-press **Top wing angle**. Pick **13.5°** and press **OK**.
+6. On a phone, long-press **Chassis rake** and press **Angle finder**. Lay the phone flat on a table and press **Zero**, then tilt it and watch the angle change. Press the red **✕** to leave the box as it was.
+7. Press **Save**.
+
+**When it's right:** RF block height shows *1.25*, RR turns *5.5* and the top wing angle *13.5*. See [Quick add screen](/help/setup-sheet-layout#quick-add-screen).
+
+**Check yourself:** you type *2* and press **+ 3/8**, then **+ 1/8**. What's in the box? (*2.125* — a fraction button sets the fraction; it doesn't add to the last one.)
 
 ## Check yourself
 

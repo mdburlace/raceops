@@ -87,7 +87,11 @@ feat = rec('setup', S(event=ev['id'], session='Feature', order=20, planned_laps=
                       top_wing={'asset': top_wing['id']}, front_wing={'asset': front_wing['id']}, wicker='1"', front_wicker='1/2"', nose_wing='8', wing_position='2',
                       tires={c: {'asset': t['id']} for c, t in tyres.items()},
                       bump_type={'LF': 'Penske', 'RF': 'Penske'}, bump_spec={'LF': '70A', 'RF': '80A'}, bump_height={'LF': '1.25', 'RF': '1.25'},
-                      bump_packers={'LF': '1', 'RF': '2'}, bump_gap={'LF': '0.75', 'RF': '0.6'}), form_id=SF)
+                      bump_packers={'LF': '1', 'RF': '2'}, bump_gap={'LF': '0.75', 'RF': '0.6'},
+                      blocked={'LF': '1.5', 'RF': '1.375', 'LR': '2', 'RR': '2.25'}, turns={'LF': '3', 'RF': '2.5', 'LR': '4', 'RR': '5'},
+                      ride_height={'LF': '9.25', 'RF': '9.5', 'LR': '4.5', 'RR': '4.75'}, rake='1.5', tilt='0.25', lr_radius_rod='hole 3', rr_radius_rod='hole 2',
+                      rear_steer='lead RR 1/8"', birdcage_angle={'LR': '-1', 'RR': '2'}, jl_length='14.5', jl_upper_strap='6.25', jl_lower_strap='6',
+                      jl_mount_upper='hole 2', jl_mount_lower='hole 4', jl_birdcage_mount='top hole'), form_id=SF)
 # a season of earlier nights so Analytics has something to show
 season = []
 for n in range(8):
@@ -102,7 +106,8 @@ for n in range(8):
         season.append(rec('setup', S(event=e['id'], session=sess, order=order, start=str(st), finish=str(fin), stagger_cold=str(stg),
                                      wing_angle=str(12 + n % 3), adr=str(90 + n * 1.5), main_jet=str(46 + n // 3), laps='10' if k == 0 else '30',
                                      fuel_start='5' if k == 0 else '9', fuel_finish='3' if k == 0 else str(round(3 - n * 0.05, 2)),
-                                     tach_high=str(8600 - n * 12), track_conditions=[['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
+                                     tach_high=str(8600 - n * 12), blocked={'LF': '1.5', 'RF': '1.375', 'LR': '2', 'RR': '2.25'},
+                                     turns={'LF': '3', 'RF': '2.5', 'LR': '4' if n % 2 else '4.5', 'RR': '5'}, track_conditions=[['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
                                      driver_feel=['Loose exit'] if k == 0 and n % 2 == 0 else []), form_id=SF))
 heat['data']['values']['adr'] = '91'
 # the engine's tune (two versions, the newer active) and two engine checks, the later with a weak spring
@@ -257,6 +262,28 @@ with sync_playwright() as pw:
         sec = page.locator('.check-compare'); sec.scroll_into_view_if_needed(); settle(page)
         save('engine-check-compare', sec.screenshot())
         page.goto(B + '/'); settle(page)
+    if shot('setup-chassis'):
+        page.goto(f"{B}/r/setup/{feat['id']}"); settle(page)
+        page.add_style_tag(content='.page-head, .save-bar, .topbar { position: static !important; }')
+        page.set_viewport_size({'width': 1280, 'height': 1600})
+        sec = page.locator('#sec-chassis'); sec.scroll_into_view_if_needed(); settle(page)
+        save('setup-chassis', sec.screenshot())
+        page.set_viewport_size({'width': 1280, 'height': 820})
+        page.goto(B + '/'); settle(page)
+    for name in ('setup-quick-add', 'setup-angle-finder'):
+        if shot(name):
+            m = page_for(390, 844, mobile=True)
+            m.goto(f"{B}/r/setup/{feat['id']}"); settle(m)
+            box = 'blocked-RF' if name == 'setup-quick-add' else 'wing_angle'
+            m.locator(f'#f-{box}').scroll_into_view_if_needed()
+            m.locator(f'#f-{box}').dispatch_event('contextmenu')   # what a long press does
+            qa = m.locator('[data-testid="quick-add"]'); expect(qa).to_be_visible()
+            if name == 'setup-angle-finder':
+                qa.get_by_role('button', name='Angle finder').click()
+                for _ in range(30): m.evaluate("dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: 14.5, gamma: 0 }))")
+            m.wait_for_timeout(500)
+            save(name, m.screenshot())
+            m.context.close()
     if shot('setup-quick-edit'):
         q = page_for(1280, 820)
         q.goto(f"{B}/r/setup/{feat['id']}"); settle(q)
