@@ -7,7 +7,7 @@ import net from 'node:net';
 import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { can, canType } from '../../shared/catalog.js';
-import { eventDayList, moveDays, normaliseDays, looksLikeICS, parseICS, toICS, seasonStart, seasonOf, seasonLabel } from '../../shared/calendar.js';
+import { addToSeries, removeFromSeries, eventDayList, roundLabel, seriesLinks, moveDays, normaliseDays, looksLikeICS, parseICS, toICS, seasonStart, seasonOf, seasonLabel } from '../../shared/calendar.js';
 import { readCalendar } from './ai.js';
 import { audit } from './settings.js';
 import { BASE_FORMS } from '../../shared/baseForms.js';
@@ -84,7 +84,8 @@ async function publicCalendar(token) {
     const v = r.data?.values || {};
     if (!v.date || v.intent === 'Not going' || (v.intent === 'Tentative' && !opts.show_tentative)) continue;
     const venue = byId[v.venue];
-    const series = byId[v.series];
+    const links = seriesLinks(v);
+    const series = byId[links[0]?.series];
     const car = byId[v.car];
     const fx = byId[v.fixture];
     const cancelled = fx?.status === 'Cancelled' || v.outcome === 'Event cancelled';
@@ -94,7 +95,9 @@ async function publicCalendar(token) {
       days: eventDayList(v).length > 1 ? eventDayList(v).map(({ outcome, result, withdraw_reason, notes, ...d }) => ({ ...d, ...(opts.show_results && !d.off && (outcome || result) // eslint-disable-line no-unused-vars
         ? { outcome: outcome === 'Withdrew' ? 'Withdrew' : outcome || '', result: result || '' } : {}) })) : undefined,
       track: venue?.name || v.track || '', location: [venue?.city || v.location, venue?.region].filter(Boolean).join(', '),
-      series: series?.name || '', round: v.round || '', tentative: v.intent === 'Tentative', cancelled,
+      // every series the meeting counts towards; the main series' round with its prefix (Round 3, Night 2, Prelude)
+      series: links.map((l, i) => (i === 0 ? byId[l.series]?.name : [byId[l.series]?.name, roundLabel(l.prefix, l.round)].filter(Boolean).join(' '))).filter(Boolean).join(' · '),
+      round: links[0] ? roundLabel(links[0].prefix, links[0].round) : '', tentative: v.intent === 'Tentative', cancelled,
       car: opts.show_cars && car ? [car.number && `#${car.number}`, car.name].filter(Boolean).join(' ') : '',
       result: opts.show_results && v.outcome && !cancelled ? (v.outcome === 'Withdrew during the event' ? 'Withdrew' : v.outcome) : '',
       note: v.public_note || '', season: seasonOf(v.date, sm),
@@ -127,7 +130,7 @@ export function mountPublicCalendar(app) {
         uid: `${i.id}@raceops`, date: i.date, end_date: i.end_date, days: i.days,
         summary: `${i.tentative ? '(Tentative) ' : ''}${i.cancelled ? 'CANCELLED: ' : ''}${i.name}${i.track && !i.name.includes(i.track) ? ` — ${i.track}` : ''}`,
         location: [i.track, i.location].filter(Boolean).join(', '),
-        description: [i.major, i.series && `${i.series}${i.round ? ` round ${i.round}` : ''}`, i.sanctioning && `Sanctioned by ${i.sanctioning}`, i.car && `Car: ${i.car}`, i.result && `Result: ${i.result}`, i.note].filter(Boolean).join('\n'),
+        description: [i.major, i.series && `${i.series}${i.round ? ` — ${i.round}` : ''}`, i.sanctioning && `Sanctioned by ${i.sanctioning}`, i.car && `Car: ${i.car}`, i.result && `Result: ${i.result}`, i.note].filter(Boolean).join('\n'),
         status: i.cancelled ? 'CANCELLED' : i.tentative ? 'TENTATIVE' : 'CONFIRMED',
       })),
     });
@@ -261,6 +264,37 @@ export function mountCalendarAdmin(A) {
     sendAfter(mails);
     await audit(req.user.id, 'calendar.delete', req.params.id).catch(() => {});
     res.json({ ok: true });
+  }));
+
+  // Add shared dates to a shared series (or take them out), from the series' edit screen. A date with no
+  // series gets it as its main series; a date already in another series gets it as one more (more_series).
+  // Teams' entries follow, as for any change to a shared date.
+  A.post('/calendar/series/:id/dates', h(async (req, res) => {
+    const add = Array.isArray(req.body?.add) ? req.body.add.slice(0, 200) : [];
+    const remove = Array.isArray(req.body?.remove) ? req.body.remove.slice(0, 200) : [];
+    const n = await tx(async (c) => {
+      const { rows: [sr] } = await c.query(`SELECT id FROM records WHERE id=$1 AND type='series' AND tenant_id IS NULL AND NOT deleted`, [req.params.id]);
+      need(sr, 404, 'That series no longer exists.');
+      let count = 0;
+      const change = async (fid, fn) => {
+        const { rows: [g] } = await c.query(`SELECT * FROM records WHERE id=$1 AND type='fixture' AND tenant_id IS NULL AND NOT deleted FOR UPDATE`, [fid]);
+        if (!g) return;
+        const before = g.data.values || {};
+        const v = fn(before);
+        if (JSON.stringify(v) === JSON.stringify(before)) return;
+        await updateRecord(c, g.id, 'fixture', null, { ...g.data, values: v }, req.user.id);
+        await syncEvents(c, g.id, v, req.user.id);
+        count++;
+      };
+      for (const a of add) {
+        const round = a?.round === undefined || a?.round === null ? '' : String(a.round).slice(0, 10);
+        await change(a?.fixture, (v) => addToSeries(v, sr.id, { round, prefix: String(a?.prefix || '').slice(0, 30) }));
+      }
+      for (const fid of remove) await change(fid, (v) => removeFromSeries(v, sr.id));
+      return count;
+    });
+    await audit(req.user.id, 'calendar.series_dates', req.params.id, { added: add.length, removed: remove.length }).catch(() => {});
+    res.json({ changed: n });
   }));
 
   // Add or change a shared series.

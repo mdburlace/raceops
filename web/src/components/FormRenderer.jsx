@@ -666,7 +666,7 @@ function Field({ f, values, onChange, data, form, readOnly, errors, suggestions,
   } else if (f.type === 'table') {
     body = f.bySpeed
       ? <SpeedTables field={f} value={values[f.key]} values={values} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />
-      : <TableField field={f} value={values[f.key]} readOnly={readOnly} onChange={(x) => onChange(f.key, x)} />;
+      : <TableField field={f} value={values[f.key]} readOnly={readOnly} data={data} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'days') {
     body = <DaysField value={values[f.key]} values={values} readOnly={readOnly} data={data} recordId={recordId} onChange={(x) => onChange(f.key, x)} />;
   } else if (f.type === 'corners') {

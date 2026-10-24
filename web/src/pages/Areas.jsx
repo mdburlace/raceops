@@ -71,7 +71,7 @@ function useSummary() {
 function areaStat(key, s) {
   if (!s) return '';
   switch (key) {
-    case 'track': return s.nextEvents[0] ? `Next: ${[v(s.nextEvents[0], 'name'), roundAndTrack(v(s.nextEvents[0], 'round'), eventTrack(s.nextEvents[0], s.data)), fmtDate(v(s.nextEvents[0], 'date'))].filter(Boolean).join(' · ')}` : `${s.data.list('setup').length} setup sheets`;
+    case 'track': return s.nextEvents[0] ? `Next: ${[v(s.nextEvents[0], 'name'), roundAndTrack(s.nextEvents[0]?.data?.values, eventTrack(s.nextEvents[0], s.data)), fmtDate(v(s.nextEvents[0], 'date'))].filter(Boolean).join(' · ')}` : `${s.data.list('setup').length} setup sheets`;
     case 'workshop': return `${s.due.length} service${s.due.length === 1 ? '' : 's'} due · ${s.attention.length} asset${s.attention.length === 1 ? '' : 's'} to check`;
     case 'engines': return `${s.engines.length} engine${s.engines.length === 1 ? '' : 's'} · ${s.builds[0] ? `last build ${fmtDate(v(s.builds[0], 'date'))}` : 'no builds yet'}`;
     case 'team': return `${s.data.list('car').length} car${s.data.list('car').length === 1 ? '' : 's'} · ${s.data.list('review').length} reviews`;
@@ -217,13 +217,13 @@ export function TrackHub() {
             {ev ? (
               <Link to={`/events/${ev.id}`} className="next-event">
                 <span className="ne-date"><b>{new Date(`${v(ev, 'date')}T00:00:00`).getDate()}</b><small>{new Date(`${v(ev, 'date')}T00:00:00`).toLocaleString(undefined, { month: 'short' })}</small></span>
-                <span className="grow"><span className="row-title">{v(ev, 'name')}</span><span className="row-sub">{roundAndTrack(v(ev, 'round'), eventTrack(ev, data))}</span>
+                <span className="grow"><span className="row-title">{v(ev, 'name')}</span><span className="row-sub">{roundAndTrack(ev?.data?.values, eventTrack(ev, data))}</span>
                   <DayLines values={ev.data?.values} compact /></span>
                 <span className="btn small">Open sheets</span>
               </Link>
             ) : <p className="muted">Nothing scheduled.</p>}
             {s.nextEvents.slice(1, 4).map((e) => (
-              <Link key={e.id} to={`/events/${e.id}`} className="list-row"><span className="grow">{v(e, 'name')}<span className="row-sub">{roundAndTrack(v(e, 'round'), eventTrack(e, data))}</span>
+              <Link key={e.id} to={`/events/${e.id}`} className="list-row"><span className="grow">{v(e, 'name')}<span className="row-sub">{roundAndTrack(e?.data?.values, eventTrack(e, data))}</span>
                 <DayLines values={e.data?.values} compact /></span><span className="row-meta">{fmtDate(v(e, 'date'))}</span></Link>
             ))}
           </Section>

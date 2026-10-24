@@ -405,5 +405,15 @@ export const PHASE5_UPGRADES = [
   { target: 'asset', section: 'identity', after: 'category', field: { key: 'vehicle_type', label: 'Vehicle type', type: 'select', options: VEHICLE_TYPES, showIf: 'category=Vehicle' } },
   { target: 'asset', section: 'life', after: 'expiry_date', field: { key: 'rego_due', label: 'Registration due', type: 'date', showIf: 'category=Vehicle' } },
   { target: 'asset', section: 'life', after: 'rego_due', field: { key: 'inspection_due', label: 'Inspection due', type: 'date', showIf: 'category=Vehicle' } },
+  // more than one series per event or shared date, and a prefix for the round (Round, Night, Prelude…)
+  { target: 'event', section: 'event', after: 'series', field: { key: 'round_prefix', label: 'Round prefix', type: 'select', options: ['Round', 'Night', 'Prelude'], allowCustom: true, core: true, showIf: 'series!=' } },
+  { target: 'event', key: 'round', patch: { showIf: 'series!=' } },
+  { target: 'event', section: 'event', after: 'round', field: { key: 'more_series', label: 'Also counts towards', type: 'table', core: true,
+    columns: [{ key: 'series', label: 'Series', ref: 'series' }, { key: 'prefix', label: 'Prefix', options: ['Round', 'Night', 'Prelude'], list: 'round_prefixes' }, { key: 'round', label: 'Round' }],
+    defaultRows: [], showIf: 'series!=', help: 'Other series running at this meeting — each with its own round.' } },
+  { target: 'fixture', section: 'fixture', after: 'series', field: { key: 'round_prefix', label: 'Round prefix', type: 'select', options: ['Round', 'Night', 'Prelude'], allowCustom: true, core: true, showIf: 'series!=' } },
+  { target: 'fixture', section: 'fixture', after: 'round', field: { key: 'more_series', label: 'Also counts towards', type: 'table', core: true,
+    columns: [{ key: 'series', label: 'Series', ref: 'series' }, { key: 'prefix', label: 'Prefix', options: ['Round', 'Night', 'Prelude'], list: 'round_prefixes' }, { key: 'round', label: 'Round' }],
+    defaultRows: [], showIf: 'series!=', help: 'Other series running at this meeting — each with its own round.' } },
   { target: 'engine_build', section: 'build', after: 'engine_laps', field: { key: 'rebuild_cost', label: 'Rebuild cost', type: 'number', unit: '$', money: true } },
 ];

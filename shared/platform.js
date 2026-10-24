@@ -16,6 +16,8 @@ export const LISTS = [
   { key: 'supplier_categories', label: 'Supplier categories', help: 'Categories for team suppliers.', default: SUPPLIER_CATEGORIES, fields: [['supplier', 'category']] },
   { key: 'sanctioning_bodies', label: 'Sanctioning bodies', help: 'Who sanctions a series or race meeting — picked on series, events and calendar dates.', default: SANCTIONING_BODIES,
     fields: [['series', 'sanctioning'], ['event', 'sanctioning'], ['fixture', 'sanctioning']] },
+  { key: 'round_prefixes', label: 'Round prefixes', help: 'Words before a round number on events and calendar dates, e.g. Round 3, Night 2, or Prelude on its own. Teams can also type their own.', default: ['Round', 'Night', 'Prelude'],
+    fields: [['event', 'round_prefix'], ['fixture', 'round_prefix']] },
   { key: 'race_classes', label: 'Race classes', help: 'Class quick-picks for the track directory, each team’s “Classes we race”, each car’s Class and the classes running on calendar dates.', default: RACE_CLASSES, fields: [['track', 'classes'], ['car', 'class'], ['fixture', 'classes'], ['season_plan', 'class']] },
 ];
 export const LIST = Object.fromEntries(LISTS.map((l) => [l.key, l]));

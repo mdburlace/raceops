@@ -7,7 +7,7 @@ summary: Start a sheet from the last session, a baseline or blank; what's copied
 for: module:setups
 team: race
 pages: /setups, /r/setup/*
-covers: type:setup, module:setups, setting:baseline
+covers: type:setup, module:setups, setting:baseline, perm:setups.unlock
 related: workshop-setups, setup-sheet-layout, shocks-on-setup, fuel-planner, weather, feedback-debrief, setup-advisor, import-files
 ---
 Each session at an event has one setup sheet. Fields have an **ⓘ** beside the label: tap it to see what to enter and where to get the number.
@@ -65,6 +65,17 @@ The Motor, Shocks, Bars and Gear fields pick from your [assets](/help/assets). P
 ## Who fills in what
 
 With part rights, a role can change only some sections of a sheet: the driver fills in **Track conditions & car feedback**, the car chief ticks the **Change list**, and the tyre specialist fills in **Tires** and **Wheels**. The sheet shows which sections you can change. See [Roles and permissions](/help/roles-permissions#other-rights).
+
+## Lock a finished sheet
+
+When a sheet is finished, lock it so nobody changes it by mistake.
+
+1. Save the sheet.
+2. Press **Lock sheet** at the top. Anyone who can edit setup sheets can lock one.
+
+A locked sheet shows **🔒 Locked by … on …** and opens read-only for everyone, the owner included. It can't be deleted, and lists show 🔒 next to it. The sheet still moves if you reorder the sessions.
+
+To change it, someone with **Unlock locked setup sheets** presses **Unlock**. The team owner can always unlock, and can give the right to other roles, such as the crew chief, in [Roles and permissions](/help/roles-permissions#other-rights). Lock it again when you're done.
 
 ## Baselines
 

@@ -20,11 +20,11 @@ An **event** is one race meeting for one car. Each **session** (Hot Laps, Heat 1
 2. Pick the **Track** from the directory; your own tracks are listed first. Location, length, surface and banking fill in from it, and you can still change them.
 3. Pick the **Car**. If the team has only one active car, it's chosen for you.
 4. Set the **Date**. For a meeting over more than one day, tick **Runs over more than one day** instead and set each day (see below).
-5. If it's a round of a championship, pick the **Series** and type the **Round**.
+5. If it's a round of a championship, pick the **Series**, then the **Round prefix** (**Round**, **Night** or **Prelude**, or type your own) and the **Round** number. Either can be left blank: *Prelude* on its own is fine. If more than one series runs at this meeting, even for the same class, add each of the others under **Also counts towards**, with its own prefix and round (see [More than one series](#more-than-one-series)).
 6. If the car was set up in the shop for this meeting, pick its **Workshop setup**. The track sheets can then start from it (see [Workshop setup sheets](/help/workshop-setups)).
 7. Press **Save** at the top of the form. **Save** and **Cancel** stay in view as you scroll.
 
-**Events** lists upcoming and past meetings. Each shows its round and track first, e.g. *Rd 3 · Valley Speedway*, then the series and the car. Lists elsewhere, such as **At the Track**, **Calendar**, each series and each track, show events the same way.
+**Events** lists upcoming and past meetings. Each shows its round and track first, e.g. *Round 3 · Valley Speedway* or *Night 2 · Valley Speedway*, then the series and the car. Lists elsewhere, such as **At the Track**, **Calendar**, each series and each track, show events the same way.
 
 ## Add sessions
 
@@ -91,5 +91,17 @@ Events from older versions of RaceOps with a date and an end date open with one 
 
 - **Shared series:** a series from the shared calendars is kept by the RaceOps admin. Press **Request a change** if something's wrong. Keep your own notes under **Our notes**.
 - **Your own series:** a series your team set up shows **Our own series**. **Send to shared calendars** shares it, with its rounds, for every team. Once it's approved, your rounds point at the shared series. See [Calendar](/help/calendar).
+
+### More than one series
+
+Some meetings count towards two or more series at once, for example a state title and a national series running side by side, or two series for the same class. An event can be in as many series as you like:
+
+- On the event, pick the main **Series** and round as usual, then add a row under **Also counts towards** for each other series, with its **Prefix** and **Round** in that series.
+- The event shows a chip for each series, e.g. *Summer Series · Round 4* and *Night Series · Night 2*. Each series lists the event in its rounds, with the round it has in that series.
+- Lists show every series the event is in.
+
+### Add events to a series
+
+On a series' page, **Add events to this series** lists your events (this season first; search for others). Tick each event that belongs, set its **Prefix** and **Round**, and press **Add N to …**. An event already in another series keeps it: this one is added under **Also counts towards**. **In this series** lists the events already in it; **Take out** removes one from this series only.
 
 The **At the Track** hub shows your next event and recent between-round checks.
