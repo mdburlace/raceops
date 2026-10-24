@@ -23,4 +23,5 @@ The built-in **Business Manager** role runs [Finance](/help/finance), can see co
 
 ## Each season
 
-- Set up the season budget, and review **Season P&L** and each meeting's **Event P&L**.
+- Set up the season budget: each category, a **Contingency reserve** (10–20%) and the **Income budget**. Review **Season P&L** and each meeting's **Event P&L**.
+- Put crash damage and failures under **Crash & failure repairs** so they come out of the reserve. See [Finance](/help/finance#contingency-reserve).

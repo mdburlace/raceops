@@ -5,11 +5,12 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Empty, PageHeader, Pill, Section, useOnline } from '../components/ui.jsx';
 import { api, fileUrl } from '../lib/api.js';
-import { fmtDate, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { fmtDate, memberName, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { dealResults, deliverableProgress, sponsorSummary } from '@shared/partners.js';
 import { SPONSOR_STAGES } from '@shared/baseForms5.js';
+import { INTERACTION_KINDS, exclusivityClashes, lastInteraction, openFollowUp } from '@shared/budgetSponsors.js';
 import { useMoney } from './Business.jsx';
 
 // ---------------------------------------------------------------- partnerships
@@ -56,7 +57,9 @@ function Pipeline({ data }) {
               return (
                 <Link key={s.id} to={`/partners/sponsors/${s.id}`} className="list-row">
                   <span className="grow"><span className="row-title">{v(s, 'name')}</span>
-                    <span className="row-sub">{[v(s, 'level'), canMoney && v(s, 'value') && money(v(s, 'value'), v(s, 'currency')), v(s, 'end') && `to ${fmtDate(v(s, 'end'))}`].filter(Boolean).join(' · ')}</span></span>
+                    <span className="row-sub">{[v(s, 'level'), canMoney && v(s, 'value') && money(v(s, 'value'), v(s, 'currency')), v(s, 'end') && `to ${fmtDate(v(s, 'end'))}`,
+                      ['Signed', 'Renewal due'].includes(st) && v(s, 'renewal_likelihood') && `renewing: ${v(s, 'renewal_likelihood')}`].filter(Boolean).join(' · ')}</span></span>
+                  {(() => { const f = openFollowUp(s); return f ? <Pill level={f.date <= today() ? 'over' : 'info'}>Follow up {fmtDate(f.date)}</Pill> : null; })()}
                   {sum.total > 0 && ['Signed', 'Renewal due'].includes(st) && <Pill level={sum.met === sum.total ? 'ok' : 'warn'}>{sum.met}/{sum.total}</Pill>}
                 </Link>
               );
@@ -131,6 +134,9 @@ export function SponsorDetail() {
   const s = data.byId[id];
   if (!s) return <PageHeader title="Sponsor not found" back="/partners" />;
   const rows = deliverableProgress(data.list, s, today());
+  const clashes = exclusivityClashes(data.list, s);
+  const person = (cid) => data.byId[cid] ? <Link className="chip" to={`/contacts/${cid}`}>{titleOf(data.byId[cid])}</Link> : null;
+  const links = String(v(s, 'links') || '').split(/\n+/).map((x) => x.trim()).filter(Boolean);
   return (
     <div>
       <PageHeader title={v(s, 'name')} sub={[v(s, 'stage'), v(s, 'level')].filter(Boolean).join(' · ')} back="/partners">
@@ -142,23 +148,81 @@ export function SponsorDetail() {
         {canMoney && v(s, 'value') && <span className="chip static">Value {money(v(s, 'value'), v(s, 'currency'))}</span>}
         {(v(s, 'start') || v(s, 'end')) && <span className="chip static">{fmtDate(v(s, 'start')) || '…'} – {fmtDate(v(s, 'end')) || '…'}</span>}
         {data.byId[v(s, 'contract')] && <Link className="chip" to={`/r/contract/${v(s, 'contract')}`}>Contract</Link>}
+        {v(s, 'industry') && <span className="chip static" data-testid="sponsor-industry">{v(s, 'industry')}{v(s, 'exclusive') ? ' · exclusive' : ''}</span>}
+        {v(s, 'renewal_likelihood') && <span className="chip static" data-testid="sponsor-renewal">Open to renewing: {v(s, 'renewal_likelihood')}{v(s, 'renewal_discussed') ? ` (${fmtDate(v(s, 'renewal_discussed'))})` : ''}</span>}
       </div>
+      {clashes.length > 0 && (
+        <div className="notice error" data-testid="exclusivity-clash" role="alert">Exclusivity clash: {clashes.map((c) => <span key={c.id}><Link to={`/partners/sponsors/${c.id}`}>{c.name}</Link> is also in {v(s, 'industry')} — {c.why}. </span>)}</div>
+      )}
+      {(person(v(s, 'contact')) || person(v(s, 'billing_contact')) || links.length > 0) && (
+        <div className="event-meta" data-testid="sponsor-contacts">
+          {person(v(s, 'contact')) && <span className="muted small">Contact</span>}{person(v(s, 'contact'))}
+          {person(v(s, 'billing_contact')) && <span className="muted small">Billing</span>}{person(v(s, 'billing_contact'))}
+          {links.map((l) => (/^https?:\/\//i.test(l) ? <a key={l} className="chip" href={l} target="_blank" rel="noreferrer">{l.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '')}</a> : <span key={l} className="chip static">{l}</span>))}
+        </div>
+      )}
       <Section title="What we promised">
         {rows.length === 0 ? <p className="muted">No deliverables yet — add them on the sponsor (logo positions, posts per event, hospitality passes).</p> : (
-          <table className="table" data-testid="deliverables">
-            <thead><tr><th>Promise</th><th>Done</th><th>Evidence</th></tr></thead>
+          <div className="table-scroll"><table className="table" data-testid="deliverables">
+            <thead><tr><th>Promise</th><th>Done</th><th>Status</th><th>Evidence</th></tr></thead>
             <tbody>{rows.map((r, i) => (
               <tr key={i}>
                 <td>{r.kind}{r.detail ? ` — ${r.detail}` : ''}{r.qty ? ` (${r.qty}${r.per === 'Event' ? ' per event' : ''})` : ''}</td>
-                <td>{r.manual ? <span className="muted small">tick off yourself</span> : <Pill level={r.done >= r.target ? 'ok' : 'warn'}>{r.done} / {r.target}</Pill>}</td>
+                <td>{r.manual ? (r.status ? <Pill level={r.status === 'Deployed' ? 'ok' : 'warn'}>{r.status === 'Deployed' ? 'Done' : 'Not yet'}</Pill> : <span className="muted small">set its status</span>) : <Pill level={r.done >= r.target ? 'ok' : 'warn'}>{r.done} / {r.target}</Pill>}</td>
+                <td className="small" data-testid="deliverable-status">{r.status ? <>{r.status}{r.status_date ? <span className="muted"> · {fmtDate(r.status_date)}</span> : null}</> : <span className="muted">—</span>}
+                  {r.proof && data.byId[r.proof] ? <> <Link className="chip" to={`/r/media/${r.proof}`}>Proof</Link></> : null}</td>
                 <td className="small">{r.evidence.slice(0, 4).map((e) => <Link key={e.id} to={`/r/${e.type}/${e.id}`} className="chip">{e.label}</Link>)}{r.evidence.length > 4 ? ` +${r.evidence.length - 4}` : ''}{r.photos ? <span className="muted"> · {r.photos} photo{r.photos === 1 ? '' : 's'}</span> : ''}</td>
               </tr>
             ))}</tbody>
-          </table>
+          </table></div>
         )}
       </Section>
+      <Relationship sponsor={s} data={data} />
       <PortalLink sponsor={s} />
     </div>
+  );
+}
+
+/** Renewal, activation and exclusivity notes, the open follow-up, and the interaction log with a quick way to add to it. */
+function Relationship({ sponsor: s, data }) {
+  const { tid, user, canType } = useSession();
+  const [f, setF] = useState({ date: today(), kind: 'Call', note: '', follow_up: '' });
+  const [saved, setSaved] = useState('');
+  const edit = canType('sponsor', 'edit');
+  const log = (Array.isArray(v(s, 'interactions')) ? v(s, 'interactions') : []).filter((r) => r && (r.date || r.note))
+    .map((r, i) => ({ ...r, i })).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || b.i - a.i);
+  const open = openFollowUp(s);
+  const last = lastInteraction(s);
+  const add = async () => {
+    const row = { date: f.date || today(), kind: f.kind, who: user.id, note: f.note.trim(), follow_up: f.follow_up || '' };
+    await saveRecord(tid, 'sponsor', s.id, { ...s.data, values: { ...s.data.values, interactions: [...(v(s, 'interactions') || []), row] } }, user.id);
+    setF({ date: today(), kind: f.kind, note: '', follow_up: '' }); setSaved('Added.');
+  };
+  const member = (id) => memberName(id);
+  return (
+    <Section title="Relationship">
+      <div data-testid="relationship">
+        {open && <div className={`notice ${open.date <= today() ? 'warn' : 'info'} small`} data-testid="follow-up">Follow up by <b>{fmtDate(open.date)}</b>{open.note ? ` — after: ${open.note}` : ''}</div>}
+        {v(s, 'activation') && <p><b>Activation:</b> <span className="pre">{v(s, 'activation')}</span></p>}
+        {v(s, 'exclusive') && <p><b>Exclusive in {v(s, 'industry') || 'their industry'}.</b> {v(s, 'exclusivity') && <span className="pre">{v(s, 'exclusivity')}</span>}</p>}
+        <h4 className="subhead">Interaction history{last ? <span className="muted small"> · last {last.kind ? `${last.kind.toLowerCase()} ` : ''}{fmtDate(last.date)}</span> : null}</h4>
+        {log.length === 0 ? <p className="muted small">Nothing logged yet. Add meetings, calls and emails to keep the relationship warm.</p> : (
+          <div className="list" data-testid="interactions">{log.map((r) => (
+            <div key={r.i} className="list-row"><span className="grow"><span className="row-title">{fmtDate(r.date)} · {r.kind || 'Note'}{member(r.who) ? ` · ${member(r.who)}` : ''}</span>
+              <span className="row-sub">{r.note}{r.follow_up ? ` — follow up by ${fmtDate(r.follow_up)}` : ''}</span></span></div>
+          ))}</div>
+        )}
+        {edit && (
+          <div className="field-grid interaction-add" data-testid="add-interaction">
+            <div className="field"><label htmlFor="ia-date">Date</label><input id="ia-date" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
+            <div className="field"><label htmlFor="ia-kind">How</label><select id="ia-kind" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{INTERACTION_KINDS.map((k) => <option key={k}>{k}</option>)}</select></div>
+            <div className="field span-2"><label htmlFor="ia-note">What happened</label><input id="ia-note" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Sent the mid-season report" /></div>
+            <div className="field"><label htmlFor="ia-fu">Follow up by</label><input id="ia-fu" type="date" value={f.follow_up} onChange={(e) => setF({ ...f, follow_up: e.target.value })} /></div>
+            <div className="field end"><button type="button" className="btn" disabled={!f.note.trim()} onClick={add}>Add to history</button>{saved && <span className="muted small"> {saved}</span>}</div>
+          </div>
+        )}
+      </div>
+    </Section>
   );
 }
 
@@ -229,7 +293,7 @@ export function SponsorPrint() {
         <>
           <h2>What we promised and delivered</h2>
           <table className="table"><tbody>{rows.map((r, i) => (
-            <tr key={i}><td>{r.kind}{r.detail ? ` — ${r.detail}` : ''}</td><td>{r.manual ? '—' : `${r.done} of ${r.target}`}</td></tr>
+            <tr key={i}><td>{r.kind}{r.detail ? ` — ${r.detail}` : ''}</td><td>{r.manual ? (r.status === 'Deployed' ? `Done${r.status_date ? ` ${fmtDate(r.status_date)}` : ''}` : r.status || '—') : `${r.done} of ${r.target}`}</td></tr>
           ))}</tbody></table>
           <h2>Results</h2>
           <ResultsTable rows={results} />
@@ -271,7 +335,7 @@ export function SponsorPortal() {
       <h1>{d.team} × {d.sponsor.name}</h1>
       <p className="muted">{[d.sponsor.level, d.sponsor.start && `${fmtDate(d.sponsor.start)} – ${fmtDate(d.sponsor.end) || 'now'}`].filter(Boolean).join(' · ')}</p>
       <section className="card"><h3>What we promised</h3>
-        <table className="table"><tbody>{d.deliverables.map((r, i) => <tr key={i}><td>{r.kind}{r.detail ? ` — ${r.detail}` : ''}</td><td>{r.manual ? '' : `${r.done} of ${r.target}`}</td></tr>)}</tbody></table>
+        <table className="table"><tbody>{d.deliverables.map((r, i) => <tr key={i}><td>{r.kind}{r.detail ? ` — ${r.detail}` : ''}</td><td>{r.manual ? (r.status === 'Deployed' ? 'Done' : r.status || '') : `${r.done} of ${r.target}`}</td></tr>)}</tbody></table>
       </section>
       {d.liveries.length > 0 && <section className="card"><h3>On the car</h3><ul>{d.liveries.map((l, i) => <li key={i}>{l.name}{l.car ? ` (${l.car})` : ''} · from {fmtDate(l.from) || '—'}{l.to ? ` to ${fmtDate(l.to)}` : ''}</li>)}</ul></section>}
       <section className="card"><h3>Results</h3><ResultsTable rows={d.results} /></section>
