@@ -21,6 +21,7 @@ const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(
 const lc = (s) => String(s ?? '').trim().toLowerCase();
 const fmt = (d) => (d ? new Date(`${d}T00:00:00Z`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '');
 /** A shared date's days as text, to spot a change (a day added, moved, rained out). */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const dayDates = (v) => eventDayList(v).map((d) => `${d.date}${d.off ? '-' : ''}`).join(',');
 
 // ---------------------------------------------------------------- followers
@@ -31,7 +32,7 @@ const dayDates = (v) => eventDayList(v).map((d) => `${d.date}${d.off ? '-' : ''}
 export async function notifyFollowers(c, { after, before = null, removed = false }) {
   const v = after || before || {};
   const more = (x) => (Array.isArray(x?.more_series) ? x.more_series.map((r) => r?.series) : []);
-  const ids = [...new Set([v.series, v.venue, before?.series, before?.venue, ...more(v), ...more(before)].filter(Boolean))];
+  const ids = [...new Set([v.series, v.venue, before?.series, before?.venue, ...more(v), ...more(before)].filter((x) => typeof x === 'string' && UUID.test(x)))];   // a typed track name isn't a record
   if (!ids.length) return [];
   let what = '';
   if (removed) what = `${v.name} (${fmt(v.date)}) was removed`;

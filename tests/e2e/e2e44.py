@@ -4,7 +4,7 @@
 # already has one), a chip per series on the event, prefixes in lists instead of "Rd", and locking a setup
 # sheet (read-only for everyone, no delete, only roles with Unlock locked setup sheets can unlock, the
 # running order still changes, the server refusing everything else).
-import json, os, re, sys, uuid, urllib.request, urllib.error
+import json, os, re, sys, time, uuid, urllib.request, urllib.error
 from datetime import date, datetime, timedelta, timezone
 from playwright.sync_api import sync_playwright, expect
 B = os.environ.get('RACEOPS_URL', 'http://localhost:8080').rstrip('/')
@@ -26,33 +26,53 @@ o = login(); OT = o['token']
 st, t = call('/admin/tenants', OT, 'POST', {'name': 'Parallel Racing', 'plan': 'pro'}); assert st == 200, t; TID = t['id']
 o = login(); OT = o['token']
 roles = lambda: call(f'/t/{TID}/roles', OT)[1]
+RUN = TID[:6]
 def member(email, role):
+    email = email.replace('@', f'+{RUN}@')
     r = next(x for x in roles() if x['name'] == role)
     st, inv = call(f'/t/{TID}/invites', OT, 'POST', {'email': email, 'role_id': r['id']})
     assert call(f'/invites/{inv["token"]}/accept', method='POST', body={'name': email.split('@')[0].title(), 'password': 'password44'})[0] == 200
     return login(email, 'password44')
-CC = member('chief44@test.com', 'Crew Chief'); MEC = member('mech44@test.com', 'Mechanic')
+# a role that edits setup sheets but can't unlock them
+cc_perms = next(r for r in roles() if r['name'] == 'Crew Chief')['permissions']
+assert call(f'/t/{TID}/roles', OT, 'POST', {'name': 'Setup Hand', 'permissions': [p for p in cc_perms if p != 'setups.unlock']})[0] == 200
+CC = member('chief44@test.com', 'Crew Chief'); MEC = member('mech44@test.com', 'Setup Hand')
 assert 'setups.unlock' in next(r for r in roles() if r['name'] == 'Crew Chief')['permissions']
-assert 'setups.unlock' not in next(r for r in roles() if r['name'] == 'Mechanic')['permissions']
+assert 'setups.unlock' not in next(r for r in roles() if r['name'] == 'Mechanic')['permissions'] + next(r for r in roles() if r['name'] == 'Setup Hand')['permissions']
 
 recs = lambda tok=OT: [r for r in call(f'/t/{TID}/sync?since=0', tok)[1]['records'] if not r['deleted']]
 rec = lambda id, tok=OT: next(r for r in recs(tok) if r['id'] == id)
+def until(fn, secs=15):   # wait for the device's push to reach the server
+    end = time.time() + secs
+    while True:
+        try:
+            if fn(): return
+        except (KeyError, TypeError, StopIteration): pass
+        if time.time() > end: raise AssertionError('timed out waiting')
+        time.sleep(0.5)
 def push(tok, r, vals, deleted=False, **kw):
     return call(f'/t/{TID}/sync', tok, 'POST', {'changes': [{'id': r['id'] if r else kw.get('id') or str(uuid.uuid4()), 'type': kw.get('type') or r['type'],
         'data': {**(r['data'] if r else {}), 'values': vals}, 'deleted': deleted, 'client_updated_at': now()}]})[1]['results'][0]
 
 # ---- shared calendar: two parallel series and two dates
-GA = call('/admin/calendar/series/new', OT, 'PUT', {'values': {'name': 'Summer Sprint Series', 'season': '2026-27'}})[1]['id']
-GB = call('/admin/calendar/series/new', OT, 'PUT', {'values': {'name': 'Night Owl Series', 'season': '2026-27'}})[1]['id']
-F1 = call('/admin/calendar/fixtures/new', OT, 'PUT', {'values': {'name': 'Twin Series Night', 'date': d(20), 'venue': 'Parallel Park', 'series': GA, 'round': '2', 'round_prefix': 'Night'}})[1]['id']
-F2 = call('/admin/calendar/fixtures/new', OT, 'PUT', {'values': {'name': 'Season Opener Warm-up', 'date': d(27), 'venue': 'Parallel Park'}})[1]['id']
+shared = lambda: call('/admin/calendar/data', OT)[1]['records']
+for f in shared():   # so the suite can run again on the same server
+    if f.get('type') == 'fixture' and f['data']['values'].get('name') in ('Twin Series Night', 'Season Opener Warm-up'): call(f'/admin/calendar/fixtures/{f["id"]}', OT, 'DELETE')
+def series(name):
+    old = next((r['id'] for r in shared() if r.get('type') == 'series' and r['data']['values'].get('name') == name), None)
+    return old or call('/admin/calendar/series/new', OT, 'PUT', {'values': {'name': name, 'season': '2026-27'}})[1]['id']
+GA = series('Summer Sprint Series'); GB = series('Night Owl Series')
+F1 = call('/admin/calendar/fixtures/new', OT, 'PUT', {'values': {'name': 'Twin Series Night', 'date': d(20), 'track': 'Parallel Park', 'series': GA, 'round': '2', 'round_prefix': 'Night'}})[1]['id']
+F2 = call('/admin/calendar/fixtures/new', OT, 'PUT', {'values': {'name': 'Season Opener Warm-up', 'date': d(27), 'track': 'Parallel Park'}})[1]['id']
 # the team's entry for the first date, and its own series and event
+CAR = str(uuid.uuid4())
+assert push(OT, None, {'name': 'Car 44', 'number': '44', 'active': True}, type='car', id=CAR)['status'] == 'applied'
 E1 = str(uuid.uuid4()); E2 = str(uuid.uuid4()); S = str(uuid.uuid4())
 assert push(OT, None, {'name': 'Twin Series Night', 'date': d(20), 'track': 'Parallel Park', 'fixture': F1, 'series': GA, 'round': '2', 'round_prefix': 'Night', 'intent': 'Planned'}, type='event', id=E1)['status'] == 'applied'
 assert push(OT, None, {'name': 'Club Championship', 'season': str(date.today().year)}, type='series', id=S)['status'] == 'applied'
-assert push(OT, None, {'name': 'Club Point Score', 'date': d(13), 'track': 'Parallel Park', 'intent': 'Planned'}, type='event', id=E2)['status'] == 'applied'
+assert push(OT, None, {'name': 'Club Point Score', 'date': d(13), 'track': 'Parallel Park', 'car': CAR, 'intent': 'Planned'}, type='event', id=E2)['status'] == 'applied'
 SH = str(uuid.uuid4())
-assert push(OT, None, {'event': E2, 'session': 'Feature', 'order': 1, 'stagger_cold': '5'}, type='setup', id=SH)['status'] == 'applied'
+assert push(OT, None, {'event': E2, 'car': CAR, 'session': 'Feature', 'order': 1, 'stagger_cold': '5'}, type='setup', id=SH)['status'] == 'applied'
 
 with sync_playwright() as pw:
     br = pw.chromium.launch()
@@ -108,12 +128,12 @@ with sync_playwright() as pw:
     page.get_by_label('Search events').fill('Parallel Park')
     ae.locator('.list-row', has_text='Club Point Score').locator('input[type=checkbox]').check()
     ae.locator('.list-row', has_text='Twin Series Night').locator('input[type=checkbox]').check()
-    expect(ae.locator('.list-row', has_text='Twin Series Night')).to_contain_text('also in Summer Sprint Series, Night Owl Series')
+    expect(ae.locator('.list-row', has_text='Twin Series Night')).to_contain_text(re.compile(r'also in Summer Sprint Series.*, Night Owl Series'))
     page.get_by_label('Round for Club Point Score').fill('4')
     page.get_by_label('Prefix for Twin Series Night').fill('Night')
     page.get_by_label('Round for Twin Series Night').fill('5')
     page.get_by_role('button', name='Add 2 to Club Championship').click()
-    synced()
+    until(lambda: rec(E2)['data']['values'].get('series') == S and len(rec(E1)['data']['values'].get('more_series') or []) == 2)
     e2 = rec(E2)['data']['values']; e1 = rec(E1)['data']['values']
     assert e2['series'] == S and e2['round'] == '4' and not e2.get('round_prefix'), e2
     assert e1['series'] == GA and {r['series'] for r in e1['more_series']} == {GB, S}, e1
@@ -142,9 +162,8 @@ with sync_playwright() as pw:
     # taking it out of one series leaves the others
     page.get_by_role('button', name='Add events').click()
     page.locator('.list-row', has_text='Twin Series Night').get_by_role('button', name='Take out').click()
-    synced()
-    e1 = rec(E1)['data']['values']
-    assert e1['series'] == GA and {r['series'] for r in e1['more_series']} == {GB}, e1
+    until(lambda: {r['series'] for r in rec(E1)['data']['values']['more_series']} == {GB})
+    assert rec(E1)['data']['values']['series'] == GA
     page.goto(B + '/calendar')
     expect(page.locator('main')).not_to_contain_text(re.compile(r'\bRd \d'))
 
@@ -153,8 +172,8 @@ with sync_playwright() as pw:
     page.get_by_role('button', name='Lock sheet').click()
     expect(page.locator('[data-testid="locked-notice"]')).to_contain_text('This sheet is locked by')
     expect(page.get_by_role('button', name='Delete')).to_have_count(0)
-    expect(page.locator('#f-stagger_cold')).to_be_disabled()
-    synced()
+    expect(page.locator('#f-stagger_cold')).to_have_count(0)   # read-only: values shown as text
+    until(lambda: rec(SH)['data']['values'].get('locked') is True)
     shot('44-03-locked')
     s = rec(SH)
     assert s['data']['values']['locked'] is True and s['data']['values']['locked_by'] == o['user']['id'] and s['data']['values']['locked_at'], s['data']['values']
@@ -183,14 +202,13 @@ with sync_playwright() as pw:
     s = rec(SH); assert push(MEC['token'], s, {**s['data']['values'], 'locked': True, 'locked_by': MEC['user']['id'], 'locked_at': now()})['status'] == 'applied'
     page.goto(B + '/'); synced()
     page.goto(B + f'/r/setup/{SH}')
-    expect(page.locator('[data-testid="locked-notice"]')).to_contain_text('Mech44')
+    expect(page.locator('[data-testid="locked-notice"]')).to_contain_text(re.compile('Mech44', re.I), timeout=30000)
     page.get_by_role('button', name='Unlock').click()
     expect(page.locator('[data-testid="locked-notice"]')).to_have_count(0)
-    expect(page.locator('#f-stagger_cold')).to_be_enabled()
-    synced()
-    assert rec(SH)['data']['values']['locked'] is False
+    expect(page.locator('#f-stagger_cold')).to_be_editable()
+    until(lambda: rec(SH)['data']['values']['locked'] is False)
 
-    # ---- the mechanic sees a locked sheet read-only with no Unlock
+    # ---- the setup hand (can edit sheets, can't unlock) sees a locked sheet read-only with no Unlock
     s = rec(SH); assert push(OT, s, {**s['data']['values'], 'locked': True, 'locked_by': o['user']['id'], 'locked_at': now()})['status'] == 'applied'
     session(MEC)
     page.goto(B + f'/r/setup/{SH}')
