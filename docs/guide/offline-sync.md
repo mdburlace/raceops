@@ -39,6 +39,7 @@ The last save wins, by when each person pressed **Save**. The other version stay
 
 ## Profile & device
 
+- **Your photo**: add or change the photo your teammates see. See [Team and member photos](/help/team-photos).
 - **Your details** and **Change password**.
 - **Sync now.**
 - **Re-download all data** if this device seems out of step.

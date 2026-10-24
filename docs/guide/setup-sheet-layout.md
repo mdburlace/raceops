@@ -61,7 +61,7 @@ The **All · Before · After** switch shows just the fields for that stage. Use 
 ## Quick entry
 
 - **Four-corner values** sit on one row: LF, RF, LR, RR. On a phone, rows with wider boxes wrap to two per line.
-- **− and +** buttons beside the values you change most: cold and hot pressures (0.5 psi), wing and nose wing angle (0.5°), main jet (1), and shock adjusters (1 click).
+- **− and +** buttons beside the values you change most: cold and hot pressures (0.5 psi), wing and nose wing angle (0.5°), turns (half a turn), main jet (1), and shock adjusters (1 click).
 - **Enter** moves to the next box: LF → RF → LR → RR, then the next row.
 - Number boxes open the number pad on a phone.
 - **Long-press** a number box for the quick add screen (below).
@@ -74,6 +74,8 @@ Long-press any number box on a setup sheet (track or workshop) to open the quick
 
 - **Big keypad.** Type the number, then press **OK**. **BkSp** takes off the last digit, **.** adds a decimal point and **+/−** makes it negative. On a computer you can type on the keyboard too: **Enter** is OK and **Esc** is Cancel.
 - **Fractions.** Boxes measured in inches and fractions (block height, turns, ride height, stagger, wheel offset and spacing, wing slider and the Jacobs ladder) have **+ 1/16** to **+ 15/16** down the side. Type the whole number, then press the fraction: *1* then **+ 3/8** gives 1.375, shown as *1 3/8"*. Pressing another fraction changes it rather than adding to it. The eighths are in bold.
+- **Last session.** The same box on the session before — the sheet this one was copied from, or this car's previous sheet — e.g. *Last session (Feature): 4*. Tap it to use it.
+- **Say it.** Press **🎤 Say it** and say the number: *one and three eighths*, *fourteen point five*, *minus two* or *eight thousand seven fifty*. It shows what it heard; press **OK** to use it. It works in Chrome, Edge and Safari (not Firefox) and asks to use the microphone the first time. Say the number on its own; if it doesn't catch a number, it says so and leaves the box as it was.
 - **Common values.** The values your team uses most in that box (for this car first) are listed. Tap one to use it.
 - **Cancel** leaves the box as it was. **Clear** empties it.
 

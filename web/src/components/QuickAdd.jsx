@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { FRACTIONS, angleList, asFraction, commonValues, keypad, quickAddFor, tiltOf, withFraction } from '@shared/setupQuickAdd.js';
+import { FRACTIONS, angleList, asFraction, commonValues, keypad, parseSpokenNumber, previousSheet, quickAddFor, tiltOf, valueOn, withFraction } from '@shared/setupQuickAdd.js';
 
 /**
  * The quick add screen: a long press (or right-click) on a number box on a setup sheet opens a big keypad with
@@ -9,13 +9,14 @@ import { FRACTIONS, angleList, asFraction, commonValues, keypad, quickAddFor, ti
 const Ctx = createContext(null);
 const HOLD_MS = 500;
 
-export function QuickAddProvider({ enabled, data, recordType, car, children }) {
+export function QuickAddProvider({ enabled, data, recordType, values, recordId, children }) {
   const [open, setOpen] = useState(null);
-  const value = useMemo(() => (enabled ? { show: setOpen, data, recordType, car } : null), [enabled, data, recordType, car]);
+  const car = values?.car;
+  const value = useMemo(() => (enabled ? { show: setOpen } : null), [enabled]);
   return (
     <Ctx.Provider value={value}>
       {children}
-      {open && <QuickAddScreen {...open} data={data} recordType={recordType} car={car} onClose={() => setOpen(null)} />}
+      {open && <QuickAddScreen {...open} data={data} recordType={recordType} car={car} values={values} recordId={recordId} onClose={() => setOpen(null)} />}
     </Ctx.Provider>
   );
 }
@@ -54,7 +55,7 @@ export function useQuickAdd(field, value, onChange) {
 
 const fieldName = (f) => [f.corner, f.label].filter(Boolean).join(' ');
 
-function QuickAddScreen({ field, value, onChange, data, recordType, car, onClose }) {
+function QuickAddScreen({ field, value, onChange, data, recordType, car, values, recordId, onClose }) {
   const q = quickAddFor(field);
   const [text, setText] = useState(String(value ?? ''));
   const [tab, setTab] = useState(q.kind === 'angle' ? 'pick' : 'keys');
@@ -64,6 +65,13 @@ function QuickAddScreen({ field, value, onChange, data, recordType, car, onClose
     const mine = car ? recs.filter((r) => r.data?.values?.car === car) : [];
     return commonValues(mine.length ? [...mine, ...recs.filter((r) => !mine.includes(r))] : recs, field.key, field.corner);
   }, [data, recordType, car, field.key, field.corner]);
+  // the same box on the session before (the sheet this one was copied from, or this car's previous sheet)
+  const last = useMemo(() => {
+    const dateOf = (r) => String(data?.byId?.[r?.data?.values?.event]?.data?.values?.date || r?.data?.values?.date || '');
+    const prev = previousSheet(data?.list?.(recordType) || [], { ...(values || {}), date: dateOf({ data: { values: values || {} } }) }, recordId, dateOf);
+    const v = valueOn(prev, field.key, field.corner);
+    return v ? { value: v, label: String(prev.data.values.session || prev.data.values.name || '').trim() } : null;
+  }, [data, recordType, values, recordId, field.key, field.corner]);
   const done = (t = text) => { onChange(String(t).trim().replace(/\.$/, '')); onClose(); };
   const press = (k) => setText((s) => keypad(s, k));
 
@@ -101,6 +109,14 @@ function QuickAddScreen({ field, value, onChange, data, recordType, car, onClose
             <div className="qa-display" data-testid="qa-display" aria-live="polite">
               <span className="qa-text">{text || <span className="muted">—</span>}</span>
               {frac && <span className="qa-frac" data-testid="qa-frac">= {frac}{field.unit === 'in' ? '"' : ''}</span>}
+            </div>
+            <div className="qa-tools">
+              {last && (
+                <button type="button" className="chip qa-last" data-testid="qa-last" onClick={() => setText(last.value)}>
+                  Last session{last.label ? ` (${last.label})` : ''}: <b>{last.value}</b>
+                </button>
+              )}
+              <SayIt onNumber={(n) => setText(String(n))} />
             </div>
             {common.length > 0 && (
               <div className="qa-common" data-testid="qa-common">
@@ -143,6 +159,44 @@ function QuickAddScreen({ field, value, onChange, data, recordType, car, onClose
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Say the number: the browser's speech recognition (Chrome, Edge, Safari; not Firefox) hears it once and
+ * parseSpokenNumber() reads it — "one and three eighths", "fourteen point five", "minus two".
+ */
+function SayIt({ onNumber }) {
+  const Rec = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
+  const [state, setState] = useState(''); // '' | listening | heard text | error text
+  const rec = useRef(null);
+  useEffect(() => () => { try { rec.current?.abort(); } catch { /* already stopped */ } }, []);
+  if (!Rec) return null;
+  const listen = () => {
+    try {
+      const r = new Rec();
+      rec.current = r;
+      r.lang = navigator.language || 'en-AU';
+      r.interimResults = false; r.maxAlternatives = 5; r.continuous = false;
+      r.onresult = (e) => {
+        const alts = Array.from(e.results?.[0] || []).map((a) => a.transcript);
+        const n = alts.map(parseSpokenNumber).find((x) => x != null);
+        if (n == null) setState(`Didn’t catch a number${alts[0] ? ` in “${alts[0]}”` : ''}. Try again.`);
+        else { setState(`Heard ${n}`); onNumber(n); }
+      };
+      r.onerror = (e) => setState(e?.error === 'not-allowed' ? 'The microphone wasn’t allowed.' : 'Didn’t catch that. Try again.');
+      r.onend = () => setState((s) => (s === 'listening' ? '' : s));
+      setState('listening');
+      r.start();
+    } catch { setState('Speech isn’t available here.'); }
+  };
+  return (
+    <span className="qa-say">
+      <button type="button" className={`chip${state === 'listening' ? ' active' : ''}`} data-testid="qa-say" onClick={listen} aria-label="Say the number">
+        🎤 {state === 'listening' ? 'Listening…' : 'Say it'}
+      </button>
+      {state && state !== 'listening' && <span className="muted small" data-testid="qa-heard" role="status">{state}</span>}
+    </span>
   );
 }
 

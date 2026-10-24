@@ -222,6 +222,9 @@ export async function writeTeam(file, tid, step = () => {}, meta = {}) {
       counts[table] = await streamRows(client, `SELECT row_to_json(x) AS r FROM ${ident(table)} x WHERE ${where}`, [tid], w);
     }
     paths = (await client.query('SELECT storage_path FROM attachments WHERE tenant_id=$1', [tid])).rows.map((r) => r.storage_path);
+    // the team photo (Team → Team profile) comes back with the team's settings
+    const { rows: [tp] } = await client.query("SELECT settings->'photo'->>'path' AS p FROM tenants WHERE id=$1", [tid]);
+    if (tp?.p) paths.push(tp.p);
     await client.query('COMMIT');
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
@@ -249,6 +252,7 @@ export async function extractTeam(file, tid) {
       if (!pick || !pick(r, tid, ctx)) return;
       if (table === 'calendar_requests') ctx.requests.add(r.id);
       if (table === 'attachments') wanted.add(r.storage_path);
+      if (table === 'tenants' && r.settings?.photo?.path) wanted.add(r.settings.photo.path);
       (out.tables[table] ||= []).push(r);
     },
     onFile: (rel, chunks) => { if (wanted.has(rel)) out.files.set(rel, Buffer.concat(chunks)); },

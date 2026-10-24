@@ -284,6 +284,39 @@ with sync_playwright() as pw:
             m.wait_for_timeout(500)
             save(name, m.screenshot())
             m.context.close()
+    if shot('team-photos'):
+        from PIL import ImageDraw
+        def picture(w, h, top, bottom, text):
+            im = Image.new('RGB', (w, h))
+            dr = ImageDraw.Draw(im)
+            for y in range(h):
+                k = y / h; dr.line([(0, y), (w, y)], fill=tuple(int(top[i] + (bottom[i] - top[i]) * k) for i in range(3)))
+            dr.ellipse([w * .3, h * .25, w * .7, h * .75], fill=(255, 255, 255))
+            dr.text((w * .5, h * .5), text, fill=top, anchor='mm', font_size=int(h * .22))
+            b = io.BytesIO(); im.save(b, 'JPEG', quality=90); return b.getvalue()
+        def put_photo(path, data):
+            bd = uuid.uuid4().hex
+            body = (f'--{bd}\r\nContent-Disposition: form-data; name="file"; filename="p.jpg"\r\nContent-Type: image/jpeg\r\n\r\n').encode() + data + f'\r\n--{bd}--\r\n'.encode()
+            req = urllib.request.Request(B + '/api' + path, method='PUT', data=body, headers={'content-type': f'multipart/form-data; boundary={bd}', 'authorization': f'Bearer {T}'})
+            urllib.request.urlopen(req).read()
+        put_photo(f'/t/{TID}/photo', picture(800, 600, (226, 86, 26), (40, 20, 10), '#17'))
+        crew = next(r for r in call(f'/t/{TID}/roles', T)[1] if r['name'] == 'Crew Chief')
+        st_, inv = call(f'/t/{TID}/invites', T, 'POST', {'email': f'sam.{uuid.uuid4().hex[:6]}@example.com', 'role_id': crew['id']})
+        call(f'/invites/{inv["token"]}/accept', method='POST', body={'name': 'Sam Torres', 'password': uuid.uuid4().hex})
+        sam = next(m for m in call(f'/t/{TID}/members', T)[1] if m['name'] == 'Sam Torres')
+        put_photo(f'/t/{TID}/members/{sam["id"]}/photo', picture(400, 400, (30, 90, 200), (10, 20, 50), 'ST'))
+        t = page_for(1280, 1400)
+        t.goto(f'{B}/team/members'); settle(t)
+        t.add_style_tag(content='.page-head, .save-bar, .topbar { position: static !important; }')
+        t.wait_for_timeout(1200)   # the photos load
+        page_png = Image.open(io.BytesIO(t.screenshot(full_page=True)))
+        boxes = [t.locator('section', has=t.locator(sel)).last.bounding_box() for sel in ('[data-testid="team-profile"]', '[data-testid="member-row"]')]
+        sy = t.evaluate('scrollY')
+        crops = [page_png.crop((int(b['x']), int(b['y'] + sy), int(b['x'] + b['width']), int(b['y'] + sy + b['height']))) for b in boxes]
+        both = Image.new('RGB', (max(c.width for c in crops), sum(c.height for c in crops) + 12), (243, 242, 239))
+        both.paste(crops[0], (0, 0)); both.paste(crops[1], (0, crops[0].height + 12))
+        out = io.BytesIO(); both.save(out, 'PNG'); save('team-photos', out.getvalue())
+        t.context.close()
     if shot('setup-quick-edit'):
         q = page_for(1280, 820)
         q.goto(f"{B}/r/setup/{feat['id']}"); settle(q)

@@ -3,13 +3,13 @@ id: training-owner
 title: "Training: team owner"
 section: training
 order: 14
-summary: Hands-on exercises in the practice team — invite people with the right role, make a role, plan the racing year, read the reports, and reset the practice team.
+summary: Hands-on exercises in the practice team — invite people with the right role, make a role, plan the racing year, read the reports, add the team and member photos, and reset the practice team.
 for: owner, admin
 covers: option:training-owner
 related: training, role-owner, members-invites, roles-permissions, calendar, reports, training-trainers
 demo: Car 17, Car 71, Lakeside Raceway
 ---
-**Time:** about 40 minutes. **You need:** the practice team, signed in as its owner.
+**Time:** about 45 minutes. **You need:** the practice team, signed in as its owner.
 
 ![Video: Invite a crew member and plan the next round](video/training-owner.webm)
 
@@ -63,7 +63,18 @@ demo: Car 17, Car 71, Lakeside Raceway
 
 For a single item, there's a quicker way: delete *Car 71* again, then open **Recently deleted** in the sidebar and press **Recover** on it.
 
-## Exercise 7: Reset the practice team (5 min)
+## Exercise 7: Team and member photos (5 min)
+
+1. Go to **Team Management → Members & invites**. Under **Team profile**, press **Add team photo** and choose any photo (on a phone you can take one).
+2. Look at the top of the menu: the photo is beside the team's name.
+3. Under **Members**, press **Add photo** under the person you invited in Exercise 1 (or yourself) and choose a photo.
+4. Open **Roles**, pick **Marketing Manager**, and check **Change the team photo** is ticked under **Administration**.
+
+**When it's right:** the team photo shows on **Team profile** and in the menu, and the member has their photo beside their name. See [Team and member photos](/help/team-photos).
+
+**Check yourself:** a mechanic wants to change the team photo for the new season. What do you do? (Tick **Change the team photo** on their role in **Roles**, or change it for them. A mechanic can always change their own photo on **Profile & device**.)
+
+## Exercise 8: Reset the practice team (5 min)
 
 When a training group has finished, put the demo data back for the next group:
 

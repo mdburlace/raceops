@@ -4,6 +4,8 @@ import { useSession } from '../lib/session.jsx';
 import { SyncBadge, useHeightVar } from './ui.jsx';
 import { teamType } from '@shared/shop.js';
 import { APP_VERSION } from '../lib/releases.js';
+import { Avatar } from './Avatar.jsx';
+import { teamPhotoUrl, userPhotoUrl } from '../lib/photos.js';
 
 export const I = {
   home: 'M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
@@ -231,11 +233,14 @@ export default function Layout() {
     <div className="shell">
       <aside className={`sidebar${drawer ? ' open' : ''}`}>
         <div className="brand"><span className="brand-mark">{mark}</span><span>{appName}</span></div>
-        {memberships.length > 1 ? (
-          <select className="team-switch" value={membership?.tenant_id} onChange={(e) => { switchTenant(e.target.value); setDrawer(false); }}>
-            {memberships.map((m) => <option key={m.tenant_id} value={m.tenant_id}>{m.tenant_name}</option>)}
-          </select>
-        ) : <div className="team-name">{membership?.tenant_name}</div>}
+        <div className={`team-row${membership?.settings?.photo?.at ? ' has-photo' : ''}`}>
+          {membership?.settings?.photo?.at && <Avatar src={teamPhotoUrl(membership.tenant_id, membership.settings.photo.at)} name={membership.tenant_name} size={36} square testid="side-team-photo" />}
+          {memberships.length > 1 ? (
+            <select className="team-switch" value={membership?.tenant_id} onChange={(e) => { switchTenant(e.target.value); setDrawer(false); }}>
+              {memberships.map((m) => <option key={m.tenant_id} value={m.tenant_id}>{m.tenant_name}</option>)}
+            </select>
+          ) : <div className="team-name">{membership?.tenant_name}</div>}
+        </div>
         <nav>
           <NavLink to="/" end onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}><Icon d={I.home} size={18} /><span>Home</span></NavLink>
           {canModule('ai') && <NavLink to="/ask" onClick={() => setDrawer(false)} className={({ isActive }) => `nav-link ask-link${isActive ? ' active' : ''}`}><Icon d={I.spark} size={18} /><span>Ask RaceOps</span></NavLink>}
@@ -266,7 +271,7 @@ export default function Layout() {
           {link({ to: '/help', label: 'Help & guide', icon: I.help })}
           {link({ to: `/feedback${loc.pathname.startsWith('/feedback') ? '' : `?from=${encodeURIComponent(loc.pathname)}`}`, label: 'Feedback & roadmap', icon: I.idea, badge: notices?.feedback_updates || 0 })}
         </nav>
-        <div className="sidebar-foot"><span className="muted small">{user?.name} · {membership?.role.name}</span>
+        <div className="sidebar-foot"><Link to="/profile" className="side-me" onClick={() => setDrawer(false)}><Avatar src={userPhotoUrl(user?.id, user?.photo_at)} name={user?.name} size={26} /><span className="muted small">{user?.name} · {membership?.role.name}</span></Link>
           <Link to="/help/releases" className="muted small app-version" onClick={() => setDrawer(false)} title="Release notes">Version {APP_VERSION}</Link></div>
       </aside>
       {drawer && <div className="scrim" onClick={() => setDrawer(false)} />}

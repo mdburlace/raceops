@@ -32,6 +32,7 @@ import { moveDays, normaliseDays } from '../../shared/calendar.js';
 import { feedbackNotices, mountFeedback } from './feedback.js';
 import { mountPractice } from './practice.js';
 import { mountRecycle, startPurge } from './recycle.js';
+import { mountPhotos } from './photos.js';
 import { configure as configureBackups, maintenanceGuard, mountBackupPublic, mountBackupTeam, startSchedules } from './backup.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -287,7 +288,7 @@ async function ensureBaseForms() {
 
 const authPayload = async (user) => ({
   token: signToken(user),
-  user: { id: user.id, email: user.email, name: user.name, is_platform_admin: user.is_platform_admin, prefs: user.prefs || {} },
+  user: { id: user.id, email: user.email, name: user.name, is_platform_admin: user.is_platform_admin, prefs: user.prefs || {}, photo_at: user.photo?.at || user.photo_at || null },
   memberships: await membershipsFor(user.id),
   platform: publicSettings(),
 });
@@ -450,6 +451,8 @@ T.patch('/', perm('team.manage'), h(async (req, res) => {
     if (cur?.settings?.calendar_publish) settings.calendar_publish = cur.settings.calendar_publish; else delete settings.calendar_publish;
     // set only by restores (devices download the team again when it changes)
     if (cur?.settings?.data_epoch) settings.data_epoch = cur.settings.data_epoch; else delete settings.data_epoch;
+    // the team photo is only changed through /photo
+    if (cur?.settings?.photo) settings.photo = cur.settings.photo; else delete settings.photo;
   } else settings = null;
   const { rows: [t] } = await q(
     `UPDATE tenants SET name=COALESCE($2,name), settings=COALESCE($3,settings) WHERE id=$1 RETURNING *`,
@@ -468,6 +471,7 @@ mountJobs(T);
 mountPractice(T);
 mountBackupTeam(T);
 mountRecycle(T);
+mountPhotos(app, T, { UPLOAD_DIR }); // the team photo and members' photos
 
 // --- Sync: pull ---
 T.get('/sync', h(async (req, res) => {
@@ -624,7 +628,7 @@ T.get('/records/:id/history', h(async (req, res) => {
 // --- Members ---
 T.get('/members', h(async (req, res) => {
   const { rows } = await q(
-    `SELECT u.id, u.name, u.email, m.role_id, r.name AS role_name, m.extra_role_ids, m.created_at,
+    `SELECT u.id, u.name, u.email, u.photo->>'at' AS photo_at, m.role_id, r.name AS role_name, m.extra_role_ids, m.created_at,
             COALESCE((SELECT json_agg(x.name ORDER BY x.name) FROM roles x WHERE x.id = ANY(m.extra_role_ids)), '[]'::json) AS extra_role_names
        FROM memberships m JOIN users u ON u.id=m.user_id JOIN roles r ON r.id=m.role_id
       WHERE m.tenant_id=$1 ORDER BY u.name`, [req.tid]);

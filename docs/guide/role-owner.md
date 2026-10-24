@@ -37,6 +37,8 @@ Engine shops: also [set rates, tax and terms](/help/shop-settings).
 
 | I want to… | Go to |
 |---|---|
+| Add a team photo, or let marketing look after it | [Team and member photos](/help/team-photos) — **Team profile**, **Change the team photo** |
+| Add a photo for someone in the team | [Team and member photos](/help/team-photos#member-photos) — **Add photo** under **Members** |
 | Share our club series with every team | [Calendar](/help/calendar) — **Send to the shared calendars** |
 | Plan the racing year and publish it for sponsors | [Calendar](/help/calendar) — **Publish** |
 | See how the season is going | [Analytics](/help/analytics) — **Performance** |

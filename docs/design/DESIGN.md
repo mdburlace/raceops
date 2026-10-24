@@ -12,8 +12,8 @@
 | Product | RaceOps — race team and engine shop manager (self-hosted, multi-tenant PWA) |
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
-| Last schema migration | `019_team_roles.sql` |
-| Last updated | October 2026 (setup sheet quick add screen, angle finder, block height, turns and new chassis and rpm fields) |
+| Last schema migration | `020_photos.sql` |
+| Last updated | October 2026 (team and member photos; quick add: half-turn steppers, last session, say it) |
 
 ---
 
@@ -164,6 +164,7 @@ server/
   src/backupCli.js        command-line backup / inspect / restore
   src/exportData.js       team data export: CSV (ZIP), XML, JSON, with files; a small ZIP writer
   src/recycle.js          recently deleted: listing, recovery, retention, the hourly clean-up
+  src/photos.js           the team photo and members' photos (upload, serve, remove)
   src/partners.js         sponsor portal (no-login sponsor page and its photos), media library file list
 shared/                   code used by server AND web
   catalog.js              areas, modules, record types, permissions, plans, default roles
@@ -262,8 +263,8 @@ Browsers only allow the service worker and "Add to Home Screen" over HTTPS, so p
 
 | Table | Purpose | Key columns |
 |---|---|---|
-| `users` | Accounts | `id uuid`, `email unique`, `name`, `password_hash` (bcrypt), `is_platform_admin`, `disabled`, `last_login_at`, `prefs jsonb` (theme, sidebar, units, `email_notices`) |
-| `tenants` | Teams | `id`, `name`, `racing_type`, `settings jsonb` (team type, season start, units, shop settings, calendar publish, AI opt-out…), `plan`, `features jsonb` (per-team overrides), `status` (`active`/`suspended`), `seats`, `licence_expires date`, `admin_notes`, `ai_budget_usd`, `deleted_retention_days` (NULL = platform default, 0 = forever), `retention_request jsonb` |
+| `users` | Accounts | `id uuid`, `email unique`, `name`, `password_hash` (bcrypt), `is_platform_admin`, `disabled`, `last_login_at`, `prefs jsonb` (theme, sidebar, units, `email_notices`), `photo jsonb` (`{ path, at, by }`, the member's photo, §10.2) |
+| `tenants` | Teams | `id`, `name`, `racing_type`, `settings jsonb` (team type, season start, units, shop settings, calendar publish, AI opt-out, `photo` `{ path, at, by }` — the team photo…), `plan`, `features jsonb` (per-team overrides), `status` (`active`/`suspended`), `seats`, `licence_expires date`, `admin_notes`, `ai_budget_usd`, `deleted_retention_days` (NULL = platform default, 0 = forever), `retention_request jsonb` |
 | `roles` | Per-team roles | `tenant_id`, `name` (unique per team), `permissions jsonb` (array of permission keys), `is_owner` |
 | `memberships` | User ↔ team | PK `(user_id, tenant_id)`, `role_id` (main role), `extra_role_ids uuid[]` (more roles; never the Owner role) |
 | `invites` | Invite links | `tenant_id`, `email`, `role_id`, `token unique`, `expires_at`, `accepted_at` |
@@ -357,7 +358,7 @@ Permission keys:
 
 - `area.<track|workshop|engines|team>` — enter an area;
 - `<module>.<view|edit|delete>` — for each module in `MODULES` (some modules are view-only);
-- admin rights `forms.manage`, `members.manage`, `roles.manage`, `team.manage`.
+- admin rights `forms.manage`, `members.manage`, `roles.manage`, `team.manage`, `team.photo` (change the team photo; the built-in Marketing Manager has it in new teams; owners and `team.manage` always can), `backup.manage`, `trash.manage`.
 
 **Rule (`canType`) — access to a record type requires all of:**
 
@@ -471,6 +472,9 @@ On forms whose target is in `QUICK_ADD_TARGETS` (`setup`, `shop_setup`) and only
 - **Kind** — `quickAddFor(field)`: the field's `quick`, else `QUICK_ADD[key]`, else `number`. `fraction` adds +1/16…+15/16 buttons; `withFraction()` keeps the whole number typed and sets the fraction (values are stored as decimals, shown with `asFraction()`). `angle` adds **Pick** (`angleList()` over the rule's `min`/`max`/`step`) and **Angle finder**.
 - **Common values** — `commonValues(records, key, corner)`: the most used values in that box across the team's records of the form's type, this car's sheets first, newest breaking ties (top 6).
 - **Keypad** — `keypad(text, key)` (digits, `.`, sign, backspace); the physical keyboard works while the screen is open.
+- **Last session** — `previousSheet(records, values, recordId, eventDate)`: the sheet this one was `copied_from`, else this car's newest sheet before it (event date, then `order`); `valueOn()` reads the box. Needs `recordId` (FormRenderer passes it) so a sheet never finds itself.
+- **Say it** — `SpeechRecognition`/`webkitSpeechRecognition` (hidden where neither exists), one result with up to 5 alternatives, `lang` from the browser; the first alternative `parseSpokenNumber()` understands wins (digits, number words to thousands, `point`, `minus`/`negative`, fractions in halves to sixteenths, `3/8`). Audio handling is the browser's (Chrome sends it to its speech service); nothing goes to the RaceOps server.
+- **Steppers** — `turns` has `step: 0.5` (an upgrade patch), so each corner gets − and + by half a turn.
 - **Angle finder** — listens to `deviceorientation` and reads `tiltOf(e)` (beta folded into −90…90), smoothed. Where `DeviceOrientationEvent.requestPermission` exists (iOS, also Chromium) the **Use the tilt sensor** button asks on a user gesture if no readings arrive. **Zero** and **Flip** are kept in module memory while the app is open (not stored). No sensor → a message; Pick and the keypad still work.
 
 ---
@@ -507,10 +511,17 @@ Conventions:
 | `backupCli.js` | command line | `backup`, `team`, `inspect`, `restore` |
 | `exportData.js` | used by `POST /api/t/:tid/backup/export` | team data export (§19.5) |
 | `recycle.js` | `/api/t/:tid/deleted*`, `/api/admin/deleted*` | recently deleted (§19.6) |
+| `photos.js` | `/api/t/:tid/photo`, `/api/t/:tid/members/:uid/photo`, `/api/me/photo`, `/api/users/:uid/photo` | team and member photos (§10.2) |
 | `partners.js` | `/api/public/sponsor/:token[/photos/:id]`, `/api/t/:tid/sponsors/:id/portal`, `/api/t/:tid/media/files` | sponsor portal (no login), media library files |
 | `practice.js` | `/api/t/:tid/practice/reset`; `makePractice()` called from `POST /api/admin/tenants` | practice teams (§11.2) |
 
 The full route list is in [Appendix D](#appendix-d--api-routes).
+
+### 10.2 Team and member photos (`photos.js`)
+
+- **Client** (`web/src/lib/photos.js`): `shrinkPhoto()` draws the chosen file (EXIF orientation applied) onto a canvas at most 800 px on its longer side, white background, and saves JPEG 0.86; `uploadPhoto(path, file)` PUTs it as multipart `file`. Pictures are `<img>` addresses with `?token=…&v=<at>` (`teamPhotoUrl`, `userPhotoUrl`), so a changed photo shows at once and an unchanged one is cached (`Cache-Control: private, max-age=86400`). `Avatar.jsx` shows the photo or initials; `PhotoButtons` adds, changes and removes. Shown on Team (Team profile, Members), Profile (Your photo) and the sidebar (team photo beside the team picker, your photo in the footer).
+- **Server**: multer in memory, 3 MB at most; the type comes from the file's first bytes (`imageType()`: JPEG, PNG, WebP), not the browser. Files go under `UPLOAD_DIR`: the team's as `<tid>/team-photo-<ms>.<ext>` (recorded in `tenants.settings.photo`), a member's as `users/<uid>-<ms>.<ext>` (`users.photo`), both `{ path, at, by }`; the previous file is deleted. `PATCH /api/t/:tid` keeps the stored `settings.photo` (like `calendar_publish`), so a device can't point it elsewhere. Devices only use `at` (`membership.settings.photo.at`, `user.photo_at`, members' `photo_at`); paths are re-checked to stay inside `UPLOAD_DIR` when served.
+- **Rights**: team photo — `PUT|DELETE /api/t/:tid/photo` for owners, `team.photo` or `team.manage`; `GET` for any member. Member photo — `PUT|DELETE /api/me/photo` for yourself; `PUT|DELETE /api/t/:tid/members/:uid/photo` for owners or `members.manage` (the person must be in that team; an owner's photo only by an owner or themselves); `GET /api/users/:uid/photo` for yourself, anyone sharing a team, or a platform admin (else 404).
 
 ---
 
@@ -782,7 +793,7 @@ Backups must be copied **off the Docker host** (NAS and offsite/cloud). Test a r
 
 - **File** (`.raceops`): `RACEOPS1`, a flag byte, then (when encrypted) a 16-byte scrypt salt, a 12-byte nonce, the AES-256-GCM ciphertext and the 16-byte tag at the very end. Inside is gzip of newline-delimited JSON: a header (`scope` full/team, `created_at`, `app_version`, `migration`, `tenant`, `run_id`), then for each table `{"type":"table"}` and one `{"r": row_to_json}` per row, then files as `{"type":"file"}` and base64 chunks, then `{"type":"end","counts"}`. Written and read as streams; `verify()` decrypts the whole file before any restore.
 - **Full backup:** one `REPEATABLE READ READ ONLY` transaction, every public table except `schema_migrations` in foreign-key order (from `pg_constraint`), read through cursors (1,000 rows a fetch), then every file under `UPLOAD_DIR`.
-- **Team backup:** the team's rows from `tenants`, `roles`, `memberships`, `records`, `record_history`, `attachments`, `engine_shares`, `engine_links` (shop side), `calendar_officials`, `calendar_requests` (and their messages), `team_notices`, plus `_users` (id, email and name of the people its data mentions), then its attachment files. Backup settings, the licence and other teams aren't included.
+- **Team backup:** the team's rows from `tenants`, `roles`, `memberships`, `records`, `record_history`, `attachments`, `engine_shares`, `engine_links` (shop side), `calendar_officials`, `calendar_requests` (and their messages), `team_notices`, plus `_users` (id, email and name of the people its data mentions), then its attachment files and the team photo (`settings.photo.path`, restored with the team's settings). Member photos (`users.photo`) are only in full backups. Backup settings, the licence and other teams aren't included.
 - **Full restore:** checks the file, and that its `migration` isn't newer than the server's; takes a safety backup into `BACKUP_DIR/safety`; sets **maintenance** (every API answers 503 except health, status and job progress); then one transaction: `TRUNCATE … RESTART IDENTITY CASCADE`, rows inserted 500 at a time with `json_populate_recordset` (only the columns the backup has, so newer columns take their defaults), self-references set afterwards, sequences moved past the restored ids (`record_seq` never goes backwards), and a new `data_epoch` on every team. Files are staged under `UPLOAD_DIR/.restore-*` and swapped in after the commit; then settings are reloaded and base forms, tracks and guides re-checked.
 - **Team restore** (from a team backup, or one team out of a full backup): a safety backup of the team, then one transaction. Name, racing type and settings come back (licence, plan, seats and the practice flag stay); the backup's roles come back and roles people hold now stay; members stay as they are (a team brought back to a server where it doesn't exist gets its members matched by email, and the restoring admin as owner); the team's data tables are replaced; records get new `seq` values; references to users the server doesn't know become NULL; the team gets a new `data_epoch`.
 - **Devices:** `GET /sync` returns the team's `epoch`. A device that last saw a different one drops its synced copy (keeping unsent changes) and pulls from 0.
@@ -906,6 +917,7 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 | `015_backups.sql` | `backup_targets`, `backup_plans`, `backup_runs`; `backup.manage` for roles with `team.manage` |
 | `016_recently_deleted.sql` | `records.deleted_at`, `deleted_by` (back-filled); `tenants.deleted_retention_days`, `retention_request`; `trash.manage` for roles with `team.manage` |
 | `017_workshop_setups.sql` | `shopsetups` rights for existing roles: full for roles that edit setups, view/edit for roles that edit maintenance or assets, view for roles that view setups |
+| `020_photos.sql` | `users.photo` (member photos; the team photo is `tenants.settings.photo`) |
 | `019_team_roles.sql` | `memberships.extra_role_ids`; `sponsor_portals`; parts-order rights for existing roles (full with approve and `money.view` for roles that delete setups, view/edit for roles that edit maintenance or assets) |
 | `018_engine_tunes.sql` | `enginetunes` and `enginechecks` rights for existing roles: tunes full for roles that delete engine builds or setups, view/edit for roles that edit builds, setups or maintenance, view for roles that view setups or builds; checks full for roles that delete maintenance or builds, view/edit for editors, view for viewers |
 
@@ -942,9 +954,9 @@ Then set **Last updated** in the header. `node tools/check-design.mjs` checks th
 
 Public: `GET /api/health`, `POST /api/device/clear-cache`, `GET /api/status`, `POST /api/setup`, `POST /api/setup/restore` (only while no users exist), `GET /api/backup/oauth/callback`, `GET /api/backup/ops/:id`, `POST /api/auth/login`, `GET|POST /api/invites/:token[/accept]`, `GET /api/share/:token`, `GET /api/public/calendar/:token[.ics]`, `GET /api/public/shared/:type/:id[.ics]`, `GET /api/public/sponsor/:token`, `GET /api/public/sponsor/:token/photos/:id`.
 
-Signed in: `GET|PATCH /api/me`; feedback `GET /api/feedback/mine|roadmap|similar`, `POST /api/feedback`, `POST /api/feedback/seen`, `POST /api/feedback/:id/files|reply|withdraw|vote`, `DELETE /api/feedback/:id/files/:fid`, `GET /api/feedback/files/:fid[?download]`.
+Signed in: `GET|PATCH /api/me`; `PUT|DELETE /api/me/photo`, `GET /api/users/:uid/photo`; feedback `GET /api/feedback/mine|roadmap|similar`, `POST /api/feedback`, `POST /api/feedback/seen`, `POST /api/feedback/:id/files|reply|withdraw|vote`, `DELETE /api/feedback/:id/files/:fid`, `GET /api/feedback/files/:fid[?download]`.
 
-Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `POST /roles/standard`, `PATCH|DELETE /roles/:id` (members `PATCH` takes `role_id` and `extra_role_ids`); sponsors `GET|POST|DELETE /sponsors/:id/portal`, `GET /media/files`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import|post`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; practice `POST /practice/reset`; backups (`backup.manage`) `GET /backup`, `PUT /backup/plan`, `POST /backup/run|upload|restore`, `GET /backup/runs/:id/download`, `DELETE /backup/runs/:id`, `POST /backup/targets`, `PATCH|DELETE /backup/targets/:id`, `POST /backup/targets/:id/connect|test`, `GET /backup/targets/:id/files`, `POST /backup/export`; recently deleted `GET /deleted`, `POST /deleted/recover|retention-request`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
+Team (`/api/t/:tid`): `PATCH /`; `GET|POST /sync`; `GET /records/:id/history`; `GET /members`, `PATCH|DELETE /members/:id`; `GET|POST /invites`, `DELETE /invites/:id`; `GET|POST /roles`, `POST /roles/standard`, `PATCH|DELETE /roles/:id` (members `PATCH` takes `role_id` and `extra_role_ids`); sponsors `GET|POST|DELETE /sponsors/:id/portal`, `GET /media/files`; `GET|POST /attachments`, `GET /attachments/:id/file`, `DELETE /attachments/:id`; `GET /jobs/:id`; `GET /weather`; AI `GET /ai/status`, `POST /ai/extract|debrief|ask|advise|guide-import|post`; sharing `/engines/…`, `/engine-links/…`, `/engine-invites/…`, `/linked-engines…`, `/engine-usage`; practice `POST /practice/reset`; photos `GET|PUT|DELETE /photo` (team), `PUT|DELETE /members/:uid/photo`; backups (`backup.manage`) `GET /backup`, `PUT /backup/plan`, `POST /backup/run|upload|restore`, `GET /backup/runs/:id/download`, `DELETE /backup/runs/:id`, `POST /backup/targets`, `PATCH|DELETE /backup/targets/:id`, `POST /backup/targets/:id/connect|test`, `GET /backup/targets/:id/files`, `POST /backup/export`; recently deleted `GET /deleted`, `POST /deleted/recover|retention-request`; calendar `POST /calendar/import`, `PUT /calendar/publish`, `GET|POST /calendar/requests`, `POST /calendar/requests/:id/withdraw|reply`, `POST /calendar/requests/seen`, `GET /calendar/officials`, `GET /notices`, `POST /notices/seen`.
 
 Admin (`/api/admin`): `tenants`, `plans`, `users`, `lockouts`, `directory`, `tracks/export|import|reseed`, `settings`, `settings/general`, `settings/lists/:key`, `overview`, `audit`, `system`, `system/upgrade-forms`, `ai`, `ai/test`, `calendar/data`, `calendar/fixtures/:id`, `calendar/series/:id`, `calendar/series/:id/dates`, `calendar/requests[/:id/decide|ask]`, `calendar/officials[/:id]`, `calendar/duplicates`, `calendar/merge`, `calendar/history/:id[/restore]`, `calendar/feeds[/:id[/check]]`, `mail`, `mail/test`, `feedback` (list by view, create idea), `feedback/:id` (get, patch, delete), `feedback/:id/files|decide|claude|github`, `DELETE feedback/:id/files/:fid`, `backups` (overview), `backups/plans/:scope`, `backups/run`, `backups/teams/:tid/run`, `backups/runs/:id[/download]`, `backups/upload|inspect|restore`, `backups/targets[/:id[/connect|test|files]]`, `deleted`, `deleted/recover`, `deleted/retention[/:tid[/decline]]`.
 

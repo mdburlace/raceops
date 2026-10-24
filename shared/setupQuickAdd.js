@@ -121,6 +121,82 @@ export function tiltOf(e) {
   return b > 90 ? 180 - b : b < -90 ? -180 - b : b;
 }
 
+/**
+ * The sheet a value is "last session" from: the sheet this one was copied from, else the newest other sheet for
+ * the same car (by event date, then running order). `records` are records of the form's type.
+ */
+export function previousSheet(records, values, recordId, eventDate = () => '') {
+  const all = records || [];
+  if (values?.copied_from) { const c = all.find((r) => r.id === values.copied_from); if (c) return c; }
+  const car = values?.car;
+  const key = (r) => `${eventDate(r) || String(r?.data?.values?.date || '')}|${String(r?.data?.values?.order ?? '').padStart(6, '0')}|${r?.updated_at || ''}`;
+  const mine = key({ data: { values: values || {} }, updated_at: '9' });
+  return all.filter((r) => r.id !== recordId && !r.deleted && (!car || r.data?.values?.car === car) && key(r) < mine)
+    .sort((a, b) => key(b).localeCompare(key(a)))[0] || null;
+}
+
+/** A value of one box on a record ('' when there isn't one). */
+export function valueOn(record, key, corner) {
+  const v = record?.data?.values?.[key];
+  const x = corner ? (v && typeof v === 'object' ? v[corner] : '') : v;
+  return x == null || typeof x === 'object' ? '' : String(x).trim();
+}
+
+// ---------------------------------------------------------------- say the number
+const ONES = { zero: 0, oh: 0, nought: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+const TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+// "three eighths", "one quarter": a numerator; "five (a) half": a whole number then a fraction
+const isNumerator = (w, next) => !!DENOMS[next] && (/s$/.test(next) || w === 'one' || w === '1');
+const DENOMS = { half: 2, halves: 2, quarter: 4, quarters: 4, eighth: 8, eighths: 8, sixteenth: 16, sixteenths: 16 };
+
+/**
+ * A number from what someone said: "14.5", "fourteen point five", "minus two", "1 and 3/8", "one and three
+ * eighths", "five and a half", "three quarters", "8 thousand 750". Null when it isn't a number.
+ */
+export function parseSpokenNumber(said) {
+  let t = String(said ?? '').toLowerCase().replace(/[−–]/g, '-').replace(/,(?=\d{3}\b)/g, '').replace(/(\d)\s*\/\s*(\d)/g, '$1/$2')
+    .replace(/[^a-z0-9./\- ]+/g, ' ').replace(/-/g, (m, i, str) => (/\d/.test(str[i + 1] || '') && (i === 0 || str[i - 1] === ' ') ? ' minus ' : ' ')).trim();
+  if (!t) return null;
+  const words = t.split(/\s+/).filter((w) => !['and', 'a', 'an', 'degrees', 'degree', 'inches', 'inch', 'turns', 'turn', 'psi', 'rpm', 'is', 'it\'s', 'its'].includes(w));
+  let neg = false;
+  if (['minus', 'negative'].includes(words[0])) { neg = true; words.shift(); }
+  if (!words.length) return null;
+  // whole part: digits or number words, up to "point" or a fraction
+  let whole = null; let cur = 0; let seen = false; let i = 0;
+  const flush = () => { if (seen) { whole = (whole || 0) + cur; cur = 0; } };
+  for (; i < words.length; i++) {
+    const w = words[i];
+    if (/^\d+(\.\d+)?$/.test(w)) {
+      if (isNumerator(w, words[i + 1])) break;   // "3 eighths"
+      cur += Number(w); seen = true;
+    } else if (w in ONES) {
+      if (isNumerator(w, words[i + 1])) break;   // "three eighths"
+      cur += ONES[w]; seen = true;
+    } else if (w in TENS) { cur += TENS[w]; seen = true;
+    } else if (w === 'hundred') { cur = (cur || 1) * 100; seen = true;
+    } else if (w === 'thousand') { whole = ((whole || 0) + (cur || 1)) * 1000; cur = 0; seen = true;
+    } else break;
+  }
+  flush();
+  let v = whole;
+  const rest = words.slice(i);
+  if (rest[0] === 'point' || rest[0] === 'dot') {
+    const digits = rest.slice(1).map((w) => (/^\d+$/.test(w) ? w : w in ONES && ONES[w] < 10 ? String(ONES[w]) : null));
+    if (!digits.length || digits.some((d) => d == null)) return null;
+    v = Number(`${whole || 0}.${digits.join('')}`);
+  } else if (rest.length) {
+    let num; let den;
+    if (rest.length === 1 && /^\d+\/\d+$/.test(rest[0])) [num, den] = rest[0].split('/').map(Number);
+    else if (rest.length === 1 && DENOMS[rest[0]]) { num = 1; den = DENOMS[rest[0]]; }
+    else if (rest.length === 2 && DENOMS[rest[1]]) { num = /^\d+$/.test(rest[0]) ? Number(rest[0]) : ONES[rest[0]]; den = DENOMS[rest[1]]; }
+    if (!den || num == null || !Number.isFinite(num)) return null;
+    v = (whole || 0) + num / den;
+  }
+  if (v == null || !Number.isFinite(v)) return null;
+  return Math.round((neg ? -v : v) * 10000) / 10000;
+}
+
 // ---------------------------------------------------------------- the setup sheet changes (form upgrades)
 const CORNERS = ['LF', 'RF', 'LR', 'RR'];
 const REARS = ['LR', 'RR'];
@@ -139,6 +215,7 @@ export const SETUP_SHEET_UPGRADES = [
   // Blocked is the height of the block at each corner; Turns is the torsion stop adjuster turns
   { target: 'setup', key: 'blocked', patch: { label: 'Block height', unit: 'in', quick: 'fraction' } },
   { target: 'setup', section: 'chassis', after: 'blocked', field: { key: 'turns', label: 'Turns', type: 'corners', input: 'number', corners: CORNERS, help: 'Torsion stop adjuster turns set at each corner.' } },
+  { target: 'setup', key: 'turns', patch: { step: 0.5 } },   // − and + by half a turn
   { target: 'setup', section: 'chassis', after: 'ride_height', field: { key: 'rake', label: 'Chassis rake', type: 'number', unit: '°' } },
   { target: 'setup', section: 'chassis', after: 'rake', field: { key: 'tilt', label: 'Chassis tilt', type: 'number', unit: '°' } },
   { target: 'setup', section: 'chassis', after: 'lr_radius_rod', field: { key: 'rr_radius_rod', label: 'RR radius rod (front mount)', type: 'text', placeholder: 'e.g. hole 3' } },
