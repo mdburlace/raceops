@@ -1733,3 +1733,7 @@ input[data-quick] { -webkit-touch-callout: none; }
 .interaction-add { margin-top: 10px; align-items: end; }
 .interaction-add .span-2 { grid-column: span 2; }
 @media (max-width: 640px) { .interaction-add .span-2 { grid-column: auto; } }
+
+/* ---------------------------------------------------------------- forecast */
+.forecast-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
+.forecast-head .pill { font-size: 14px; padding: 4px 12px; }

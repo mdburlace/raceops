@@ -54,6 +54,12 @@ export const FIELD_INFO5 = {
     consent_date: ['When they agreed.'],
   },
   asset: {
+    depreciation: ['How its value runs down for the books: Straight line (evenly over its useful life in years, from the purchase date) or Per lap (by the laps it runs against its life limit in laps). Shows on its page and in Finance → Assets.'],
+    useful_life: ['How many years you expect to use it before it’s worth only its end value.'],
+    residual: ['What you expect it to be worth at the end of its life — resale or scrap. It depreciates down to this.', MONEY],
+    disposed_on: ['When it was sold, scrapped, returned or written off. It stops depreciating then, and Finance shows the gain or loss.'],
+    disposal: ['What happened to it: sold, scrapped, returned or written off.'],
+    disposal_value: ['What you got for it. Against its book value on the day, that’s the gain or loss in the season’s profit and loss.', MONEY],
     vehicle_type: ['For the team’s vehicles: hauler, toterhome, trailer or tow vehicle. Vehicles use the same service schedules and lifecycle as other assets.'],
     rego_due: ['When the vehicle’s registration (or vehicle tax) is next due. Shows in Reminders 30 days before.'],
     inspection_due: ['When the next required inspection is due — safety check, WoF/CoF, DOT inspection or MOT, depending on your country. Shows in Reminders 30 days before.'],
@@ -114,6 +120,8 @@ export const FIELD_INFO5 = {
     exported: ['When it was exported to accounting software.'],
   },
   budget: {
+    cash_on_hand: ['Optional: the cash in the team’s bank account. The cash flow on Finance → Forecast starts from it and shows the balance week by week.', MONEY],
+    cash_date: ['The date the cash in the bank was checked.'],
     season: ['The season this budget is for, e.g. 2026-27.'],
     start: ['First day of the season. Spend from this date counts against the budget.'],
     end: ['Last day of the season.'],

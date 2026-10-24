@@ -21,8 +21,11 @@ The built-in **Business Manager** role runs [Finance](/help/finance), can see co
 ## Every month or quarter
 
 - **Finance → Export**: download the lines not yet exported for your accounting software and import them.
+- **Finance → Owed**: chase anything late from sponsors, and pay what's due.
+- **Finance → Forecast**: check the season is still on budget, and the cash flow for the next 8 weeks.
 
 ## Each season
 
+- Set the **Depreciation** on the big assets (cars, engines, hauler) and record any you sell. Review **Finance → Assets**.
 - Set up the season budget: each category, a **Contingency reserve** (10–20%) and the **Income budget**. Review **Season P&L** and each meeting's **Event P&L**.
 - Put crash damage and failures under **Crash & failure repairs** so they come out of the reserve. See [Finance](/help/finance#contingency-reserve).
