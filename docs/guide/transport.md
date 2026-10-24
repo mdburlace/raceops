@@ -17,7 +17,9 @@ The hauler, toterhome and trailer are assets with the category **Vehicle** (**Tr
 
 ## Trip plans
 
-**New trip**: the event, vehicle, when you leave, the route, who's driving (with their licence class), fuel stops and tolls. When the fuel and tolls are filled in, **Record as a travel expense** adds them to the event's costs in Finance.
+**New trip**: the event, vehicle, when you leave, the route, who's driving (with their licence class), fuel stops and tolls. When the fuel and tolls are filled in, save the trip and press **Add to Finance**: they become one **Transport** expense for the event, linked to the trip and the vehicle. Change the costs later and **Update the expense** keeps Finance in step.
+
+Record the hauler's servicing, tyres and registration as expenses with the vehicle as the **Inventory item**; the vehicle's page shows everything spent on it.
 
 **Work & rest** on a trip is a planning aid only. Where your country's rules need an official record — an NHVR work diary in Australia, a logbook in New Zealand, an ELD in the USA, a tachograph in the UK and Europe — use an approved provider.
 

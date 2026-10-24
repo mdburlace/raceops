@@ -107,9 +107,9 @@ export const MONEY_FIELDS = {
   purchase: ['unit_cost', 'cost'],
   expense: ['amount', 'tax_amount', 'rate'],
   income: ['amount', 'tax_amount', 'rate'],
-  budget: ['amount', 'lines'],
-  contract: ['value'],
-  sponsor: ['value'],
+  budget: ['amount', 'lines', 'income_lines'],
+  contract: ['value', 'per_diem', 'pay_per_event'],
+  sponsor: ['value', 'payments', 'in_kind'],
   engine_build: ['rebuild_cost'],
   merch: ['cost'],
 };
