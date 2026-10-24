@@ -119,8 +119,9 @@ with sync_playwright() as pw:
     for a in ['Quick start', 'Quick reference cards', "Trainer's guide", 'Crew chief', 'Mechanic', 'Engine builder', 'Platform admin']:
         expect(page.locator(f'.md a:has-text("{a}")').first).to_be_visible()
     page.goto(B + '/help/training-crew-chief')
-    vid = page.locator('figure.guide-video video')
-    expect(vid).to_have_count(1)
+    vids = page.locator('figure.guide-video video')
+    expect(vids).to_have_count(2)  # the role's video at the top, and quick add with its exercise
+    vid = vids.first
     src = vid.get_attribute('src'); poster = vid.get_attribute('poster')
     assert src and '.webm' in src and poster and '.webp' in poster, (src, poster)
     for u in (src, poster):
