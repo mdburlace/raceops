@@ -3,13 +3,13 @@ id: training-business
 title: "Training: business and race-night roles"
 section: training
 order: 16
-summary: Hands-on exercises in the practice team — the crew list and race night, the change list, tyre sheet and debrief, parts orders, finance, transport, partnerships and marketing.
+summary: Hands-on exercises in the practice team — the crew list and race night, the change list, tyre sheet and debrief, parts orders, finance, transport, partnerships, marketing, and sponsor payments and crew pay.
 for: everyone
 covers: option:training-business
 related: training, business, parts-orders, finance, transport, partnerships, marketing, role-car-chief, role-tire-specialist
 demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres, Lakeside Motors, 2026 main, Chris Lee, Hauler, Sprint car race weekend, Team T-shirt, Pat Driver, Valley Tyres sponsorship
 ---
-**Time:** about 60 minutes (do the exercises for your job). **You need:** the practice team. The owner can do every exercise; otherwise sign in with the role named.
+**Time:** about 70 minutes (do the exercises for your job). **You need:** the practice team. The owner can do every exercise; otherwise sign in with the role named.
 
 **The story:** it's club night at Valley Speedway. The crew each have a job, the business side keeps the money and sponsors right, and round 9 is next week.
 
@@ -91,6 +91,18 @@ demo: Valley Speedway — Club night, Car 17, RR shock rebuild kit, Valley Tyres
 2. Press **Draft from result**, then **Approve**, then **Save**.
 
 **When it's right:** the post shows **Approved** and **Share…** is offered.
+
+## Exercise 10: Sponsor payments, in kind and crew pay (business manager, 10 min)
+
+1. **Business → Partnerships**, open *Valley Tyres* and find **Payments & in kind**. *INV-101* is received; *INV-102* is invoiced and due in 10 days.
+2. Press **Mark received** on *INV-102*.
+3. Under **In kind**, press **Record in Finance** on the *Hoosier race tyres*.
+4. **Business → Finance → Contracts → New contract**: *Crew pay — you*, kind **Crew / contractor**, **Team member** yourself, **Per diem (each day)** *50*, **Pay per meeting** *100*. Save.
+5. Open *Valley Speedway — Club night* (you're on its crew from Exercise 1). Under **Crew**, press **Add crew costs to Finance**.
+
+**When it's right:** *Valley Tyres* shows nothing outstanding and the income lists both payments. **In-kind sponsorship** income and a *Tyres* cost of the same amount are in Finance. Two bills to pay — your per diem and pay — are in **Expenses** and **Reminders**.
+
+**Check yourself:** why record in-kind tyres in Finance if the income and cost cancel out? (So the budget shows what the season really costs — the tyres would cost that without the sponsor — and the sponsor gets the credit for them.)
 
 ## Sign-off
 

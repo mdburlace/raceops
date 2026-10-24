@@ -161,3 +161,33 @@ export function budgetAlerts(data, { today, settings = {} } = {}) {
   if (p.reserve && p.reserve.usedPct >= pct) out.push({ category: 'Contingency reserve', spent: p.reserve.used, budget: p.reserve.amount, pct: p.reserve.usedPct, season: vals(b).season, budgetId: b.id, threshold: pct, reserve: true });
   return out;
 }
+
+/**
+ * What's been spent on one inventory item: expenses and parts orders whose Inventory item is it (an order
+ * that became an expense counts once, as the expense), plus its own purchase cost. { rows, total, cost }
+ */
+export function spendOn(data, itemId, settings = {}) {
+  const linked = (r) => { const x = vals(r).inventory_item; return x && typeof x === 'object' && x.asset === itemId; };
+  const expenses = data.list('expense').filter(linked);
+  const used = new Set(expenses.map((e) => e.id));
+  const orders = data.list('purchase').filter((p) => linked(p) && !(vals(p).expense && used.has(vals(p).expense)) && vals(p).status !== 'Declined');
+  const rows = [
+    ...expenses.map((e) => ({ type: 'expense', id: e.id, date: vals(e).date || '', label: vals(e).description || vals(e).category || 'Expense', category: vals(e).category || '', amount: round(baseAmount(e, settings)) })),
+    ...orders.map((p) => ({ type: 'purchase', id: p.id, date: vals(p).approved_on || String(p.created_at || '').slice(0, 10), label: `${vals(p).item || 'Parts order'} (order)`, category: 'Parts order', amount: round(purchaseTotal(p)) })),
+  ].sort((a, b) => b.date.localeCompare(a.date));
+  return { rows, total: round(rows.reduce((a, r) => a + r.amount, 0)), cost: num(vals(data.byId[itemId]).cost) };
+}
+
+/** A new inventory item (asset, or a tyre) from an expense or a parts order: { type, values }. */
+export function inventoryFrom(rec, kind, { name = '', car = '', settings = {}, data = null } = {}) {
+  const v = vals(rec);
+  const isOrder = rec.type === 'purchase';
+  const supplier = v.supplier && data?.byId?.[v.supplier] ? vals(data.byId[v.supplier]).name || '' : '';
+  const cost = isOrder ? purchaseTotal(rec) : baseAmount(rec, settings);
+  const date = isOrder ? (v.approved_on || today()) : (v.date || today());
+  const base = { name: name || (isOrder ? v.item : v.description) || 'New item', purchase_date: date, cost: cost ? String(round(cost)) : '' };
+  if (kind === 'Tyre') return { type: 'tire', values: { ...base, status: 'New', position: 'Any', ...(car ? { available_for: [car] } : {}) } };
+  return { type: 'asset', values: { ...base, category: kind, status: 'Spare', life_unit: 'None', vendor: supplier || v.supplier_name || '', part_number: v.part_no || '', ...(car ? { car } : {}),
+    notes: isOrder && num(v.qty) > 1 ? `Bought as ${num(v.qty)} on one order.` : '' } };
+}
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };   // the device's own date

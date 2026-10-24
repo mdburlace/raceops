@@ -1,15 +1,15 @@
 // One reminders engine for every module: anything with a date, an owner and a lead time. Worked out
 // on the device from the team's records, so it works offline and needs no table of its own:
 // licence and medical expiry, vehicle registration and inspections, unpaid bills, contract and sponsor
-// renewals, sponsor deliverables with a due date (until deployed), sponsor follow-ups, low merchandise and decal stock, budget categories
+// renewals, sponsor deliverables with a due date (until deployed), sponsor follow-ups and payments, low merchandise and decal stock, budget categories
 // near their limit (and the contingency reserve) and parts orders waiting for approval.
 //
 // computeReminders(data, { today, canType, can, settings }) → [{ key, kind, title, sub, due, days, level, link, owner }]
 // level: 'over' (past due), 'soon' (inside the lead time) or 'info'. Only types the person can view are used.
 import { budgetAlerts } from './finance.js';
-import { openFollowUp } from './budgetSponsors.js';
+import { openFollowUp, paymentStatus } from './budgetSponsors.js';
 
-export const LEAD_DAYS = { licence: 60, medical: 60, rego: 30, inspection: 30, bill: 7, contract: 60, sponsor: 60, deliverable: 14, followup: 3 };
+export const LEAD_DAYS = { licence: 60, medical: 60, rego: 30, inspection: 30, bill: 7, contract: 60, sponsor: 60, deliverable: 14, followup: 3, payment: 7 };
 export const REMINDER_KINDS = {
   licence: 'Licences', vehicle: 'Vehicles', bill: 'Bills to pay', contract: 'Contracts', sponsor: 'Sponsors',
   stock: 'Stock to reorder', budget: 'Budget', approval: 'Parts orders to approve',
@@ -62,6 +62,14 @@ export function computeReminders(data, { today, canType = () => true, can = () =
       (Array.isArray(v.deliverables) ? v.deliverables : []).forEach((d, i) => {
         if (d.due && d.status !== 'Deployed') dated(`spd:${s.id}:${i}`, 'sponsor', `${v.name || 'Sponsor'}: ${d.kind || 'deliverable'}${d.detail ? ` (${d.detail})` : ''}`, 'due', d.due, LEAD_DAYS.deliverable, `/partners/sponsors/${s.id}`);
       });
+    }
+    // sponsor payments not yet received (the schedule is only on the device for roles that see amounts)
+    if (can('money.view')) {
+      for (const s of data.list('sponsor').filter((x) => vals(x).stage !== 'Ended')) {
+        for (const p of paymentStatus(s, today).rows.filter((x) => x.state !== 'received' && x.due)) {
+          dated(`spp:${s.id}:${p.i}`, 'sponsor', `${vals(s).name || 'Sponsor'}: payment${p.invoice_no ? ` (invoice ${p.invoice_no})` : ''}`, p.invoiced ? 'invoiced, due' : 'due — invoice it', p.due, LEAD_DAYS.payment, `/partners/sponsors/${s.id}`);
+        }
+      }
     }
     // follow-ups from the interaction log, for every sponsor still in play (prospects too)
     for (const s of data.list('sponsor').filter((x) => vals(x).stage !== 'Ended')) {

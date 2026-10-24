@@ -6,6 +6,8 @@ import { allFields, display, fmtDate, formFor, num, optionsOf, titleOf, useTeamD
 import { useSession } from '../lib/session.jsx';
 import { scheduleText } from './Maintenance.jsx';
 import { EngineJobs } from './Shop.jsx';
+import { spendOn } from '@shared/finance.js';
+import { useMoney } from './Business.jsx';
 
 const STATUS_LEVEL = { 'In Service': 'ok', Spare: 'info', 'Out for Service': 'warn', 'On Order': 'info', Retired: 'muted' };
 
@@ -92,7 +94,8 @@ export function AssetList() {
 export function AssetDetail() {
   const { id } = useParams();
   const data = useTeamData();
-  const { canType, canModule } = useSession();
+  const { canType, canModule, canMoney, membership } = useSession();
+  const money = useMoney();
   const [kind, setKind] = useState('');
   if (!data) return null;
   const a = data.byId[id];
@@ -144,6 +147,26 @@ export function AssetDetail() {
           {v(a, 'notes') && <p className="pre">{v(a, 'notes')}</p>}
         </Section>
       </div>
+
+      {canMoney && (canType('expense', 'view') || canType('purchase', 'view')) && (() => {
+        const sp = spendOn(data, id, membership?.settings || {});
+        if (!sp.rows.length && !sp.cost) return null;
+        return (
+          <Section title="Spent on this">
+            <dl className="kv" data-testid="asset-spend">
+              {sp.cost ? <><dt>Bought for</dt><dd>{money(sp.cost)}{v(a, 'purchase_date') ? <span className="muted small"> · {fmtDate(v(a, 'purchase_date'))}</span> : null}</dd></> : null}
+              <dt>Expenses and orders</dt><dd>{money(sp.total)} <span className="muted small">· {sp.rows.length} item{sp.rows.length === 1 ? '' : 's'}</span></dd>
+            </dl>
+            {sp.rows.length > 0 && (
+              <div className="list">{sp.rows.map((x) => (
+                <Link key={`${x.type}${x.id}`} to={`/r/${x.type}/${x.id}`} className="list-row"><span className="grow"><span className="row-title">{x.label}</span>
+                  <span className="row-sub">{[fmtDate(x.date), x.category].filter(Boolean).join(' · ')}</span></span><span className="row-meta">{money(x.amount)}</span></Link>
+              ))}</div>
+            )}
+            <p className="muted small">Expenses and parts orders whose <b>Inventory item</b> is this — servicing, repairs, the purchase itself.</p>
+          </Section>
+        );
+      })()}
 
       <Section title="Measurements" actions={canType('measurement', 'edit') && (
         <Link className="btn small" to={`/r/measurement/new?asset=${id}${activeKind ? `&kind=${encodeURIComponent(activeKind)}` : ''}${latest ? `&unit=${encodeURIComponent(v(latest, 'unit') || '')}&spec_min=${v(latest, 'spec_min') ?? ''}&spec_max=${v(latest, 'spec_max') ?? ''}` : ''}&back=${back}`}>+ Measurement</Link>

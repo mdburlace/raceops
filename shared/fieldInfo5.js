@@ -62,6 +62,7 @@ export const FIELD_INFO5 = {
     rebuild_cost: ['What this rebuild or freshen cost. Spread over the laps the engine runs until its next freshen, it gives the engine cost per night in the event profit and loss.', MONEY],
   },
   purchase: {
+    inventory_item: ['The item in the inventory once it’s received. Add to inventory on a received order makes it, with the cost and supplier; the item then shows what’s been spent on it.'],
     item: ['What’s needed — the part as you’d say it to the supplier.'],
     part_no: ['The supplier’s part number, if you have it.'],
     qty: ['How many.'],
@@ -78,6 +79,8 @@ export const FIELD_INFO5 = {
     expense: ['The expense this order became once it was received and paid.'],
   },
   expense: {
+    inventory_item: ['The part, engine, vehicle or other item this paid for — the purchase itself, or a service or repair on it. Add to inventory makes a new item from the expense. The item’s page shows everything spent on it.'],
+    member: ['The crew member it’s for — per diems and pay. Crew costs drafted from the event’s crew list fill this in.'],
     category: ['What it was spent on. Categories add up into the budget (in groups: vehicle & hardware, parts & consumables, personnel, logistics & travel, event & admin, marketing, contingency), the event profit and loss and the accounting export.'],
     from_contingency: ['Tick for crash damage or a mechanical failure: it comes out of the budget’s contingency reserve. Expenses in Crash & failure repairs count without the tick.'],
     description: ['What it was for, in a few words.'],
@@ -121,6 +124,9 @@ export const FIELD_INFO5 = {
     income_lines: ['The income you expect this season by kind — sponsorship, prize money, seat fees, stipends. Finance → Budget compares it with what’s been received.', MONEY],
   },
   contract: {
+    member: ['The team member on this crew or driver contract. Their rates are used for crew pay at each meeting they’re on the crew list for.'],
+    per_diem: ['What they’re paid for each day of a meeting (meals, incidentals). Per diem × the meeting’s days is drafted from the event page.', MONEY],
+    pay_per_event: ['What they’re paid for each meeting. Drafted from the event page as a bill to pay.', MONEY],
     party: ['Who the contract is with.'],
     contact: ['Their contact person.'],
     kind: ['What sort of contract it is.'],
@@ -181,6 +187,8 @@ export const FIELD_INFO5 = {
     endorsements: ['Endorsements and conditions, e.g. auto only, dangerous goods.'],
   },
   sponsor: {
+    payments: ['The instalments of the deal: due date, amount, invoice number and when it was invoiced. Mark received on the sponsor’s page records the income and links it; unpaid instalments show in Reminders.', MONEY],
+    in_kind: ['Goods and services given instead of cash (tyres, shirts, fuel), with their fair value and what they replace. Record in Finance adds the value as income and as a matching cost.', MONEY],
     contact: ['The sponsor’s day-to-day contact: name, role, email and phone are on the contact.'],
     billing_contact: ['Who invoices go to (accounts payable), if it isn’t the main contact.'],
     links: ['The sponsor’s website and social media pages, one per line. Handy for tagging them in posts.'],

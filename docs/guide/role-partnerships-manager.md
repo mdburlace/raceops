@@ -20,6 +20,9 @@ The built-in **Partnerships Manager** role runs [Partnerships](/help/partnership
 | Log a call or meeting, and when to follow up | The sponsor's **Relationship** → **Add to history** |
 | Check a new sponsor doesn't clash with an exclusive one | Give both an **Industry**; see [Exclusivity](/help/partnerships#exclusivity) |
 | Record who to invoice | The sponsor's **Billing contact** |
+| See what a sponsor still owes | The sponsor's **Payments & in kind** — **Outstanding** and **Overdue** |
+| Record a sponsor's payment | **Mark received** on the instalment |
+| Count the tyres a sponsor gives us | **In-kind contributions**, then **Record in Finance** |
 | Send a sponsor their season report | The sponsor's **Season report**, or their sponsor page link |
 | Check guests in at the gate | **Partnerships → Hospitality** |
 | See which car still carries an old sponsor | **Partnerships → Paint schemes** |

@@ -1,16 +1,18 @@
 // Tools shown on a record's page for the phase 5 types: approving parts orders, the setup sheet's
 // change list and tyre targets, results posts (draft, approve, share), load lists built from the
-// event, trip costs to an expense, and the tax in an expense.
+// event, trip costs to an expense, the tax in an expense, and adding what an expense or order bought to the inventory.
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
-import { allFields, fmtDate, memberName, num, titleOf, today, v } from '../lib/data.js';
+import { allFields, fmtDate, formFor, memberName, num, titleOf, today, v } from '../lib/data.js';
 import { saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { draftPost } from '@shared/partners.js';
 import { loadItemsFor } from '@shared/raceNight.js';
 import { fmtMoney } from '@shared/regions.js';
-import { purchaseTotal } from '@shared/finance.js';
+import { inventoryFrom, purchaseTotal } from '@shared/finance.js';
+import { ASSET_CATEGORIES } from '@shared/baseForms.js';
+import { tripCosts } from '@shared/budgetSponsors.js';
 
 const show = (x, data) => {
   if (x === undefined || x === null || x === '') return '';
@@ -185,22 +187,98 @@ export function LoadListTools({ values, setValues, readOnly, data, id }) {
   );
 }
 
-/** Trip: fuel and tolls become a travel expense for the event. */
-export function TripTools({ values, data }) {
-  const { canType } = useSession();
-  const nav = useNavigate();
-  const fuel = (Array.isArray(values.fuel_stops) ? values.fuel_stops : []).reduce((a, r) => a + (num(r.cost) || 0), 0);
-  const total = fuel + (num(values.tolls) || 0);
-  if (!canType('expense', 'edit') || !total) return null;
-  const go = () => {
-    const q = new URLSearchParams({ category: 'Travel', description: `Fuel and tolls${data.byId[values.event] ? ` — ${titleOf(data.byId[values.event])}` : ''}`, amount: String(Math.round(total * 100) / 100) });
-    if (values.event) q.set('event', values.event);
-    nav(`/r/expense/new?${q}`);
+/**
+ * Trip: fuel and tolls go straight into Finance as one Transport expense for the event, linked to the trip
+ * (and to the vehicle). If the costs change later, Update the expense brings it into line.
+ */
+export function TripTools({ rec, values, data, dirty, onLinked }) {
+  const { tid, user, canType, canMoney, region } = useSession();
+  const [busy, setBusy] = useState(false);
+  if (!rec) return null;
+  const c = tripCosts({ ...rec, data: { ...rec.data, values } }, data.list);
+  if (!canType('expense', 'edit') || !canMoney || (!c.total && !c.expense)) return null;
+  const money = (x) => fmtMoney(x, region?.currency);
+  const ev = data.byId[values.event];
+  const expValues = {
+    date: values.depart_date || today(), category: 'Transport', description: `Fuel and tolls${ev ? ` — ${titleOf(ev)}` : ''}`,
+    amount: String(c.total), event: values.event || '', ...(values.vehicle ? { inventory_item: values.vehicle } : {}), paid: true,
+    notes: `Fuel ${c.fuel}${c.tolls ? `, tolls ${c.tolls}` : ''}, from the trip plan.`,
+  };
+  const save = async () => {
+    setBusy(true);
+    try {
+      if (c.expense) await saveRecord(tid, 'expense', c.expense.id, { ...c.expense.data, values: { ...c.expense.data.values, amount: String(c.total), notes: expValues.notes } }, user.id);
+      else {
+        const e = await saveRecord(tid, 'expense', null, { form_id: formFor(data, 'expense')?.id, values: expValues }, user.id);
+        await saveRecord(tid, 'trip', rec.id, { ...rec.data, values: { ...values, expense: e.id } }, user.id);
+        onLinked?.(e.id);
+      }
+    } finally { setBusy(false); }
   };
   return (
-    <div className="card inline-row wrap">
-      <span className="grow">Fuel and tolls on this trip: <b>{Math.round(total * 100) / 100}</b></span>
-      <button type="button" className="btn small" onClick={go}>Record as a travel expense</button>
+    <div className="card inline-row wrap" data-testid="trip-tools">
+      <span className="grow">Fuel and tolls on this trip: <b>{money(c.total)}</b>
+        {c.expense ? (c.matches ? <span className="muted small"> · in Finance ✓</span> : <span className="muted small"> · Finance has {money(num(v(c.expense, 'amount')))}</span>) : null}</span>
+      {c.expense && <Link className="btn small ghost" to={`/r/expense/${c.expense.id}`}>Open the expense</Link>}
+      {(!c.expense || !c.matches) && <button type="button" className="btn small" disabled={busy || dirty} title={dirty ? 'Save the trip first' : ''} onClick={save}>{c.expense ? 'Update the expense' : 'Add to Finance'}</button>}
+    </div>
+  );
+}
+
+/**
+ * Expense or parts order: Add to inventory makes the asset (or tyre) it bought — name, cost, supplier and
+ * date filled in — and links it back as the Inventory item, so the item shows what's been spent on it.
+ */
+export function InventoryTools({ rec, values, data, dirty, onLinked }) {
+  const { tid, user, canType, membership } = useSession();
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState('Other');
+  const [name, setName] = useState('');
+  const [car, setCar] = useState(values.car || '');
+  const [busy, setBusy] = useState(false);
+  if (!rec) return null;
+  const linked = values.inventory_item && typeof values.inventory_item === 'object' ? data.byId[values.inventory_item.asset] : null;
+  if (linked) {
+    return (
+      <div className="card inline-row wrap" data-testid="inventory-tools">
+        <span className="grow">Inventory item: <b>{titleOf(linked, data)}</b></span>
+        <Link className="btn small ghost" to={linked.type === 'asset' ? `/assets/${linked.id}` : `/r/${linked.type}/${linked.id}`}>Open it</Link>
+      </div>
+    );
+  }
+  if (rec.type === 'purchase' && values.status !== 'Received') return null;
+  if (!canType('asset', 'edit') && !canType('tire', 'edit')) return null;
+  const add = async () => {
+    setBusy(true);
+    try {
+      const item = inventoryFrom({ ...rec, data: { ...rec.data, values } }, kind, { name: name.trim(), car, settings: membership?.settings || {}, data });
+      const made = await saveRecord(tid, item.type, null, { form_id: formFor(data, item.type)?.id, values: item.values }, user.id);
+      const next = { ...values, inventory_item: { asset: made.id } };
+      await saveRecord(tid, rec.type, rec.id, { ...rec.data, values: next }, user.id);
+      onLinked?.(next); setOpen(false);
+    } finally { setBusy(false); }
+  };
+  const kinds = [...(canType('asset', 'edit') ? ASSET_CATEGORIES.filter((c) => c !== 'Vehicle') : []), ...(canType('tire', 'edit') ? ['Tyre'] : [])];
+  return (
+    <div className="card" data-testid="inventory-tools">
+      {!open ? (
+        <div className="inline-row wrap">
+          <span className="grow muted">Did this buy a part, engine or tyre you’ll track? Add it to the inventory with its cost.</span>
+          <button type="button" className="btn small" disabled={dirty} title={dirty ? 'Save first' : ''} onClick={() => { setName(values.description || values.item || ''); setOpen(true); }}>Add to inventory</button>
+        </div>
+      ) : (
+        <div className="field-grid">
+          <div className="field"><label htmlFor="inv-kind">What is it</label>
+            <select id="inv-kind" value={kind} onChange={(e) => setKind(e.target.value)}>{kinds.map((k) => <option key={k} value={k}>{k === 'Tyre' ? 'Tyre' : `Asset — ${k}`}</option>)}</select></div>
+          <div className="field"><label htmlFor="inv-name">Name / ID</label><input id="inv-name" value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div className="field"><label htmlFor="inv-car">For car</label>
+            <select id="inv-car" value={car} onChange={(e) => setCar(e.target.value)}><option value="">—</option>{data.list('car').map((c) => <option key={c.id} value={c.id}>{titleOf(c, data)}</option>)}</select></div>
+          <div className="field end inline-row">
+            <button type="button" className="btn primary" disabled={busy || !name.trim()} onClick={add}>Add to inventory</button>
+            <button type="button" className="btn ghost" onClick={() => setOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

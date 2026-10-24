@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { Icon, I, useNav } from '../components/Layout.jsx';
-import { fmtDate, memberName, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { fmtDate, formFor, memberName, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { setupsByAsset } from '../lib/compute.js';
@@ -13,6 +13,8 @@ import { currentEvents, crewSpot, jobsFor } from '@shared/raceNight.js';
 import { eventPnl, purchaseTotal } from '@shared/finance.js';
 import { fmtMoney } from '@shared/regions.js';
 import { PURCHASE_STATUSES } from '@shared/baseForms5.js';
+import { crewCosts } from '@shared/budgetSponsors.js';
+import { eventDayList } from '@shared/calendar.js';
 
 /** Format money in the team's currency (or a record's own). */
 export function useMoney() {
@@ -141,6 +143,7 @@ export function EventBusiness({ ev }) {
               <div key={i} className="list-row"><span className="grow"><span className="row-title">{memberName(r.member) || '—'}</span><span className="row-sub">{[r.role, r.note].filter(Boolean).join(' · ')}</span></span></div>
             ))}</div>
           ) : <p className="muted">No crew list yet. Add who’s going and their job on the night — each person then sees their race-night jobs on Home.</p>}
+          {crew.length > 0 && canMoney && canType('expense', 'edit') && <CrewCosts ev={ev} data={data} />}
         </Section>
       )}
       {pnl && (
@@ -170,6 +173,48 @@ export function EventBusiness({ ev }) {
           </Section>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Crew pay for a meeting: per diems (rate × days) and pay per meeting for each person on the crew list whose
+ * Crew / contractor or Driver contract covers the date. Drafts them as unpaid expenses (bills to pay).
+ */
+function CrewCosts({ ev, data }) {
+  const { tid, user } = useSession();
+  const money = useMoney();
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState('');
+  const days = Math.max(1, eventDayList(ev.data?.values || {}).filter((d) => !d.off).length || 1);
+  const lines = crewCosts(data.list, ev, days);
+  const recorded = data.list('expense').filter((e) => v(e, 'event') === ev.id && v(e, 'member') && ['Per diems & catering', 'Wages & contractors'].includes(v(e, 'category')));
+  if (!lines.length && !recorded.length) return null;
+  const draft = async () => {
+    setBusy(true);
+    try {
+      const [y, mo, dd] = String(v(ev, 'end_date') || v(ev, 'date') || today()).split('-').map(Number);
+      const due = new Date(Date.UTC(y, mo - 1, dd + 7));   // in UTC, so the date doesn't move with the time zone
+      for (const l of lines) {
+        await saveRecord(tid, 'expense', null, { form_id: formFor(data, 'expense')?.id, values: {
+          date: v(ev, 'date') || today(), category: l.category, description: `${memberName(l.member)} — ${l.description}`, event: ev.id, member: l.member,
+          amount: String(l.amount), currency: l.currency, paid: false, due_date: due.toISOString().slice(0, 10), notes: 'Drafted from the crew list and their contract rates.' } }, user.id);
+      }
+      setDone(`Added ${lines.length} crew cost${lines.length === 1 ? '' : 's'} as bills to pay.`);
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="crew-costs" data-testid="crew-costs">
+      <h4 className="subhead">Crew pay</h4>
+      {lines.length > 0 && (
+        <div className="list">{lines.map((l, i) => (
+          <div key={i} className="list-row"><span className="grow"><span className="row-title">{memberName(l.member)}</span><span className="row-sub">{l.category} · {l.description}</span></span><span className="row-meta">{money(l.amount, l.currency)}</span></div>
+        ))}</div>
+      )}
+      {recorded.length > 0 && <p className="muted small">{recorded.length} crew cost{recorded.length === 1 ? '' : 's'} already in Finance for this meeting.</p>}
+      {lines.length > 0 && <button type="button" className="btn small" disabled={busy} onClick={draft}>Add crew costs to Finance ({money(lines.reduce((a, l) => a + l.amount, 0))})</button>}
+      {done && <span className="muted small" role="status"> {done}</span>}
+      <p className="muted small">From each person’s <b>Crew / contractor</b> or <b>Driver</b> contract (per diem × {days} day{days === 1 ? '' : 's'}, and pay per meeting).</p>
     </div>
   );
 }

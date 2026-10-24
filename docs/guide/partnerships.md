@@ -36,6 +36,18 @@ On the sponsor, list each promise under **What we promised**: **Logo on car** (s
 
 Other promises — **Suit / helmet**, **Pit & trailer signage**, **Website**, **Newsletter**, **Social shout-out**, **PA announcement**, **Podium / award**, **Car display**, an appearance — have a **Status**: **Planned → Designed → Approved by sponsor → Deployed**. Set it on the sponsor with the **Status date**, and pick a **Proof photo** from the media library. **Deployed** counts as done, and a promise with a due date drops off Reminders once it's deployed. The season report and the sponsor's page show where each one is up to.
 
+## Payments and in kind
+
+These show to people who can see costs and amounts.
+
+**Payments:** on the sponsor (**Edit**), list each instalment under **Payments**: the **Due** date, **Amount**, **Invoice #** and **Invoiced on**. The sponsor's page then shows what's scheduled, received and outstanding, and marks any instalment past due as **Overdue**.
+
+- When the money arrives, press **Mark received**. It records the income (kind **Sponsorship**, with the invoice number) and links it to the instalment.
+- Instalments not yet received show in **Reminders** a week before they're due.
+- If the schedule and the in-kind contributions don't add up to the deal value, the page says so.
+
+**In kind:** list goods and services they give instead of cash under **In-kind contributions**: **What**, **How many**, the **Fair value** and what it's **Instead of** (e.g. *Tyres*). When it arrives, press **Record in Finance**: it adds the fair value as **In-kind sponsorship** income and as a cost in that category. The two cancel out, but the budget shows what the season really costs and the sponsor gets the credit. Received in-kind items are listed in the season report (without values).
+
 ## Relationship and follow-ups
 
 The sponsor's page has a **Relationship** section:

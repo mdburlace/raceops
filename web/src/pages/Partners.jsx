@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Empty, PageHeader, Pill, Section, useOnline } from '../components/ui.jsx';
 import { api, fileUrl } from '../lib/api.js';
-import { fmtDate, memberName, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { fmtDate, formFor, memberName, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { dealResults, deliverableProgress, sponsorSummary } from '@shared/partners.js';
 import { SPONSOR_STAGES } from '@shared/baseForms5.js';
-import { INTERACTION_KINDS, exclusivityClashes, lastInteraction, openFollowUp } from '@shared/budgetSponsors.js';
+import { INTERACTION_KINDS, exclusivityClashes, inKindRecords, inKindStatus, lastInteraction, openFollowUp, paymentIncome, paymentStatus } from '@shared/budgetSponsors.js';
 import { useMoney } from './Business.jsx';
 
 // ---------------------------------------------------------------- partnerships
@@ -177,9 +177,98 @@ export function SponsorDetail() {
           </table></div>
         )}
       </Section>
+      {canMoney && <SponsorMoney sponsor={s} data={data} />}
       <Relationship sponsor={s} data={data} />
       <PortalLink sponsor={s} />
     </div>
+  );
+}
+
+/**
+ * The money side of a deal: the payment schedule (received, outstanding, overdue; Mark received records the
+ * income) and in-kind contributions (Record in Finance adds the fair value as income and as a matching cost).
+ */
+function SponsorMoney({ sponsor: s, data }) {
+  const { tid, user, canType } = useSession();
+  const money = useMoney();
+  const [busy, setBusy] = useState(false);
+  const pay = paymentStatus(s, today());
+  const kind = inKindStatus(s);
+  const cur = v(s, 'currency');
+  const canRecord = canType('sponsor', 'edit') && canType('income', 'edit');
+  const create = async (type, values) => saveRecord(tid, type, null, { form_id: formFor(data, type)?.id, values }, user.id);
+  const setRows = (key, rows) => saveRecord(tid, 'sponsor', s.id, { ...s.data, values: { ...s.data.values, [key]: rows } }, user.id);
+  const received = async (row) => {
+    setBusy(true);
+    try {
+      const inc = await create('income', paymentIncome(s, row, today()));
+      const rows = (v(s, 'payments') || []).map((x, i) => (i === row.i ? { ...x, received: today(), income: inc.id } : x));
+      await setRows('payments', rows);
+    } finally { setBusy(false); }
+  };
+  const record = async (row) => {
+    setBusy(true);
+    try {
+      const { income, expense } = inKindRecords(s, row, today());
+      const inc = await create('income', income);
+      const exp = canType('expense', 'edit') ? await create('expense', expense) : null;
+      const rows = (v(s, 'in_kind') || []).map((x, i) => (i === row.i ? { ...x, received: x.received || today(), income: inc.id, ...(exp ? { expense: exp.id } : {}) } : x));
+      await setRows('in_kind', rows);
+    } finally { setBusy(false); }
+  };
+  const stateLabel = { received: ['ok', 'Received'], overdue: ['over', 'Overdue'], invoiced: ['info', 'Invoiced'], due: ['info', 'Due'], planned: ['info', 'Planned'] };
+  if (!pay.rows.length && !kind.rows.length) {
+    return (
+      <Section title="Payments & in kind">
+        <p className="muted small">No payment schedule or in-kind contributions yet. Add the instalments and any goods or services they give under <b>Payments</b> and <b>In-kind contributions</b> when you edit the sponsor.</p>
+      </Section>
+    );
+  }
+  return (
+    <Section title="Payments & in kind">
+      {pay.rows.length > 0 && (
+        <>
+          <div className="event-meta" data-testid="payment-totals">
+            <span className="chip static">Scheduled {money(pay.scheduled, cur)}</span>
+            <span className="chip static">Received {money(pay.received, cur)}</span>
+            <span className="chip static">Outstanding {money(pay.outstanding, cur)}</span>
+            {pay.overdueCount > 0 && <Pill level="over">{pay.overdueCount} overdue · {money(pay.overdue, cur)}</Pill>}
+            {v(s, 'value') && Math.abs(Number(v(s, 'value')) - pay.scheduled) > 0.5 && Math.abs(Number(v(s, 'value')) - pay.scheduled - kind.total) > 0.5 && <span className="muted small">The schedule adds up to {money(pay.scheduled, cur)}{kind.total ? ` (${money(pay.scheduled + kind.total, cur)} with in kind)` : ''}, not the deal value of {money(v(s, 'value'), cur)}.</span>}
+          </div>
+          <div className="table-scroll"><table className="table" data-testid="payments">
+            <thead><tr><th>Due</th><th>Amount</th><th>Invoice</th><th>Status</th><th /></tr></thead>
+            <tbody>{pay.rows.map((r) => (
+              <tr key={r.i}>
+                <td>{fmtDate(r.due) || '—'}</td><td>{money(r.amount, cur)}</td>
+                <td className="small">{r.invoice_no || '—'}{r.invoiced ? <span className="muted"> · sent {fmtDate(r.invoiced)}</span> : null}</td>
+                <td><Pill level={stateLabel[r.state][0]}>{stateLabel[r.state][1]}{r.state === 'received' && r.received ? ` ${fmtDate(r.received)}` : ''}</Pill></td>
+                <td>{r.state === 'received'
+                  ? (r.income && data.byId[r.income] ? <Link className="btn small ghost" to={`/r/income/${r.income}`}>Income</Link> : null)
+                  : canRecord ? <button type="button" className="btn small" disabled={busy} onClick={() => received(r)}>Mark received</button> : null}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        </>
+      )}
+      {kind.rows.length > 0 && (
+        <>
+          <h4 className="subhead">In kind <span className="muted small">· {money(kind.total, cur)} fair value</span></h4>
+          <div className="table-scroll"><table className="table" data-testid="in-kind">
+            <thead><tr><th>What</th><th>Fair value</th><th>Instead of</th><th>Received</th><th /></tr></thead>
+            <tbody>{kind.rows.map((r) => (
+              <tr key={r.i}>
+                <td>{r.item}{Number(r.qty) > 1 ? ` × ${r.qty}` : ''}</td><td>{money(r.value, cur)}</td><td className="small">{r.category || '—'}</td>
+                <td className="small">{r.received ? fmtDate(r.received) : <span className="muted">not yet</span>}</td>
+                <td>{r.income
+                  ? <span className="inline-row">{data.byId[r.income] && <Link className="btn small ghost" to={`/r/income/${r.income}`}>Income</Link>}{r.expense && data.byId[r.expense] && <Link className="btn small ghost" to={`/r/expense/${r.expense}`}>Cost</Link>}</span>
+                  : canRecord ? <button type="button" className="btn small" disabled={busy} onClick={() => record(r)}>Record in Finance</button> : null}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+          <p className="muted small">Recording in kind adds its fair value as <b>In-kind sponsorship</b> income and as a cost in <b>Instead of</b>, so the net doesn’t change but the budget shows the real cost of the season.</p>
+        </>
+      )}
+    </Section>
   );
 }
 
@@ -295,6 +384,12 @@ export function SponsorPrint() {
           <table className="table"><tbody>{rows.map((r, i) => (
             <tr key={i}><td>{r.kind}{r.detail ? ` — ${r.detail}` : ''}</td><td>{r.manual ? (r.status === 'Deployed' ? `Done${r.status_date ? ` ${fmtDate(r.status_date)}` : ''}` : r.status || '—') : `${r.done} of ${r.target}`}</td></tr>
           ))}</tbody></table>
+          {inKindStatus(s).rows.filter((r) => r.received).length > 0 && (
+            <>
+              <h2>Your in-kind support</h2>
+              <ul>{inKindStatus(s).rows.filter((r) => r.received).map((r) => <li key={r.i}>{r.item}{Number(r.qty) > 1 ? ` × ${r.qty}` : ''} — received {fmtDate(r.received)}</li>)}</ul>
+            </>
+          )}
           <h2>Results</h2>
           <ResultsTable rows={results} />
           <h2>Posts</h2>

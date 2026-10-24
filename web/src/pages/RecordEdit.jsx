@@ -23,7 +23,7 @@ import FormRenderer from '../components/FormRenderer.jsx';
 import DynoChart from '../components/DynoChart.jsx';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { GLOBAL_TYPES, moneyFields } from '@shared/catalog.js';
-import { ChangeListTools, LoadListTools, PostTools, PurchaseTools, TaxHint, TripTools, TyreTargets } from '../components/RecordExtras.jsx';
+import { ChangeListTools, InventoryTools, LoadListTools, PostTools, PurchaseTools, TaxHint, TripTools, TyreTargets } from '../components/RecordExtras.jsx';
 import { Attachments, History, PageHeader } from '../components/ui.jsx';
 import { allFields, isVisible, memberName, num, formFor, formsFor, fmtDate, fmtDay, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
 import { dayPosition, eventDayList, normaliseDays } from '@shared/calendar.js';
@@ -593,7 +593,8 @@ export default function RecordEdit() {
       {type === 'shop_setup' && !isNew && <ShopSetupLinks rec={rec} values={values} />}
       {type === 'engine_tune' && !isNew && <TuneVersions rec={rec} values={values} />}
       {type === 'engine_check' && <CheckCompare rec={isNew ? null : rec} values={values} />}
-      {type === 'trip' && <TripTools values={values} data={data} />}
+      {type === 'trip' && <TripTools rec={isNew ? null : rec} values={values} data={data} dirty={dirty} onLinked={(eid) => setValues((x) => ({ ...x, expense: eid }))} />}
+      {(type === 'expense' || type === 'purchase') && !isNew && <InventoryTools rec={rec} values={values} data={data} dirty={dirty} onLinked={(nv) => { setValues(nv); setDirty(false); }} />}
 
       {type === 'dyno_run' && <DynoChart runs={[{ id: id || 'new', name: values.label || 'This run', values, form }]} />}
 

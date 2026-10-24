@@ -143,7 +143,13 @@ with sync_playwright() as pw:
     # jump bar opens a folded section and scrolls to it
     nav.locator('.sn-chip:text-is("Weather")').click()
     expect(page.locator('#f-temp')).to_be_visible()
-    nav.locator('.sn-chip:text-is("Race")').click(); page.wait_for_timeout(900)
+    nav.locator('.sn-chip:text-is("Race")').click()
+    # the smooth scroll brings the section up under the title
+    try:
+        page.wait_for_function('''() => { const t = document.getElementById('sec-race').getBoundingClientRect().top;
+          const h = document.querySelector('.page-head').getBoundingClientRect().bottom; return t >= h - 2 && t <= h + 60; }''', timeout=6000)
+    except Exception:
+        pass   # the assert below reports where it ended up
     top = page.evaluate("document.getElementById('sec-race').getBoundingClientRect().top")
     head = page.evaluate("document.querySelector('.page-head').getBoundingClientRect().bottom")
     assert head - 2 <= top <= head + 60, (top, head)
