@@ -9,7 +9,8 @@ Voices (--tts on training_videos.py):
 
   azure   Azure AI Speech, neural voices including Australian English (default voice en-AU-NatashaNeural).
           Needs AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in the environment (never in the repo).
-  polly   Amazon Polly, neural voices including Australian English (default voice Olivia).
+  polly   Amazon Polly, neural voices (default voice Matthew, US English, the voice RaceOps' videos use;
+          --voice Olivia for Australian English).
           Needs boto3 (pip install boto3) and AWS credentials the usual way: AWS_ACCESS_KEY_ID and
           AWS_SECRET_ACCESS_KEY, or AWS_PROFILE with ~/.aws/credentials (never in the repo). The region is
           AWS_REGION, default ap-southeast-2 (Sydney). The IAM user only needs polly:SynthesizeSpeech.
@@ -120,7 +121,7 @@ def _piper(text, voice, out):
 
 PROVIDERS = {
     'azure': (_azure, 'en-AU-NatashaNeural', 'ogg'),
-    'polly': (_polly, 'Olivia', 'mp3'),
+    'polly': (_polly, 'Matthew', 'mp3'),
     'piper': (_piper, None, 'wav'),
 }
 
@@ -280,14 +281,14 @@ def _polly_test(tmp, tone):
     _POLLY = _polly_client()
     with Stubber(_POLLY) as st:
         st.add_response('synthesize_speech', {'AudioStream': io.BytesIO(open(mp3, 'rb').read()), 'ContentType': 'audio/mpeg'},
-                        {'Text': 'right rear', 'TextType': 'text', 'Engine': 'neural', 'VoiceId': 'Olivia',
+                        {'Text': 'right rear', 'TextType': 'text', 'Engine': 'neural', 'VoiceId': 'Matthew',
                          'OutputFormat': 'mp3', 'SampleRate': str(RATE)})
-        n = Narrator('polly', 'Olivia', cache_dir=os.path.join(tmp, 'cache'))
+        n = Narrator('polly', 'Matthew', cache_dir=os.path.join(tmp, 'cache'))
         path, secs = n.speak('right rear')
         assert path.endswith('.mp3') and abs(secs - 1.0) < 0.15, (path, secs)
         assert n.speak('right rear')[0] == path  # second time from the cache: no second request (the stubber would fail)
     _POLLY = None
-    assert choose('polly', None) == ('polly', 'Olivia')
+    assert choose('polly', None) == ('polly', 'Matthew')
 
 
 def self_test():

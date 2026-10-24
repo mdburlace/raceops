@@ -19,7 +19,7 @@ says') lets the voice explain more than the caption; the captions file follows t
 --tts (see tools/narration.py):
 
     AZURE_SPEECH_KEY=… AZURE_SPEECH_REGION=australiaeast python3 tools/training_videos.py --tts azure …
-    AWS_PROFILE=raceops-voice python3 tools/training_videos.py --tts polly …      # Amazon Polly, Olivia (needs boto3)
+    AWS_PROFILE=raceops-voice python3 tools/training_videos.py --tts polly …      # Amazon Polly, Matthew (needs boto3)
     python3 tools/training_videos.py --tts piper --voice ~/voices/en_GB-alba-medium.onnx …
     python3 tools/training_videos.py --tts none …     # silent, with just the caption bar
 
@@ -42,7 +42,7 @@ ap.add_argument('--email', required=True)
 ap.add_argument('--password', required=True)
 ap.add_argument('--only', help='comma-separated video names to record')
 ap.add_argument('--tts', default='auto', choices=['auto', 'azure', 'polly', 'piper', 'none'], help='voice-over provider (default auto)')
-ap.add_argument('--voice', help='voice name (Azure, default en-AU-NatashaNeural; Polly, default Olivia) or model file (Piper)')
+ap.add_argument('--voice', help='voice name (Azure, default en-AU-NatashaNeural; Polly, default Matthew) or model file (Piper)')
 args = ap.parse_args()
 TTS, VOICE = narration.choose(args.tts, args.voice)
 NARRATOR = narration.Narrator(TTS, VOICE) if TTS != 'none' else None
