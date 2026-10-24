@@ -30,6 +30,7 @@ import { AdminBackups, TeamBackups } from './pages/Backups.jsx';
 import { AdminDeleted, RecentlyDeleted } from './pages/Deleted.jsx';
 import { WorkshopSetups } from './pages/WorkshopSetups.jsx';
 import { CheckPrint, EngineCheckList, EngineTunes, TunePrint } from './pages/EngineTunes.jsx';
+import TeardownPrint from './pages/TeardownPrint.jsx';
 import { BusinessHub, Purchases, RemindersPage } from './pages/Business.jsx';
 import { Finance } from './pages/Finance.jsx';
 import { Transport } from './pages/Transport.jsx';
@@ -89,6 +90,7 @@ function Routed() {
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/print/tune/:id" element={<ModuleGate module="enginetunes"><TunePrint /></ModuleGate>} />
       <Route path="/print/engine-check/:id" element={<AreaGate area="workshop" module="enginechecks"><CheckPrint /></AreaGate>} />
+      <Route path="/print/teardown/:id" element={<AreaGate area="engines" module="engines"><TeardownPrint /></AreaGate>} />
       <Route path="/print/job/:id" element={<AreaGate area="engines" module="jobs"><JobPrint /></AreaGate>} />
       <Route path="/print/guide" element={<HelpPrint />} />
       <Route path="/print/calendar" element={<ModuleGate module="calendar"><CalendarPrint /></ModuleGate>} />

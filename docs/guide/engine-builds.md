@@ -7,7 +7,7 @@ summary: Full build records per engine — specs, measurements, clearances, torq
 for: module:engines
 pages: /engines, /r/engine_build/*
 covers: type:engine_build, module:engines, feature:engines
-related: engine-tunes, engine-checks, assets, calculators, linked-engines, shop-jobs
+related: engine-teardown, engine-tunes, engine-checks, assets, calculators, linked-engines, shop-jobs
 ---
 Each engine is an [asset](/help/assets) (category **Engine**). Each time it's built or freshened, it gets a build sheet. How to run it — pill settings, ending tune and fuel system — goes on its [engine tune sheet](/help/engine-tunes); each engine card shows its active tune.
 
@@ -17,6 +17,8 @@ Each engine is an [asset](/help/assets) (category **Engine**). Each time it's bu
 2. Press **New build** beside the engine (or **New engine** first, if it isn't listed), then pick the build type (fresh build, freshen…).
 3. Fill in the sections: block, crank, rods, pistons, cam, heads, valvetrain, measurements, torque specs and dyno results.
 4. Press **Save**.
+
+Tearing an engine down first? Press **Teardown** on its card to record what you find, then **Start the rebuild sheet** from the teardown. See [Engine teardown & pre-check](/help/engine-teardown).
 
 For engine shops, **New build sheet** on a job fills in the engine, customer and work order for you.
 

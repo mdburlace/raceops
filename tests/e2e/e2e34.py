@@ -93,6 +93,27 @@ with sync_playwright() as pw:
     assert float(fv.get('wing_angle')) == 14, fv.get('wing_angle')
     assert not fv.get('finish') and not fv.get('driver_feel'), 'results and feedback are not copied'
 
+    # ---- the engine builder's teardown exercise: Hart 410's tired #4 intake spring
+    page.goto(B + '/engines')
+    hart = page.locator('.engine-card', has_text='Hart 410')
+    hart.locator('[data-testid="teardown-row"]', has_text='Down on power').click()
+    expect(page.locator('[data-testid="teardown-valvetrain"]')).to_contain_text('#4 (12%)', timeout=15000)
+    expect(page.locator('[data-testid="teardown-causes"]')).to_contain_text('Lean mixture')
+    page.get_by_role('button', name='Fill in 1 suggested decision').click()
+    page.locator('#f-root_cause').select_option('Metal fatigue')
+    page.get_by_role('button', name='Save', exact=True).click()
+    page.wait_for_url('**/engines', timeout=15000)
+    def td_saved():
+        for r in live(call(f'/t/{TID}/sync?since=0', OT)[1]['records']):
+            if r['type'] == 'engine_teardown' and vals(r).get('root_cause') == 'Metal fatigue':
+                return r
+    for _ in range(40):
+        td = td_saved()
+        if td: break
+        page.wait_for_timeout(500)
+    assert td and next(x for x in vals(td)['parts'] if x['part'] == 'Valve springs')['decision'] == 'Replace', td
+    shot('34-03a-teardown')
+
     # ---- practice teams can't send to the shared calendars
     st, r = call(f'/t/{TID}/calendar/requests', OT, 'POST', {'kind': 'fixture'})
     assert st == 400 and 'practice team' in r.get('error', '').lower(), (st, r)

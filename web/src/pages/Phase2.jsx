@@ -1,3 +1,4 @@
+import { teardownFindings, teardownsFor } from '@shared/engineTeardown.js';
 import { activeTune } from '@shared/engineTune.js';
 import { runSpeeds } from '@shared/dyno.js';
 import { baselines } from '@shared/bars.js';
@@ -189,7 +190,10 @@ export function Engines() {
             <section key={e.id} className="card engine-card">
               <div className="card-head">
                 <div><h3 className="plain">{v(e, 'name')}</h3><span className="muted small">{[v(e, 'spec'), v(e, 'status')].filter(Boolean).join(' · ')}</span></div>
-                {canType('engine_build', 'edit') && <Link className="btn small primary" to={`/r/engine_build/new?engine=${e.id}`}>New build</Link>}
+                <span className="inline-row">
+                  {canType('engine_teardown', 'edit') && <Link className="btn small" data-testid="new-teardown" to={`/r/engine_teardown/new?engine=${e.id}`}>Teardown</Link>}
+                  {canType('engine_build', 'edit') && <Link className="btn small primary" to={`/r/engine_build/new?engine=${e.id}`}>New build</Link>}
+                </span>
               </div>
               <div className="stat-row">
                 <div><b>{lapsSince}</b><small>laps since last build</small></div>
@@ -199,6 +203,25 @@ export function Engines() {
               {canType('engine_tune', 'view') && (() => {
                 const tune = activeTune(data.list('engine_tune'), e.id);
                 return <p className="small" data-testid="engine-tune-link">Tune: {tune ? <Link to={`/r/engine_tune/${tune.id}`}>{v(tune, 'name') || 'Tune'}</Link> : <span className="muted">none yet</span>}{' · '}<Link to="/tunes">all versions</Link></p>;
+              })()}
+              {(() => {
+                const tds = teardownsFor(data.list('engine_teardown'), e.id);
+                const blank = canType('engine_teardown', 'view') && <p className="small"><Link to={`/print/teardown/blank?engine=${e.id}`} data-testid="blank-teardown">Print a blank teardown sheet</Link></p>;
+                if (!tds.length) return blank || null;
+                return (<>{blank}
+                  <div className="list" data-testid="engine-teardowns">
+                    {tds.slice(0, 3).map((t) => {
+                      const { items } = teardownFindings(t.data.values, data.byId[v(t, 'build')]);
+                      const bad = items.filter((x) => x.level === 'bad').length;
+                      return (
+                        <Link key={t.id} to={`/r/engine_teardown/${t.id}`} className="list-row" data-testid="teardown-row">
+                          <span className="row-title">Teardown{v(t, 'reason') ? ` · ${v(t, 'reason')}` : ''}</span>
+                          <span className="row-sub">{fmtDate(v(t, 'date'))}{v(t, 'root_cause') ? ` · ${v(t, 'root_cause')}` : ''}{bad ? ` · ${bad} over a limit` : ''}</span>
+                        </Link>
+                      );
+                    })}
+                  </div></>
+                );
               })()}
               {mine.length === 0 ? <p className="muted">No builds recorded.</p> : (
                 <div className="list">

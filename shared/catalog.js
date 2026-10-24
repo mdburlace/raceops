@@ -47,7 +47,7 @@ export const MODULES = [
   { key: 'assets', label: 'Assets', types: ['asset', 'measurement'], area: 'workshop' },
   { key: 'shopsetups', label: 'Workshop setup sheets', types: ['shop_setup'], area: 'workshop' },
   { key: 'dyno', label: 'Shock & bar dyno', types: ['dyno_run'], area: 'workshop', feature: 'dyno' },
-  { key: 'engines', label: 'Engine builds', types: ['engine_build'], area: 'engines' },
+  { key: 'engines', label: 'Engine builds', types: ['engine_build', 'engine_teardown'], area: 'engines' },
   // each engine's tune (fuel settings for the weather, ending tune, fuel system), in versions. Used at the
   // track, in the workshop and by engine builders, so it needs no area (like the calendar).
   { key: 'enginetunes', label: 'Engine tunes', types: ['engine_tune'], area: null },
