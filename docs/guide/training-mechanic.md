@@ -47,6 +47,8 @@ demo: Car 17, 410 #3, 2026 v2, Intake spring for #5, Lakeside baseline, Valley S
 
 ## Exercise 5: Send the RR shock for a rebuild (5 min)
 
+![Video: Send the RR shock for a rebuild and record it back](video/training-shock-rebuild.webm)
+
 1. Go to **Assets** and open *RR Penske 8760*.
 2. Look at **Lifecycle**: races since its last service, against its limit of 10.
 3. Press **Edit** and set **Status** to **Out for Service**. Press **Save**.

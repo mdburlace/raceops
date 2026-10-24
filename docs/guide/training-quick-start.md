@@ -38,6 +38,8 @@ Installed, RaceOps opens full screen like any other app and keeps working with n
 
 ## 4. Work without signal (2 minutes)
 
+![Video: Work without signal: save with no connection and watch it sync](video/training-offline.webm)
+
 Everything you enter saves on your phone first, then syncs when there's a connection. The badge at the top right shows where things are:
 
 | Badge | Meaning |

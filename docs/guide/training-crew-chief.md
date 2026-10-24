@@ -115,6 +115,8 @@ demo: Car 17, 2026 v2, Lakeside baseline, Lakeside Raceway, Valley Speedway — 
 
 ## Exercise 12: Quick add and the angle finder (5 min)
 
+![Video: Quick add, half turns, the angle Pick list and the angle finder](video/training-quick-add.webm)
+
 1. Open the **Heat 1** sheet at *Valley Speedway — Club night* (unlock it first if you locked it in Exercise 11).
 2. In **Chassis**, long-press the **RF** box of **Block height** (right-click on a computer). The quick add screen opens: **Enter RF Block height**.
 3. Look at **Common values**: the block heights this car has run. Press **Clear**, then **1** and **+ 1/4**. The box shows *1.25* and *= 1 1/4"*. Press **OK**.

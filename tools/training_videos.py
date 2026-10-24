@@ -30,6 +30,7 @@ Every line is turned into speech before recording starts, so the video doesn't p
 If a video can't be finished (a screen didn't look as the script expects), the others still record, the old video is
 kept, and a screenshot and the page's text are saved in tools/.video-failures/ (ignored by Git).
 """
+from datetime import date
 import argparse, ast, json, os, shutil, subprocess, sys, tempfile, urllib.error, urllib.request
 from playwright.sync_api import sync_playwright, expect
 
@@ -272,6 +273,295 @@ def training_owner(page):
     qe = page.locator('[data-testid="quick-edit"]')
     qe.locator('input[aria-label="Sanctioning body"]').click(); page.keyboard.type('Speedway Australia', delay=40); page.wait_for_timeout(600)
     click(page, qe.locator('.qe-head button:has-text("Save")'), 2000)
+    say(page, '', 300)
+
+
+# ---- helpers for the videos below
+def type_in(page, loc, text, pause=600):
+    """Click a box, clear it and type, so the viewer sees it typed."""
+    loc = page.locator(loc) if isinstance(loc, str) else loc
+    loc.scroll_into_view_if_needed(); loc.hover(); page.wait_for_timeout(250)
+    loc.click(); loc.press('Control+a'); page.keyboard.type(text, delay=45); page.wait_for_timeout(pause)
+
+
+def quick_add(page, loc):
+    """Open the quick add screen on a number box (a long-press on a phone, a right-click on a computer)."""
+    loc = page.locator(loc) if isinstance(loc, str) else loc
+    loc.scroll_into_view_if_needed(); loc.hover(); page.wait_for_timeout(350)
+    loc.click(button='right'); page.wait_for_timeout(900)
+    return page.locator('[data-testid="quick-add"]')
+
+
+def round9():
+    return next(r for r in RECS if r['type'] == 'event' and str((r['data'].get('values') or {}).get('round')) == '9')
+
+
+def open_tonight(page, session='Heat 1'):
+    click(page, '.sidebar .nav-link:has-text("Events")')
+    click(page, 'a.list-row:has-text("Valley Speedway — Club night")', 1500)
+    if session:
+        click(page, page.locator(f'a:has-text("{session}")'), 1800)
+
+
+def jump(page, section):
+    """Use the setup sheet's jump bar."""
+    click(page, page.locator(f'.sheet-nav .sn-chip:has-text("{section}")'), 1300)
+
+
+@video
+def training_offline(page):
+    say(page, 'No signal at the track? Keep working', speak='No signal at the track? Keep working. RaceOps saves everything on your phone first.')
+    page.locator('.sync-badge').hover(); page.wait_for_timeout(400)
+    say(page, 'The badge at the top shows Synced: everything is on the server',
+        speak='The badge at the top right shows Synced: everything is on the server.')
+    page.context.set_offline(True); page.wait_for_timeout(1800)
+    say(page, 'Signal gone: the badge shows Offline', speak='Now the signal has gone, as if you turned on flight mode. The badge shows Offline.')
+    click(page, '.sidebar .nav-link:has-text("Cars")', 1000)
+    click(page, page.locator('main a:has-text("Car 17")'), 1500)
+    say(page, 'Change something and save it as usual', speak='Change something and save it as usual.')
+    f = page.locator('#f-notes'); f.scroll_into_view_if_needed(); f.click(); page.keyboard.press('End')
+    page.keyboard.type(' New RR shock fitted tonight.', delay=45); page.wait_for_timeout(600)
+    click(page, page.get_by_role('button', name='Save', exact=True), 1500)
+    page.locator('.sync-badge').hover()
+    say(page, 'Saved on the phone, queued to go up', 2500, speak='It’s saved on the phone. The badge shows one change queued, waiting to go up.')
+    page.context.set_offline(False)
+    expect(page.locator('.sync-badge')).to_contain_text('Synced', timeout=30000)
+    say(page, 'Back in signal, it syncs by itself', 2500, speak='Back in signal, it syncs by itself. Synced, and the whole team has the change.')
+    say(page, '', 300)
+
+
+@video
+def training_change_list(page):
+    say(page, 'Race night: the crew chief calls the changes',
+        speak='Race night. The crew chief starts the Feature sheet from Heat 1 and calls the changes.')
+    open_tonight(page, None)
+    page.select_option('.add-session select', 'Feature'); page.wait_for_timeout(600)
+    click(page, '.add-session button:has-text("Add session")', 1500)
+    click(page, 'button:has-text("Copy this session")', 1500)
+    say(page, 'A little less stagger and a degree less top wing', speak='A little less stagger, and a degree less top wing.')
+    type_in(page, '#f-stagger_cold', '5')
+    type_in(page, '#f-wing_angle', '12', 900)
+    jump(page, 'Change list')
+    say(page, 'Add changes from this sheet lists them for the car chief',
+        speak='Under Change list, press Add changes from this sheet. Each change is listed for the car chief, with what it was and what it is now.')
+    click(page, page.locator('#sec-changes button:has-text("Add changes from this sheet")'), 2200)
+    click(page, page.get_by_role('button', name='Save', exact=True), 2000)
+    say(page, 'The car chief opens the Feature sheet…', speak='The car chief opens the Feature sheet.')
+    click(page, page.locator('a:has-text("Feature")'), 1800)
+    jump(page, 'Change list')
+    say(page, '…and ticks each one off when it’s done on the car', speak='And ticks off each change once it’s done on the car.')
+    click(page, 'input[aria-label="Done row 1"]', 1000)
+    click(page, 'input[aria-label="Done row 2"]', 1200)
+    say(page, 'Save: 2 of 2 done', speak='Save. Two of two done, and the crew chief can see it.')
+    click(page, page.get_by_role('button', name='Save', exact=True), 1800)
+    say(page, '', 300)
+
+
+@video
+def training_tyre_sheet(page):
+    say(page, 'The tyre specialist: targets on the setup sheet', speak='For the tyre specialist: set the tyre targets on tonight’s setup sheet.')
+    open_tonight(page)
+    jump(page, 'Tyre targets')
+    say(page, 'Target cold pressures for each corner', speak='Enter the target cold pressure for each corner.')
+    for corner, psi in (('LF', '12'), ('RF', '14'), ('LR', '10'), ('RR', '15')):
+        type_in(page, f'#f-target_pressure-{corner}', psi, 350)
+    jump(page, 'Tires')
+    page.locator('table.tyre-targets').scroll_into_view_if_needed(); page.wait_for_timeout(600)
+    say(page, 'The tyre sheet compares the target with what was set', 3000,
+        speak='The tyre sheet compares each target with what was set. The RR is one P S I over.')
+    click(page, page.get_by_role('button', name='Save', exact=True), 1500)
+    say(page, 'Each tyre keeps its own work log', speak='Each tyre keeps its own work log. Open Gears and tires, then Tires.')
+    click(page, '.sidebar .nav-link:has-text("Gears & tires")', 1200)
+    click(page, 'main button:has-text("Tires")', 1200)
+    click(page, page.locator('main tr:has-text("RR-12") a'), 1500)
+    say(page, 'Add a row: siped today, with its circumference', speak='Add a row: siped today, with its circumference and durometer.')
+    plus = page.get_by_role('button', name='+ Row').last
+    click(page, plus, 800)
+    page.locator('input[aria-label="Date row 1"]').fill(date.today().isoformat()); page.wait_for_timeout(400)
+    page.select_option('select[aria-label="Work row 1"]', 'Siped'); page.wait_for_timeout(600)
+    type_in(page, 'input[aria-label="Circumference row 1"]', '105.25', 300)
+    type_in(page, 'input[aria-label="Durometer row 1"]', '55', 300)
+    page.select_option('select[aria-label="By row 1"]', index=1); page.wait_for_timeout(600)
+    click(page, page.get_by_role('button', name='Save', exact=True), 1500)
+    say(page, '', 300)
+
+
+@video
+def training_quick_add(page):
+    say(page, 'Quick add: a big keypad for any number box', speak='The quick add screen gives you a big keypad for any number box on the setup sheet.')
+    open_tonight(page)
+    jump(page, 'Chassis')
+    say(page, 'Long-press a box. On a computer, right-click', speak='Long-press a box on your phone, or right-click on a computer. Here, the RR turns.')
+    qa = quick_add(page, '#f-turns-RR')
+    say(page, 'Last session’s value, and the team’s common values', speak='It shows last session’s value and the values this team uses most.')
+    click(page, qa.get_by_role('button', name='Clear'), 500)
+    click(page, qa.get_by_role('button', name='5', exact=True), 500)
+    click(page, qa.get_by_role('button', name='plus 1/2'), 1200)
+    click(page, qa.get_by_role('button', name='OK'), 1000)
+    say(page, '− and + beside Turns move half a turn', speak='The minus and plus buttons beside Turns move it half a turn at a time.')
+    rr = page.locator('#f-turns-RR').locator('xpath=ancestor::*[contains(@class,"cg-cell")][1]')
+    click(page, rr.locator('button[aria-label^="More"]'), 900)
+    click(page, rr.locator('button[aria-label^="Less"]'), 1200)
+    jump(page, 'Wing')
+    say(page, 'Angles have a Pick list', speak='Angles have a Pick list. Choose thirteen and a half degrees for the top wing.')
+    qa = quick_add(page, '#f-wing_angle')
+    click(page, qa.get_by_role('button', name='13.5°', exact=True), 900)
+    click(page, qa.get_by_role('button', name='OK'), 1000)
+    say(page, 'On a phone, the Angle finder measures it for you', speak='On a phone, the Angle finder measures an angle for you. Lay the phone along the part and read it off.')
+    jump(page, 'Chassis')
+    qa = quick_add(page, '#f-rake')
+    click(page, qa.get_by_role('button', name='Angle finder'), 2500)
+    click(page, qa.locator('button:has-text("✕")'), 900)
+    say(page, 'Save', speak='Then save the sheet.')
+    click(page, page.get_by_role('button', name='Save', exact=True), 1500)
+    say(page, '', 300)
+
+
+@video
+def training_shock_rebuild(page):
+    say(page, 'The RR shock is nearly due for a rebuild', speak='The RR shock is nearly due for its rebuild. Open it from Assets.')
+    click(page, '.sidebar .nav-link:has-text("Assets")', 1200)
+    click(page, page.locator('main a:has-text("RR Penske 8760")'), 1500)
+    say(page, 'Lifecycle: 9 of its 10 races used', speak='Lifecycle shows nine of its ten races used.')
+    say(page, 'Send it away: Edit, then Out for Service', speak='To send it away, press Edit and set its status to Out for Service.')
+    click(page, page.locator('main a:has-text("Edit"), main button:has-text("Edit")'), 1500)
+    page.select_option('#f-status', 'Out for Service'); page.wait_for_timeout(900)
+    click(page, page.get_by_role('button', name='Save', exact=True), 1800)
+    say(page, 'Back from the rebuild: a dyno run', speak='When it comes back, record a dyno run. Open Shock and bar dyno, then New shock run.')
+    click(page, '.sidebar .nav-link:has-text("Shock & bar dyno")', 1200)
+    click(page, page.locator('main :text-is("New shock run")'), 1500)
+    page.select_option('#f-asset', label='RR Penske 8760'); page.wait_for_timeout(500)
+    page.select_option('#f-purpose', 'After rebuild'); page.wait_for_timeout(700)
+    say(page, 'One block per adjuster setting tested', speak='Pick the shock and set the purpose to After rebuild. Then add a block for each adjuster setting you tested.')
+    if not page.locator('input[aria-label="Setting 1 label"]').count():
+        click(page, page.get_by_role('button', name='+ Setting'), 1000)
+    type_in(page, 'input[aria-label="Setting 1 label"]', 'As raced', 300)
+    page.select_option('select[aria-label="Setting 1 test speed"]', label='6.00 in/s'); page.wait_for_timeout(500)
+    say(page, 'Readings: force at each velocity', speak='Enter the readings: the force at each velocity, compression and rebound.')
+    for row, (co, rc) in enumerate((('20', '45'), ('38', '90'), ('52', '130')), start=2):  # velocities 1, 2 and 3 in/s are filled in already
+        type_in(page, page.locator(f'input[aria-label="CO row {row}"]').first, co, 150)
+        type_in(page, page.locator(f'input[aria-label="RC row {row}"]').first, rc, 150)
+    click(page, page.get_by_role('button', name='Save', exact=True), 1800)
+    say(page, 'Then put it back In Service', speak='Then set the shock back to In Service, and its count starts again.')
+    click(page, '.sidebar .nav-link:has-text("Assets")', 1200)
+    click(page, page.locator('main a:has-text("RR Penske 8760")'), 1500)
+    click(page, page.locator('main a:has-text("Edit"), main button:has-text("Edit")'), 1500)
+    page.select_option('#f-status', 'In Service'); page.wait_for_timeout(800)
+    click(page, page.get_by_role('button', name='Save', exact=True), 1800)
+    say(page, '', 300)
+
+
+@video
+def training_parts_order(page):
+    say(page, 'A mechanic asked for a shock rebuild kit', speak='A mechanic has asked for a shock rebuild kit. Open Business, then Parts orders.')
+    click(page, '.sidebar .nav-link:has-text("Parts orders")', 1500)
+    say(page, 'The crew chief approves it', speak='The crew chief, or the owner, approves it.')
+    click(page, page.get_by_role('button', name='Approve', exact=True), 1500)
+    click(page, 'main button:has-text("All")', 1000)
+    click(page, page.locator('main .list-row:has-text("RR shock rebuild kit"), main a:has-text("RR shock rebuild kit")'), 1500)
+    say(page, 'When it arrives: Record as an expense', speak='When the kit arrives, press Record as an expense. The expense is filled in from the order.')
+    click(page, page.get_by_role('button', name='Record as an expense'), 2000)
+    click(page, page.get_by_role('button', name='Save', exact=True), 1800)
+    say(page, 'It’s in Finance, against round 9', speak='It’s now in Finance, against round 9 at Lakeside.')
+    page.goto(f"{B}/events/{round9()['id']}"); page.wait_for_timeout(1800)
+    page.locator('text=PROFIT & LOSS').first.scroll_into_view_if_needed(); page.wait_for_timeout(500)
+    say(page, 'And in that meeting’s profit and loss', 3000, speak='And in that meeting’s profit and loss, with the order and the expense beside it.')
+    say(page, '', 300)
+
+
+@video
+def training_load_list(page):
+    say(page, 'Loading the hauler for round 9', speak='Loading the hauler for round 9. Open Business, then Transport, then Load lists.')
+    click(page, '.sidebar .nav-link:has-text("Transport")', 1200)
+    click(page, 'main button:has-text("Load lists")', 1000)
+    click(page, page.locator('main :text-is("New load list")'), 1500)
+    say(page, 'Pick the event, the vehicle and a template', speak='Pick the event, the vehicle and a template.')
+    page.select_option('#f-event', round9()['id']); page.wait_for_timeout(700)
+    page.select_option('#f-vehicle', label='Hauler'); page.wait_for_timeout(700)
+    page.select_option('select[aria-label="Template"]', label='Sprint car race weekend'); page.wait_for_timeout(700)
+    say(page, 'One press adds the car, its engines and the template', speak='One press adds the event’s car, its engines and the template’s standard items.')
+    click(page, page.locator('main button:has-text("Add the event")'), 1500)
+    page.locator('input[aria-label="Loaded row 1"]').scroll_into_view_if_needed(); page.wait_for_timeout(500)
+    say(page, 'Tick Loaded as each thing goes on — no signal needed', speak='Tick Loaded as each thing goes on the trailer. It works with no signal.')
+    for n in (1, 2, 3):
+        click(page, f'input[aria-label="Loaded row {n}"]', 600)
+    click(page, page.get_by_role('button', name='Save', exact=True), 1800)
+    say(page, '3 loaded, 6 to go', 2500, speak='Three loaded, six to go. The list follows the trip to the track and back home.')
+    say(page, '', 300)
+
+
+@video
+def training_sponsor(page):
+    say(page, 'Partnerships: tonight’s guest arrives', speak='In Partnerships, tonight’s hospitality guest has arrived. Open Hospitality and check them in.')
+    click(page, '.sidebar .nav-link:has-text("Partnerships")', 1200)
+    click(page, 'main button:has-text("Hospitality")', 1200)
+    sel = page.locator('main select[aria-label="Event"]')
+    if sel.count():
+        opt = sel.locator('option', has_text='Club night').first.get_attribute('value')
+        sel.select_option(opt); page.wait_for_timeout(800)
+    click(page, page.get_by_role('button', name='Check in').first, 1500)
+    say(page, 'What we promised Valley Tyres', speak='Now open the sponsor, Valley Tyres.')
+    click(page, 'main button:has-text("Sponsors")', 1000)
+    click(page, page.locator('main .list-row:has-text("Valley Tyres"), main a:has-text("Valley Tyres")'), 1800)
+    page.locator('text=WHAT WE PROMISED').first.scroll_into_view_if_needed(); page.wait_for_timeout(600)
+    say(page, 'Each promise counts its own evidence', 3500,
+        speak='What we promised counts its own evidence: the logo in a photo, a post for each event, and the hospitality passes tonight’s guest used.')
+    page.locator('text=PAYMENTS & IN KIND').first.scroll_into_view_if_needed(); page.wait_for_timeout(600)
+    say(page, 'Payments: the second invoice has been paid', speak='Under Payments and in kind, the second invoice has been paid. Press Mark received.')
+    click(page, page.get_by_role('button', name='Mark received'), 1800)
+    say(page, 'In kind: tyres instead of cash, recorded in Finance', speak='The tyres they give instead of cash go in Finance too: press Record in Finance.')
+    click(page, page.get_by_role('button', name='Record in Finance'), 1800)
+    say(page, 'Nothing outstanding', 2500, speak='Nothing outstanding, and the season’s budget shows what the tyres are really worth.')
+    say(page, '', 300)
+
+
+@video
+def training_role(page):
+    say(page, 'Team Management → Roles & permissions', speak='To decide who sees what, open Team Management, then Roles and permissions.')
+    click(page, '.sidebar .nav-link:has-text("Roles & permissions")', 1500)
+    say(page, 'Start with a standard role, or make your own', speak='Start with a standard role, or make your own. Press New role.')
+    click(page, page.locator('main :text-is("New role")'), 1200)
+    type_in(page, 'main .field:has(label:text-is("Role name")) input', 'Tyre person')
+    type_in(page, 'main .field:has(label:text-is("Description")) input', 'Tyres, and reads the setup sheets')
+    say(page, 'Tick an area first, then what’s in it', speak='Tick an area first, here At the Track, then choose what’s in it.')
+    click(page, page.locator('main tr:has-text("At the Track") input[type=checkbox]').first, 900)
+    say(page, 'View lets them see it. Edit lets them change it', speak='View lets them see a screen. Edit lets them change it. Tick only what they need.')
+    for box in ('Setup sheets & advisor view', 'Gears & tires view', 'Gears & tires edit'):
+        click(page, page.locator(f'main input[aria-label="{box}"]'), 500)
+    say(page, 'Save role, then give it to people in Members & invites',
+        speak='Save the role, then give it to people in Members and invites.')
+    click(page, page.get_by_role('button', name='Save role'), 1800)
+    say(page, '', 300)
+    # roles aren't removed by a practice reset: take this one out again
+    for r in call(f'/t/{TID}/roles', T)[1]:
+        if r.get('name') == 'Tyre person':
+            call(f'/t/{TID}/roles/{r["id"]}', T, 'DELETE')
+
+
+@video
+def training_backup(page):
+    page.on('dialog', lambda d: d.accept())  # the delete confirmation
+    say(page, 'Back up the team, and put it back', speak='Here’s how to back up the team, and put it back if something goes wrong.')
+    click(page, '.sidebar .nav-link:has-text("Backups & export")', 1500)
+    say(page, 'Back up now: everything in the team', speak='Press Back up now. It takes everything: records, setup sheets, parts, files, forms and roles.')
+    click(page, page.get_by_role('button', name='Back up now'), 500)
+    expect(page.locator('main')).to_contain_text('Backed up', timeout=60000); page.wait_for_timeout(1500)
+    say(page, 'Now a mistake: Car 71 deleted', speak='Now a mistake. Someone deletes Car 71.')
+    click(page, '.sidebar .nav-link:has-text("Cars")', 1000)
+    click(page, page.locator('main a:has-text("Car 71")'), 1200)
+    click(page, page.get_by_role('button', name='Delete', exact=True), 1500)
+    say(page, 'Restore… on the backup', speak='Back on Backups, press Restore on the backup you made.')
+    click(page, '.sidebar .nav-link:has-text("Backups & export")', 1500)
+    click(page, page.locator('main tr:has(button:has-text("Restore…"))').first.locator('button:has-text("Restore…")'), 1200)
+    say(page, 'Tick that you understand, then Restore the team', speak='Read what it does, tick that you understand, then press Restore the team.')
+    click(page, page.get_by_label('I understand the team’s data will be replaced'), 600)
+    click(page, page.get_by_role('button', name='Restore the team'), 500)
+    expect(page.locator('main')).to_contain_text('Restored', timeout=60000); page.wait_for_timeout(1200)
+    say(page, 'Restored. A safety backup was taken first', speak='Restored. A safety backup of the team was taken first, in case you need to undo it.')
+    click(page, '.sidebar .nav-link:has-text("Cars")', 500)
+    page.reload(); synced(page)  # devices download the restored team on their next sync; this makes it now
+    expect(page.locator('main')).to_contain_text('Car 71', timeout=60000); page.wait_for_timeout(600)
+    say(page, 'Car 71 is back', 2500, speak='And Car 71 is back.')
     say(page, '', 300)
 
 
