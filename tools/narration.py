@@ -9,13 +9,18 @@ Voices (--tts on training_videos.py):
 
   azure   Azure AI Speech, neural voices including Australian English (default voice en-AU-NatashaNeural).
           Needs AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in the environment (never in the repo).
+  polly   Amazon Polly, neural voices including Australian English (default voice Olivia).
+          Needs boto3 (pip install boto3) and AWS credentials the usual way: AWS_ACCESS_KEY_ID and
+          AWS_SECRET_ACCESS_KEY, or AWS_PROFILE with ~/.aws/credentials (never in the repo). The region is
+          AWS_REGION, default ap-southeast-2 (Sydney). The IAM user only needs polly:SynthesizeSpeech.
   piper   Piper, free and offline: pip install piper-tts, plus a voice model (.onnx with its .onnx.json).
           Give the model with --voice /path/to/voice.onnx or PIPER_VOICE.
           Check the voice's licence before you commit videos made with it: each Piper voice has the licence
           of the recordings it was trained on, and some (e.g. the lessac voices, from the Blizzard 2013 data)
           are for research only. RaceOps is a product, so use a voice whose licence allows commercial use.
   none    No voice: the caption bar is burned into the picture instead, as before narration.
-  auto    azure if AZURE_SPEECH_KEY is set, else piper if PIPER_VOICE is set, else none.
+  auto    azure if AZURE_SPEECH_KEY is set, else polly if AWS credentials or AWS_PROFILE are set,
+          else piper if PIPER_VOICE is set, else none.
 
 Speech is cached in tools/.tts-cache (ignored by Git), so re-recording a video only pays for lines that changed.
 
@@ -73,6 +78,34 @@ def _azure(text, voice, out):
             sys.exit(f'Azure voice failed ({e.code}): {e.read()[:300]!r}')
 
 
+def _polly_client():
+    try:
+        import boto3
+        from botocore.config import Config
+    except ImportError:
+        sys.exit('Amazon Polly voice: install boto3 first (pip install boto3).')
+    region = os.environ.get('AWS_REGION') or os.environ.get('AWS_DEFAULT_REGION') or 'ap-southeast-2'
+    return boto3.client('polly', region_name=region, config=Config(retries={'max_attempts': 5, 'mode': 'adaptive'}))
+
+
+_POLLY = None
+
+
+def _polly(text, voice, out):
+    global _POLLY
+    from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
+    try:
+        _POLLY = _POLLY or _polly_client()
+        r = _POLLY.synthesize_speech(Text=text, TextType='text', Engine='neural', VoiceId=voice,
+                                     OutputFormat='mp3', SampleRate=str(RATE))
+        with open(out, 'wb') as f:
+            f.write(r['AudioStream'].read())
+    except NoCredentialsError:
+        sys.exit('Amazon Polly voice: no AWS credentials. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (or AWS_PROFILE).')
+    except (ClientError, BotoCoreError) as e:
+        sys.exit(f'Amazon Polly voice failed: {e}')
+
+
 RESEARCH_ONLY = ('lessac', 'blizzard')  # Piper voices trained on data licensed for research only
 
 
@@ -87,6 +120,7 @@ def _piper(text, voice, out):
 
 PROVIDERS = {
     'azure': (_azure, 'en-AU-NatashaNeural', 'ogg'),
+    'polly': (_polly, 'Olivia', 'mp3'),
     'piper': (_piper, None, 'wav'),
 }
 
@@ -94,11 +128,13 @@ PROVIDERS = {
 def choose(provider, voice):
     """Resolve --tts auto and the default voice. Returns (provider, voice), provider 'none' for no narration."""
     if provider == 'auto':
-        provider = 'azure' if os.environ.get('AZURE_SPEECH_KEY') else 'piper' if (voice or os.environ.get('PIPER_VOICE')) else 'none'
+        aws = os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('AWS_PROFILE')
+        provider = ('azure' if os.environ.get('AZURE_SPEECH_KEY') else 'polly' if aws
+                    else 'piper' if (voice or os.environ.get('PIPER_VOICE')) else 'none')
     if provider == 'none':
         return 'none', None
     if provider not in PROVIDERS:
-        sys.exit(f'Unknown voice provider "{provider}" (use azure, piper, none or auto).')
+        sys.exit(f'Unknown voice provider "{provider}" (use azure, polly, piper, none or auto).')
     if provider == 'piper':
         voice = voice or os.environ.get('PIPER_VOICE')
     return provider, voice or PROVIDERS[provider][1]
@@ -233,6 +269,27 @@ def encode(raw, out_webm, timeline=None):
 
 
 # ---------------------------------------------------------------- self-test
+def _polly_test(tmp, tone):
+    """Polly with a stubbed AWS client: the request it sends, and the speech it saves."""
+    global _POLLY
+    import io
+    from botocore.stub import Stubber
+    os.environ.setdefault('AWS_ACCESS_KEY_ID', 'test'); os.environ.setdefault('AWS_SECRET_ACCESS_KEY', 'test')
+    mp3 = os.path.join(tmp, 'tone.mp3')
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', tone, '-ar', str(RATE), mp3], check=True)
+    _POLLY = _polly_client()
+    with Stubber(_POLLY) as st:
+        st.add_response('synthesize_speech', {'AudioStream': io.BytesIO(open(mp3, 'rb').read()), 'ContentType': 'audio/mpeg'},
+                        {'Text': 'right rear', 'TextType': 'text', 'Engine': 'neural', 'VoiceId': 'Olivia',
+                         'OutputFormat': 'mp3', 'SampleRate': str(RATE)})
+        n = Narrator('polly', 'Olivia', cache_dir=os.path.join(tmp, 'cache'))
+        path, secs = n.speak('right rear')
+        assert path.endswith('.mp3') and abs(secs - 1.0) < 0.15, (path, secs)
+        assert n.speak('right rear')[0] == path  # second time from the cache: no second request (the stubber would fail)
+    _POLLY = None
+    assert choose('polly', None) == ('polly', 'Olivia')
+
+
 def self_test():
     """Builds a 6-second video with two tones as 'speech' and checks the audio track and captions."""
     tmp = tempfile.mkdtemp()
@@ -268,6 +325,12 @@ def self_test():
         assert [p for _, _, p in long] == ['Press Save.', 'It’s on the phone straight away, and syncs to the rest of the team when there’s signal.'], long
         assert long[0][0] == 10.0 and 10.3 < long[0][1] < 10.7 and long[1][1] == 20.0, long
         assert spoken('Half a psi more in the RR → J-1001 — done') == 'Half a P S I more in the right rear, then job ten oh one, done'
+        try:
+            import boto3  # noqa: F401
+        except ImportError:
+            print('  (boto3 not installed: Amazon Polly not tested)')
+        else:
+            _polly_test(tmp, tones[0])
         encode(raw, out, None)  # silent again: the old captions file goes
         assert not os.path.exists(out[:-5] + '.vtt')
         print('Narration self-test: OK')
