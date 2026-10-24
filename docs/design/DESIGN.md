@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `019_team_roles.sql` |
-| Last updated | October 2026 (events in more than one series, round prefixes, locked setup sheets) |
+| Last updated | October 2026 (setup sheet quick add screen, angle finder, block height, turns and new chassis and rpm fields) |
 
 ---
 
@@ -171,7 +171,7 @@ shared/                   code used by server AND web
   baseForms.js … baseForms4.js   base form definitions and upgrade rules
   fieldInfo.js            ⓘ descriptions for every form field
   calcs.js, gearLists.js, fuel.js, dyno.js, bars.js, sessions.js, analytics.js, advisor.js, weather.js, tracks.js,
-  engineChecks.js, enginePack.js, shop.js, setupLayout.js, themes.js, calendar.js
+  engineChecks.js, enginePack.js, shop.js, setupLayout.js, setupQuickAdd.js, themes.js, calendar.js
   practiceData.js         demo data for practice teams (training)
   baseForms5.js           phase 5 forms (parts orders, finance, transport, partnerships, marketing) and upgrades (change list, tyre targets, crew list, tyre work log, contact tags, vehicles)
   fieldInfo5.js           ⓘ descriptions for the phase 5 fields (merged into FIELD_INFO)
@@ -197,7 +197,7 @@ web/
   index.html, vite.config.js, public/ (icons)
   src/main.jsx, App.jsx   entry and routes
   src/lib/                api, session, store (Dexie), sync, data hooks, theme, guide, parsing, computations
-  src/components/         FormRenderer, TableFields, Layout, charts, Ai, Weather, SharedRequests, etc.
+  src/components/         FormRenderer, QuickAdd, TableFields, Layout, charts, Ai, Weather, SharedRequests, etc.
   src/pages/              one file per area/page group
 ```
 
@@ -449,20 +449,29 @@ Most screens are driven by **form definitions** stored as `form` records, render
 
 **Field types:** `text`, `textarea`, `number`, `date`, `select` (`options`, `optionsFrom`, `allowCustom`), `tags`, `check`, `checkbox`, `ref` (another record type), `multiref`, `entityref` (type chosen by another field), `asset`, `member`, `contact`, `track`, `corners` (per-corner/per-cylinder values), `table` (rows with columns), `sweep` (dyno readings by velocity), `calc` and `derived` (computed), `heading`, `days` (the days of a multi-day event or shared date, see §12.1; rendered by `DaysField.jsx`).
 
-**Field options:** `core` (can't be removed by teams), `required`, `unit`, `help`, `placeholder`, `default`, `defaultSelf`, `showIf` (`key=A|B`, `key!=A`, empty allowed), `nocopy` (not carried to the next setup sheet), `suggest`, `measure`, `matchCar` / `match: '<key>'` (ref options limited to records with the same car, or the same engine as the picked motor), `shopOnly` (shown to engine shops only), `hidden` (kept for its data but never shown; the app sets it, e.g. an event's `end_date` comes from its days).
+**Field options:** `quick` (`fraction` | `angle` | `number`: which quick add screen a setup number box gets, see §9.4), `core` (can't be removed by teams), `required`, `unit`, `help`, `placeholder`, `default`, `defaultSelf`, `showIf` (`key=A|B`, `key!=A`, empty allowed), `nocopy` (not carried to the next setup sheet), `suggest`, `measure`, `matchCar` / `match: '<key>'` (ref options limited to records with the same car, or the same engine as the picked motor), `shopOnly` (shown to engine shops only), `hidden` (kept for its data but never shown; the app sets it, e.g. an event's `end_date` comes from its days).
 
 **Inventory pickers** (`asset` fields and `corners` fields with `input: 'asset'`): the value is `{ asset: <record id> }` when picked, or a plain string when entered manually. `category` limits assets to one category; `ref: 'tire'` lists tyre records instead of assets. `filterByCorner` (and every Shock field) lists first the items whose `position` is that corner, or empty/`N/A`/`Any`, and for this car (`car`, or a tyre's `available_for`); `scopePosition` does the same for a single field (`Top`/`Front` wings). Retired assets and worn-out tyres are hidden. **+ Save to inventory** turns a typed value into a new asset (or tyre) for that corner and car. Referenced items count laps through `setupsByAsset()`.
 
 ### 9.2 Base forms and upgrades
 
 - `BASE_FORMS` (from `baseForms.js`, plus phase 2–4 additions) are copied into each new team.
-- On every start, `ensureTeamBase()` adds missing base forms and runs `applyUpgrades()` with `FORM_UPGRADES` (phase 2) and `PHASE3_UPGRADES` (phase 3+). Upgrade kinds: add a field after another, patch a field's properties, patch a section, insert a section, move a field. Each upgrade leaves a `_patched_…`/`_moved_…` marker so it applies **once** and a team's later edits win.
+- On every start, `ensureTeamBase()` adds missing base forms and runs `applyUpgrades()` with `FORM_UPGRADES` (phase 2), `PHASE3_UPGRADES` (phase 3+), `PHASE5_UPGRADES` and `SETUP_SHEET_UPGRADES` (`shared/setupQuickAdd.js`: Blocked → Block height, Turns, rake, tilt, RR radius rod, birdcage angles, the Jacobs ladder, the rpm readings, and the workshop setup's matching fields and `maps`). Upgrade kinds: add a field after another, patch a field's properties, patch a section, insert a section, move a field. Each upgrade leaves a `_patched_…`/`_moved_…` marker so it applies **once** and a team's later edits win.
 - `FORM_REPLACE` swaps in the shipped structure when a marker field is missing (used for big redesigns), keeping sections the team added.
 - **Every field needs an ⓘ description** in `shared/fieldInfo.js` (`FIELD_INFO`); the guide check enforces it.
 
 ### 9.3 Team form editing
 
 `/forms/:id` lets users with `forms.manage` add, hide, reorder and describe fields and sections. Core fields can be hidden but not deleted. Setup sheets also support a per-user layout (section order, folding, before/after) in `shared/setupLayout.js`.
+
+### 9.4 Quick add screen (setup sheets)
+
+On forms whose target is in `QUICK_ADD_TARGETS` (`setup`, `shop_setup`) and only when the sheet can be edited, `FormRenderer` wraps its sections in `QuickAddProvider` (`web/src/components/QuickAdd.jsx`). Every number box (`NumberBox`, the `Stepper` input and four-corner number cells, which pass the four-corner field plus `corner` as `quickField`) gets `useQuickAdd()` props: a 500 ms press-and-hold (pointer events, cancelled by moving over 10 px) or `contextmenu` (right-click, Android long-press) opens the screen; the inputs carry `data-quick` and `-webkit-touch-callout: none`. The screen is client-only and writes through the field's normal `onChange`, so saving, sync, part rights, locks and "was" notes are unchanged.
+
+- **Kind** — `quickAddFor(field)`: the field's `quick`, else `QUICK_ADD[key]`, else `number`. `fraction` adds +1/16…+15/16 buttons; `withFraction()` keeps the whole number typed and sets the fraction (values are stored as decimals, shown with `asFraction()`). `angle` adds **Pick** (`angleList()` over the rule's `min`/`max`/`step`) and **Angle finder**.
+- **Common values** — `commonValues(records, key, corner)`: the most used values in that box across the team's records of the form's type, this car's sheets first, newest breaking ties (top 6).
+- **Keypad** — `keypad(text, key)` (digits, `.`, sign, backspace); the physical keyboard works while the screen is open.
+- **Angle finder** — listens to `deviceorientation` and reads `tiltOf(e)` (beta folded into −90…90), smoothed. Where `DeviceOrientationEvent.requestPermission` exists (iOS, also Chromium) the **Use the tilt sensor** button asks on a user gesture if no readings arrive. **Zero** and **Flip** are kept in module memory while the app is open (not stored). No sensor → a message; Pick and the keypad still work.
 
 ---
 
@@ -519,7 +528,7 @@ Each module is a set of record types, base forms, pages and (sometimes) shared c
 | Setups (`setups`) | `setup`, `tuning_guide` | One sheet per session; new sheets copy from the last session or a baseline (`nocopy` fields excluded); shocks, bars, tyres (`tires`) and wheels per corner from inventory or typed, top and front wings (`top_wing`, `front_wing`, `front_wicker`); shocks with adjusters from `ADJUSTERS`; feedback tags; advisor (`shared/advisor.js`) ranks past sheets by similar conditions and tuning-guide rules |
 | At-track checks (`trackside`) | `track_check` | Between-round checklist per session |
 | Gears & tyres (`gears`) | `gear`, `gear_list`, `tire` | Quick-change gear lists (seeded), owned sets, gear calculator, tyre stock and stagger combinations |
-| Workshop setups (`shopsetups`) | `shop_setup` | The car as set up on the shop floor (`shared/workshopSetup.js`): reference conditions, front and rear suspension (split LF/RF and LR/RR), tyres and wheels, wings, drivetrain, weights. An event's `shop_setup` (ref, `matchCar`) is its baseline; a track `setup` starts from it with `toTrackValues()`: same-key fields copy, fields with `maps` (e.g. `front_bars` → `bars`, `front_turns` → `blocked`) merge into the track sheet's four-corner field, shop-only fields stay; `copied_from` points at the workshop setup and changes are shown against its mapped values. New workshop setups copy the car's latest (CARRY). |
+| Workshop setups (`shopsetups`) | `shop_setup` | The car as set up on the shop floor (`shared/workshopSetup.js`): reference conditions, front and rear suspension (split LF/RF and LR/RR), tyres and wheels, wings, drivetrain, weights. An event's `shop_setup` (ref, `matchCar`) is its baseline; a track `setup` starts from it with `toTrackValues()`: same-key fields copy, fields with `maps` (e.g. `front_bars` → `bars`, `front_turns`/`rear_turns` → `turns`, `block_heights` → `blocked` (Block height)) merge into the track sheet's four-corner field, shop-only fields stay; `copied_from` points at the workshop setup and changes are shown against its mapped values. New workshop setups copy the car's latest (CARRY). |
 | Maintenance (`maintenance`) | `maintenance`, `schedule` | Checklists; schedules by races, laps, days or hours |
 | Assets (`assets`) | `asset`, `measurement` | Parts with status, position, life limit and measurements; engines are assets (`category = Engine`) |
 | Dyno (`dyno`) | `dyno_run` | Shock runs (`dyno_kind: shock`, test speeds, sweeps, adjuster type) and bar tests (`bar`); **Initial measurement** flag (auto on first test); overlays; shock fade from the initial run (`shared/dyno.js`, `bars.js`) |

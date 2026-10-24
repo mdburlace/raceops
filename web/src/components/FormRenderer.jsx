@@ -11,6 +11,8 @@ import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
 import { SpeedTables, SweepField, TableField } from './TableFields.jsx';
 import DaysField from './DaysField.jsx';
+import { QuickAddProvider, useQuickAdd } from './QuickAdd.jsx';
+import { QUICK_ADD_TARGETS } from '@shared/setupQuickAdd.js';
 
 /** ⓘ beside a field label: shows on hover or keyboard focus, toggles on tap; Esc closes. */
 export function InfoTip({ info, label }) {
@@ -207,8 +209,7 @@ export function FieldInput({ field, value, onChange, data, form, suggestions, co
     case 'textarea':
       return <textarea {...common} rows={3} value={value || ''} onChange={(e) => onChange(e.target.value)} />;
     case 'number':
-      if (field.step) return <Stepper id={common.id} value={value} step={field.step} label={field.label} placeholder={common.placeholder} onChange={onChange} />;
-      return <input {...common} inputMode="decimal" value={value ?? ''} onChange={(e) => onChange(e.target.value)} className="num" />;
+      return <NumberBox common={common} field={field} value={value} onChange={onChange} />;
     case 'date':
       return <input {...common} type="date" value={value || ''} onChange={(e) => onChange(e.target.value)} />;
     case 'checkbox':
@@ -322,13 +323,20 @@ export const parseAdjust = (s, names) => {
 };
 const joinAdjust = (obj, names) => names.filter((n) => String(obj[n] ?? '').trim() !== '').map((n) => `${n} ${String(obj[n]).trim()}`).join(ADJ_SEP);
 
+/** A number box; on a setup sheet a long press opens the quick add screen (QuickAdd.jsx). */
+function NumberBox({ common, field, value, onChange }) {
+  const quick = useQuickAdd(field.quickField || field, value, onChange);
+  if (field.step) return <Stepper id={common.id} value={value} step={field.step} label={field.label} placeholder={common.placeholder} onChange={onChange} inputProps={quick} />;
+  return <input {...common} {...quick} inputMode="decimal" value={value ?? ''} onChange={(e) => onChange(e.target.value)} className="num" />;
+}
+
 /** Number box with − and + buttons, for values that get nudged between sessions. */
-export function Stepper({ id, value, step, label, placeholder, ariaLabel, onChange }) {
+export function Stepper({ id, value, step, label, placeholder, ariaLabel, onChange, inputProps }) {
   return (
     <div className="stepper">
       <button type="button" tabIndex={-1} aria-label={`Less ${label}`} onClick={() => onChange(stepValue(value, step, -1))}>−</button>
       <input id={id} inputMode="decimal" className="num" value={value ?? ''} placeholder={placeholder || ''} aria-label={ariaLabel}
-        onChange={(e) => onChange(e.target.value)} />
+        onChange={(e) => onChange(e.target.value)} {...inputProps} />
       <button type="button" tabIndex={-1} aria-label={`More ${label}`} onClick={() => onChange(stepValue(value, step, 1))}>+</button>
     </div>
   );
@@ -391,7 +399,7 @@ function CornerCell({ f, c, values, onChange, data, form, readOnly, changed }) {
   if (readOnly) input = <span className="ro">{display(sub, val[c], data) || '—'}</span>;
   else if (f.key === 'shock_adjust' && form?.data?.target === 'setup') input = <ShockAdjust field={f} corner={c} value={val[c]} values={values} data={data} onChange={set} prev={ch && c in ch ? ch[c] ?? '' : undefined} />;
   else {
-    input = <FieldInput compact field={{ ...sub, key: `${f.key}-${c}` }} value={val[c]} data={data} form={form}
+    input = <FieldInput compact field={{ ...sub, key: `${f.key}-${c}`, quickField: { ...f, corner: c } }} value={val[c]} data={data} form={form}
       scope={isScoped(f, form) ? { corner: c, car: values?.car } : undefined} onChange={set} />;
   }
   return (
@@ -589,6 +597,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly: a
   const setup = form.data.target === 'setup';
 
   return (
+    <QuickAddProvider enabled={!allReadOnly && QUICK_ADD_TARGETS.includes(form.data.target)} data={data} recordType={recordType} car={values?.car}>
     <div className="form-sections" onKeyDown={nextOnEnter}>
       {sections.map((sec) => {
         // part rights: only some sections can be changed (roSections lists the ones that can't)
@@ -650,6 +659,7 @@ export default function FormRenderer({ form, values, onChange, data, readOnly: a
         );
       })}
     </div>
+    </QuickAddProvider>
   );
 }
 

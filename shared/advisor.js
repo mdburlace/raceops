@@ -50,7 +50,8 @@ export const TUNING_FIELDS = [
   { key: 'pressure_cold', label: 'Tire pressure', corners: true },
   { key: 'stagger_cold', label: 'Stagger' },
   { key: 'ride_height', label: 'Ride height', corners: true },
-  { key: 'blocked', label: 'Blocked', corners: true },
+  { key: 'blocked', label: 'Block height', corners: true },
+  { key: 'turns', label: 'Torsion stop turns', corners: true },
   { key: 'bars', label: 'Torsion bars', corners: true },
   { key: 'shock_adjust', label: 'Shock adjusters', corners: true },
   { key: 'shocks', label: 'Shocks', corners: true },
@@ -65,7 +66,12 @@ export const TUNING_FIELDS = [
   { key: 'rear_pct', label: 'Rear weight %' },
   { key: 'cross_pct', label: 'Cross weight %' },
   { key: 'lr_radius_rod', label: 'LR radius rod' },
+  { key: 'rr_radius_rod', label: 'RR radius rod' },
   { key: 'rear_steer', label: 'Rear steer' },
+  { key: 'rake', label: 'Chassis rake' },
+  { key: 'tilt', label: 'Chassis tilt' },
+  { key: 'birdcage_angle', label: 'Birdcage angle', corners: true },
+  { key: 'jl_length', label: 'Jacobs ladder length' },
 ];
 export const TUNING_FIELD = Object.fromEntries(TUNING_FIELDS.map((f) => [f.key, f]));
 export const CORNER_GROUPS = { left: ['LF', 'LR'], right: ['RF', 'RR'], front: ['LF', 'RF'], rear: ['LR', 'RR'] };
@@ -74,7 +80,7 @@ const cornerMatch = (ruleCorner, corner) => !ruleCorner || ruleCorner === corner
 // fields that are results or context rather than settings
 const NOT_SETTINGS = new Set(['event', 'car', 'session', 'day', 'order', 'crew_chief', 'baseline', 'baseline_name', 'temp', 'baro', 'corrected', 'alt',
   'humidity', 'dew_point', 'grains', 'wind', 'weather_source',
-  'adr', 'wb', 'laps', 'start', 'finish', 'fuel_start', 'fuel_finish', 'fuel_used', 'tach_low', 'tach_high', 'notes', 'pressure_hot', 'stagger_hot',
+  'adr', 'wb', 'laps', 'start', 'finish', 'fuel_start', 'fuel_finish', 'fuel_used', 'tach_low', 'tach_high', 'rpm_max', 'notes', 'pressure_hot', 'stagger_hot',
   'travel', 'planned_laps', 'track_conditions', 'conditions_notes', 'driver_feel', 'driver_comments', 'crew_feel', 'crew_comments', 'changes_next']);
 
 const fieldsOf = (form) => (form?.data?.sections || []).flatMap((s) => s.fields);
