@@ -13,7 +13,7 @@
 | Repository | `github.com/mdburlace/raceops`, branch `main` |
 | Owner | Mark Burlace |
 | Last schema migration | `019_team_roles.sql` |
-| Last updated | October 2026 (what happened each day of a multi-day event) |
+| Last updated | October 2026 (narrated training videos with captions) |
 
 ---
 
@@ -192,7 +192,8 @@ tools/
   check-design.mjs        design document coverage check (runs in the build)
   guide-baseline.json     baseline for the guide check
   guide_shots.py          retakes guide screenshots against a test server
-  training_videos.py      records the training videos (docs/guide/video/*.webm) against a test server
+  training_videos.py      records the training videos (docs/guide/video/*.webm, captions *.vtt) against a test server
+  narration.py            voice-over for the training videos: text to speech (Azure or Piper), audio track, WebVTT captions
 web/
   index.html, vite.config.js, public/ (icons)
   src/main.jsx, App.jsx   entry and routes
@@ -553,7 +554,7 @@ Not team data, so it lives in its own tables (§6.1), not in `records`, and is o
 - `POST /api/t/:tid/practice/reset` (owner, `team.manage` or platform admin; practice teams only, else 400) removes every record except `form` and `gear_list` for good (with their attachments and history, so they don't fill Recently deleted), sets a new `data_epoch` (devices download the team again), deletes the team's calendar requests and team notices, and re-seeds. Forms and roles are kept.
 - Practice teams can't send calendar requests (`calendarRequests.js` returns 400), so trainees never reach the shared-calendar admins.
 - Web: a **Practice team** banner in `Layout` (links to `/help/training`), and a **Practice team** box with **Reset practice data** on the Team page.
-- The training pack itself is guide content (`section: training`: `training*.md`): start page, quick start, trainer's guide and rollout plan, quick reference cards (printed with `/print/guide?ids=training-cards`, one card per page), and exercises per role with "Check yourself" questions and sign-off tasks. Videos are WebM files in `docs/guide/video/`, embedded as `![…](video/<name>.webm)` and rendered as `<video>` with the poster `img/<name>.webp`; they are made by `tools/training_videos.py` (Playwright recording with a caption bar and pointer, re-encoded with ffmpeg to VP9) and are not precached by the PWA (online only).
+- The training pack itself is guide content (`section: training`: `training*.md`): start page, quick start, trainer's guide and rollout plan, quick reference cards (printed with `/print/guide?ids=training-cards`, one card per page), and exercises per role with "Check yourself" questions and sign-off tasks. Videos are WebM files in `docs/guide/video/`, embedded as `![…](video/<name>.webm)` and rendered as `<video>` with the poster `img/<name>.webp`; they are made by `tools/training_videos.py` (Playwright recording with a pointer, re-encoded with ffmpeg to VP9) and are not precached by the PWA (online only). With a voice-over (`tools/narration.py`), each `say()` line is spoken by a text-to-speech voice — Azure AI Speech (`AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`, default voice `en-AU-NatashaNeural`) or Piper (offline, a voice model file whose licence must allow commercial use; research-only voices such as lessac are refused) — and the clips are placed where they were said, mixed into a mono Opus track, and written out as WebVTT captions `video/<name>.vtt`; the guide renders a video's `.vtt`, when there is one, as a default `<track kind="captions">`. Without a voice (`--tts none`) the caption bar is burned into the picture and there's no `.vtt`. Speech is cached in `tools/.tts-cache` (ignored by Git). `python3 tools/narration.py --self-test` checks the audio and captions plumbing. The Training videos article (`training-videos.md`) lists every video by role.
 
 **Team types** (`shared/shop.js TEAM_TYPES`): `race`, `shop`, `both`. They change navigation and checklists, not permissions.
 
@@ -698,7 +699,7 @@ AI rules: all calls are server-side; each checks the `ai` licence feature, the r
     - Home shows a one-off **RaceOps has been updated** note when the device's last seen version (`localStorage raceops.release.seen`) differs.
     - `releaseLinks()` builds GitHub links (compare range, or the day's commits; pull requests) from the platform setting `general.release_repo_url` (`cleanRepoUrl()` accepts only `https://github.com/<owner>/<repo>`; sent to devices in `publicSettings()`).
     - `tools/check-guide.mjs` fails on a malformed release file, or when the newest What's new line isn't in the newest release's notes.
-- Screenshots: `tools/guide_shots.py` against a test server. Videos: `tools/training_videos.py` (needs ffmpeg), into `docs/guide/video/` with posters in `docs/guide/img/`.
+- Screenshots: `tools/guide_shots.py` against a test server. Videos: `tools/training_videos.py` (needs ffmpeg; a voice-over needs Azure AI Speech keys or Piper), into `docs/guide/video/` with captions beside them and posters in `docs/guide/img/`.
 - `helpImages` collects `img/…` and `video/…` references; the check fails if a referenced file is missing.
 
 ---

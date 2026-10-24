@@ -3,11 +3,11 @@ id: training
 title: Training — start here
 section: training
 order: 1
-summary: How to learn RaceOps hands-on — the practice team, the path for your role, reference cards and short videos.
+summary: How to learn RaceOps hands-on — the practice team, the path for your role, reference cards and short narrated videos.
 for: everyone
 covers: option:training, option:practice-team, setting:practice
-related: training-quick-start, training-trainers, training-cards
-reviewed: What happened each day of a multi-day event
+related: training-quick-start, training-trainers, training-cards, training-videos
+reviewed: Narrated training videos
 demo: Car 17, Car 71, 410 #3, 2026 v2, RR Penske 8760, Club Championship, Valley Speedway — Club night, Sam Hart, Hart 410, J-1001
 ---
 RaceOps training is hands-on. You learn by doing real jobs on a **practice team** full of demo data, so nothing you try can upset your real team.
@@ -19,7 +19,7 @@ RaceOps training is hands-on. You learn by doing real jobs on a **practice team*
 | [Quick start](/help/training-quick-start) | Sign in, install on your phone, find your way around, work offline | 10–15 min |
 | Exercises for your role | Real jobs in the practice team, with what you should see when it's right | 30–60 min |
 | [Quick reference cards](/help/training-cards) | One-page cards to print and keep in the trailer or workshop | — |
-| Short videos | Watch a common job being done, in a minute or two | 1–3 min each |
+| [Training videos](/help/training-videos) | Watch a common job being done, with a voice-over explaining each step and captions | 1–3 min each |
 | [Trainer's guide](/help/training-trainers) | For whoever runs the training: rollout plan, session plans and sign-off | — |
 
 **Exercises by role:**

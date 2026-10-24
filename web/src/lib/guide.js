@@ -54,8 +54,15 @@ export function rolesFor(ctx, all) {
 
 marked.use({ gfm: true, breaks: false });
 const renderer = new marked.Renderer();
+// A video gets its poster (img/<name>.webp) and, when it has a voice-over, its captions (video/<name>.vtt), shown by default.
+const videoHtml = (href, text) => {
+  const poster = IMG[href.replace(/^video\//, 'img/').replace(/\.(webm|mp4)$/i, '.webp')];
+  const vtt = VID[href.replace(/\.(webm|mp4)$/i, '.vtt')];
+  return `<figure class="guide-video"><video src="${VID[href] || href}" controls preload="none" playsinline${poster ? ` poster="${poster}"` : ''}>`
+    + `${vtt ? `<track kind="captions" src="${vtt}" srclang="en" label="English" default />` : ''}</video><figcaption>${text || ''}</figcaption></figure>`;
+};
 renderer.image = ({ href, text }) => (/\.(webm|mp4)$/i.test(href)
-  ? `<figure class="guide-video"><video src="${VID[href] || href}" controls preload="none" playsinline${(() => { const p = IMG[href.replace(/^video\//, 'img/').replace(/\.(webm|mp4)$/i, '.webp')]; return p ? ` poster="${p}"` : ''; })()}></video><figcaption>${text || ''}</figcaption></figure>`
+  ? videoHtml(href, text)
   : `<img src="${IMG[href] || href}" alt="${text || ''}" loading="lazy" />`);
 const attr = (html) => html.replace(/<[^>]+>/g, '').replace(/"/g, '&quot;');
 /** "Multi-day events" → "multi-day-events": the anchor a link like /help/events-sessions#multi-day-events jumps to. */

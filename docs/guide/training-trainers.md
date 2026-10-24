@@ -6,7 +6,7 @@ order: 3
 summary: For whoever runs the training — preparing a practice team, a four-week rollout plan, session plans with timings, and a sign-off checklist for each role.
 for: owner, admin, platform
 covers: option:training-trainers
-related: training, training-platform-admin, training-owner, getting-started, training-cards
+related: training, training-platform-admin, training-owner, getting-started, training-cards, training-videos
 ---
 This guide is for whoever introduces RaceOps to a team: usually the owner or crew chief, with the platform admin setting things up.
 
@@ -16,7 +16,7 @@ This guide is for whoever introduces RaceOps to a team: usually the owner or cre
 2. **Invite each trainee with their real role** — crew chief, mechanic, driver — so they see what they'll see for real.
 3. **Phones.** Have everyone install RaceOps on their phone first. Most of the real work happens at the track.
 4. **Print the cards.** Print the [quick reference cards](/help/training-cards), one set per person and one for the trailer.
-5. **Check the videos play** on the room's screen. They need an internet connection.
+5. **Check the [videos](/help/training-videos) play** on the room's screen, with the sound on and the speakers loud enough for the room. They need an internet connection.
 
 ## Rollout plan for a real team
 

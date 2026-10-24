@@ -55,7 +55,9 @@ enhancement, so the exercises always match the app:
 2. **Practice data** (`shared/practiceData.js`): add demo records the new exercise needs. Keep the names the articles
    list in their `demo:` front matter — the guide check fails if one disappears.
 3. **Videos:** if a screen shown in a video changed, re-record it: `python3 tools/training_videos.py --email … --password …`
-   against a test server (`--only <name>` for one), and change the script in that file to match.
+   against a test server (`--only <name>` for one), and change the script in that file to match. Keep the voice-over
+   right too: each `say()` line is spoken (`speak=` for more than the caption), so check the words still match what's
+   on screen. Record with the same voice as the other videos (`--tts azure`, keys in the environment, or `--tts piper`).
 4. **Tests:** keep `tests/e2e/e2e34.py` (practice team and the crew chief exercise) passing; extend it for new exercises.
 5. **Sign the review:** set `reviewed:` in `docs/guide/training.md` to the title of the newest `whats-new.md` line
    (without the bold or full stop). `node tools/check-guide.mjs` fails until it matches, so every release gets a review —
