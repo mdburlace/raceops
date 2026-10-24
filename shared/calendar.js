@@ -72,6 +72,8 @@ export function eventFromFixture(fx, fixtureId, carId, seriesId, series = null) 
   if (v.venue) out.venue = v.venue; else if (v.track) out.track = v.track;
   if (seriesId) out.series = seriesId;
   if (v.round) out.round = v.round;
+  if (v.round_prefix) out.round_prefix = v.round_prefix;
+  if (Array.isArray(v.more_series) && v.more_series.length) out.more_series = v.more_series.map((r) => ({ ...r }));
   const sanctioning = v.sanctioning || series?.sanctioning;
   if (sanctioning) out.sanctioning = sanctioning;
   if (v.major) { out.major = true; out.event_type = 'Special event'; if (v.major_name) out.major_name = v.major_name; }
@@ -105,6 +107,70 @@ export function sameFixture(a, b) {
   if (!a || !b || a.date !== b.date) return false;
   if (a.venue && b.venue) return a.venue === b.venue && (!a.series || !b.series || a.series === b.series);
   return lc(a.track || a.name) === lc(b.track || b.name);
+}
+
+// ---------------------------------------------------------------- series and rounds
+// An event or shared date can count towards more than one series (parallel series at one meeting, even in
+// the same class). The main series stays in `series`, `round` and `round_prefix`; others are rows in
+// `more_series`: [{ series, prefix, round }]. Each series has its own round and prefix.
+/** Prefixes for a round number. The platform admin can change the list (Pick-lists → Round prefixes). */
+export const ROUND_PREFIXES = ['Round', 'Night', 'Prelude'];
+
+/** "Round 3", "Night 2", "Prelude" (a prefix with no number), "Round 3" when only the number is set; '' for neither. */
+export function roundLabel(prefix, round) {
+  const p = String(prefix ?? '').trim(); const r = String(round ?? '').trim();
+  if (p && r) return `${p} ${r}`;
+  if (p) return p;
+  return r ? `Round ${r}` : '';
+}
+
+/** Every series a record counts towards, main one first: [{ series, round, prefix }]. */
+export function seriesLinks(v) {
+  const out = [];
+  if (v?.series) out.push({ series: v.series, round: v.round ?? '', prefix: v.round_prefix || '' });
+  for (const r of Array.isArray(v?.more_series) ? v.more_series : []) {
+    if (r?.series && !out.some((x) => x.series === r.series)) out.push({ series: r.series, round: r.round ?? '', prefix: r.prefix || '' });
+  }
+  return out;
+}
+export const seriesIdsOf = (v) => seriesLinks(v).map((l) => l.series);
+/** The record's place in one series (canon maps a team's copy of a shared series to the shared one), or null. */
+export const linkFor = (v, id, canon = (x) => x) => (id ? seriesLinks(v).find((l) => canon(l.series) === canon(id)) || null : null);
+export const inSeries = (v, id, canon) => !!linkFor(v, id, canon);
+
+/**
+ * Add a record to a series (or change its round there): the main series when it has none, else a row in
+ * more_series. Returns new values.
+ */
+export function addToSeries(v, id, { round = '', prefix = '', extra = false } = {}) {
+  const out = { ...v };
+  // extra: always as one more series (a team's event from a shared date keeps its main series in step with the shared date)
+  if (out.series === id || (!out.series && !extra)) { out.series = id; out.round = round; out.round_prefix = prefix; return tidySeries(out); }
+  const rows = (Array.isArray(out.more_series) ? out.more_series : []).filter((r) => r?.series && r.series !== id);
+  out.more_series = [...rows, { series: id, prefix, round }];
+  return tidySeries(out);
+}
+
+/** Take a record out of a series: the next series moves up when the main one goes. */
+export function removeFromSeries(v, id) {
+  const links = seriesLinks(v).filter((l) => l.series !== id);
+  const out = { ...v };
+  delete out.series; delete out.round; delete out.round_prefix; delete out.more_series;
+  if (links[0]) { out.series = links[0].series; out.round = links[0].round; out.round_prefix = links[0].prefix; }
+  if (links.length > 1) out.more_series = links.slice(1).map((l) => ({ series: l.series, prefix: l.prefix, round: l.round }));
+  return tidySeries(out);
+}
+
+/** Drop empty values and repeats, and the main series from more_series. */
+export function tidySeries(v) {
+  const out = { ...v };
+  if (!out.series) { delete out.round; delete out.round_prefix; }
+  for (const k of ['round', 'round_prefix']) if (out[k] === '' || out[k] === null || out[k] === undefined) delete out[k];
+  const seen = new Set(out.series ? [out.series] : []);
+  const rows = (Array.isArray(out.more_series) ? out.more_series : []).filter((r) => r?.series && !seen.has(r.series) && seen.add(r.series))
+    .map((r) => Object.fromEntries(Object.entries({ series: r.series, prefix: r.prefix || '', round: r.round ?? '' }).filter(([, x]) => x !== '')));
+  if (rows.length) out.more_series = rows; else delete out.more_series;
+  return out;
 }
 
 // ---------------------------------------------------------------- what's shown

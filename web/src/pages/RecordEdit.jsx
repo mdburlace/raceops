@@ -25,7 +25,7 @@ import ContactLinks from '../components/ContactLinks.jsx';
 import { GLOBAL_TYPES, moneyFields } from '@shared/catalog.js';
 import { ChangeListTools, LoadListTools, PostTools, PurchaseTools, TaxHint, TripTools, TyreTargets } from '../components/RecordExtras.jsx';
 import { Attachments, History, PageHeader } from '../components/ui.jsx';
-import { allFields, isVisible, num, formFor, formsFor, fmtDate, fmtDay, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
+import { allFields, isVisible, memberName, num, formFor, formsFor, fmtDate, fmtDay, levelLabel, titleOf, today, useRecordById, useTeamData, v } from '../lib/data.js';
 import { dayPosition, eventDayList, normaliseDays } from '@shared/calendar.js';
 import { daysError, sheetsByDay } from '../components/DaysField.jsx';
 import { deleteRecord, saveRecord } from '../lib/store.js';
@@ -148,7 +148,7 @@ export default function RecordEdit() {
   const { type, id } = useParams();
   const [params] = useSearchParams();
   const nav = useNavigate();
-  const { tid, user, canType, canModule, membership, editParts, canMoney } = useSession();
+  const { tid, user, can, canType, canModule, membership, editParts, canMoney } = useSession();
   const data = useTeamData();
   const rec = useRecordById(id === 'new' ? null : id);
   const isNew = id === 'new';
@@ -158,7 +158,9 @@ export default function RecordEdit() {
   // part rights (driver's debrief, car chief's change list, tyre specialist's tyre sections): only those sections open
   const parts = !isNew && !isGlobal ? editParts(type) : [];
   const partial = parts.length > 0;
-  const readOnly = (!canType(type, 'edit') && !partial) || (!isNew && isGlobal && !user?.is_platform_admin);
+  // a locked setup sheet can't be changed by anyone until it's unlocked (setups.unlock)
+  const isLocked = type === 'setup' && !isNew && !!rec?.data?.values?.locked;
+  const readOnly = (!canType(type, 'edit') && !partial) || (!isNew && isGlobal && !user?.is_platform_admin) || isLocked;
 
   const [formId, setFormId] = useState(null);
   const [values, setValues] = useState(null);
@@ -374,6 +376,13 @@ export default function RecordEdit() {
     nav(params.get('back') || afterSave(type, saved), { replace: true });
   };
 
+  // lock a finished sheet (anyone who can edit setups), or unlock it (setups.unlock)
+  const setLock = async (on) => {
+    const stamp = on ? { locked: true, locked_by: user.id, locked_at: new Date().toISOString() } : { locked: false, locked_by: '', locked_at: '' };
+    await saveRecord(tid, 'setup', id, { ...rec.data, values: { ...rec.data.values, ...stamp } }, user.id);
+    setValues((x) => ({ ...x, ...stamp }));
+    setDirty(false);
+  };
   const remove = async () => {
     if (!window.confirm(`Delete this ${TYPE_LABEL[type]?.toLowerCase() || 'record'}? It stays in the change history.`)) return;
     await deleteRecord(id);
@@ -454,7 +463,11 @@ export default function RecordEdit() {
         {type === 'setup' && !isNew && <Link className="btn ghost advisor-link" to={`/track/advisor?setup=${id}`} title="What’s worked before for this handling problem, and what the tuning guides suggest">Setup advisor</Link>}
         {type === 'setup' && !isNew && canModule('dyno') && <Link className="btn ghost" to={`/workshop/dyno?setup=${id}`}>Shock dyno</Link>}
         {type === 'engine_build' && !isNew && <Link className="btn ghost" to={`/compare?ids=${id}`}>Compare</Link>}
-        {!isNew && canType(type, 'delete') && <button type="button" className="btn ghost danger" onClick={remove}>Delete</button>}
+        {type === 'setup' && !isNew && !isLocked && canType('setup', 'edit') && (
+          <button type="button" className="btn ghost" disabled={dirty} title={dirty ? 'Save your changes first' : 'Stop any more changes to this sheet'} onClick={() => setLock(true)}>Lock sheet</button>
+        )}
+        {isLocked && can('setups.unlock') && <button type="button" className="btn ghost" onClick={() => setLock(false)}>Unlock</button>}
+        {!isNew && !isLocked && canType(type, 'delete') && <button type="button" className="btn ghost danger" onClick={remove}>Delete</button>}
         {topActions && (
           <span className="top-actions" data-testid="top-actions">
             {Object.keys(errors).length > 0 && <span className="error-text">{errorSummary(errors)}</span>}
@@ -465,13 +478,16 @@ export default function RecordEdit() {
         )}
       </PageHeader>
 
-      {partial && (
+      {isLocked && (
+        <div className="notice info" data-testid="locked-notice">🔒 This sheet is locked{rec.data.values.locked_by ? ` by ${memberName(rec.data.values.locked_by)}` : ''}{rec.data.values.locked_at ? ` on ${fmtDate(rec.data.values.locked_at.slice(0, 10))}` : ''}. Nobody can change it until it’s unlocked{can('setups.unlock') ? '.' : ' by someone whose role can unlock sheets.'}</div>
+      )}
+      {partial && !isLocked && (
         <div className="notice info" data-testid="part-notice">You can change <b>{form.data.sections.filter((x) => parts.includes(x.id)).map((x) => x.title).join(' and ') || 'some sections'}</b> on this {TYPE_LABEL[type]?.toLowerCase() || 'record'}; the rest is read-only for your role.</div>
       )}
       {type === 'purchase' && !isNew && <PurchaseTools rec={rec} values={values} />}
       {type === 'social_post' && <PostTools rec={isNew ? null : rec} values={values} readOnly={readOnly} data={data} setValues={(fn) => { setValues(fn); setDirty(true); }} />}
       {type === 'load_list' && <LoadListTools id={id} values={values} readOnly={readOnly} data={data} setValues={(fn) => { setValues(fn); setDirty(true); }} />}
-      {readOnly && (isGlobal && canType(type, 'edit')
+      {readOnly && !isLocked && (isGlobal && canType(type, 'edit')
         ? <div className="notice info">Shared directory record — kept up to date by the platform administrator. Add your team's notes and contacts on the {TYPE_LABEL[type]?.toLowerCase()} page.</div>
         : <div className="notice">You have read-only access to {TYPE_LABEL[type]?.toLowerCase()}s.</div>)}
       {isNew && canBeGlobal && (

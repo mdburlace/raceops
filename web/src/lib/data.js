@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './store.js';
 import { useSession } from './session.jsx';
 import { listForField } from '@shared/platform.js';
-import { consecutiveDays, eventDayList } from '@shared/calendar.js';
+import { consecutiveDays, eventDayList, roundLabel, seriesLinks } from '@shared/calendar.js';
 
 // Pick-lists managed by the platform admin (kept with the session so they work offline).
 let PLATFORM_LISTS = {};
@@ -81,8 +81,25 @@ export const num = (x) => {
 };
 
 /** Track display name for an event: linked track, else the typed name. */
-/** “Rd 3 · Valley Speedway”: the round (if any) and the track, as event lists show them. */
-export const roundAndTrack = (round, track) => [round ? `Rd ${round}` : '', track].filter(Boolean).join(' · ');
+/**
+ * “Round 3 · Valley Speedway”: the round with its prefix (Round, Night, Prelude…) and the track, as lists show
+ * them. `x` is an event's or date's values (its main series' round and prefix), or a round already worded
+ * (a bare number reads “Round 3”).
+ */
+export function roundAndTrack(x, track) {
+  const r = x && typeof x === 'object' ? roundLabel(x.round_prefix, x.round) : /^\d+[a-z]?$/i.test(String(x ?? '').trim()) ? roundLabel('', x) : String(x ?? '').trim();
+  return [r, track].filter(Boolean).join(' · ');
+}
+
+/** Every series an event or date counts towards, by name, the other series with their own round: “Club Championship · Northern Series Night 2”. */
+export function seriesNames(values, data) {
+  return seriesLinks(values).map((l, i) => {
+    const s = data?.byId[l.series];
+    if (!s) return '';
+    const name = titleOf(s, data);
+    return i === 0 ? name : [name, roundLabel(l.prefix, l.round)].filter(Boolean).join(' ');
+  }).filter(Boolean).join(' · ');
+}
 
 export const eventTrack = (ev, data) => (ev ? (data?.byId[ev.data?.values?.venue] ? titleOf(data.byId[ev.data.values.venue]) : ev.data?.values?.track || '') : '');
 

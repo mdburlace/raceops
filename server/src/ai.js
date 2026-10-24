@@ -458,7 +458,7 @@ Keep the speaker's meaning; don't add facts, advice or setup changes they didn't
     const { rows: [t] } = await q('SELECT name FROM tenants WHERE id=$1', [req.tid]);
     const facts = {
       team: t?.name || '', event: ve.name || '', date: ve.date || '', track: byId[ve.venue]?.data?.values?.name || ve.track || '',
-      series: byId[ve.series]?.data?.values?.name || '', round: ve.round || '', car: car.number ? `#${car.number}` : '', driver: car.driver || '',
+      series: [ve.series, ...(Array.isArray(ve.more_series) ? ve.more_series.map((r) => r.series) : [])].map((x) => byId[x]?.data?.values?.name).filter(Boolean).join(', '), round: [ve.round_prefix, ve.round].filter(Boolean).join(' '), car: car.number ? `#${car.number}` : '', driver: car.driver || '',
       outcome: ve.outcome || '', outcome_notes: String(ve.outcome_notes || '').slice(0, 400), sessions, sponsors_to_thank: sponsors,
       tone: String(req.body?.tone || 'upbeat').slice(0, 40),
     };

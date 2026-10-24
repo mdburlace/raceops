@@ -103,7 +103,8 @@ with sync_playwright() as pw:
     expect(page.locator('text=workshop setup “Lakeside baseline”').first).to_be_visible(timeout=15000)
     expect(page.locator('#f-ride_height-LF')).to_have_value('9.25')
     expect(page.locator('#f-ride_height-RR')).to_have_value('4.75')
-    expect(page.locator('#f-blocked-RF')).to_have_value('1')
+    expect(page.locator('#f-turns-RF')).to_have_value('1')        # the workshop's turns
+    expect(page.locator('#f-blocked-RR')).to_have_value('4.75')   # its setup block heights
     expect(page.locator('#f-pressure_cold-RR')).to_have_value('17')
     expect(page.locator('#f-stagger_cold')).to_have_value('6')
     expect(page.locator('#f-wing_angle')).to_have_value('12')

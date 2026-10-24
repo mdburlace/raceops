@@ -7,13 +7,43 @@ const CUR = 'Leave blank for the team’s currency (Team → Region & currency).
 
 export const FIELD_INFO5 = {
   setup: {
+    turns: ['Turns on the torsion stop adjuster at each corner, from its zero point. Long-press the box for the keypad with sixteenths.'],
+    rake: ['How much the frame is tilted nose-down (or up) from front to back, in degrees. Long-press the box to use the angle finder on the frame rail.'],
+    tilt: ['How much the frame leans from side to side, in degrees. Long-press the box to use the angle finder across the frame.'],
+    rr_radius_rod: ['Right rear radius rod front mount position (hole) — changes rear steer and bite.'],
+    birdcage_angle: ['Angle of each rear birdcage, in degrees. Long-press the box to use the angle finder on the birdcage.'],
+    jl_length: ['Length of the Jacobs ladder, pin to pin. It sets the rear roll centre.'],
+    jl_upper_strap: ['Length of the upper strap.'],
+    jl_lower_strap: ['Length of the lower strap.'],
+    jl_mount_upper: ['The upper chassis mount hole used.'],
+    jl_mount_lower: ['The lower chassis mount hole used.'],
+    jl_birdcage_mount: ['Where the ladder mounts on the birdcage.'],
+    rpm_max: ['The highest rpm of the session (tach recall).', 'Tach / data logger recall.'],
     target_pressure: ['The cold pressure the crew chief wants at each corner. The tyre specialist sets the tyres and fills in Pressure cold; the sheet shows any difference.'],
     target_stagger: ['The stagger the crew chief wants for this session. Compared with Stagger cold.'],
     target_spacing: ['The rear wheel spacing the crew chief wants. Compared with Spacing in Wheels.'],
     change_list: ['Each change the crew chief calls for this session (e.g. “RR rebound −1”, was 9, now 8). The car chief ticks Done when it’s been done on the car, which records who and when. Fill it from the sheet’s changes with Add changes from this sheet.'],
   },
+  shop_setup: {
+    rake: ['How much the frame is tilted nose-down (or up) from front to back, in degrees, on the setup pad. Long-press the box to use the angle finder on the frame rail.'],
+    tilt: ['How much the frame leans from side to side, in degrees, on the setup pad. Long-press the box to use the angle finder across the frame.'],
+    rr_radius_rod: ['Right rear radius rod front mount position (hole).'],
+    birdcage_angle: ['Angle of each rear birdcage, in degrees. Long-press the box to use the angle finder on the birdcage.'],
+    jl_length: ['Length of the Jacobs ladder, pin to pin. It sets the rear roll centre.'],
+    jl_upper_strap: ['Length of the upper strap.'],
+    jl_lower_strap: ['Length of the lower strap.'],
+    jl_mount_upper: ['The upper chassis mount hole used.'],
+    jl_mount_lower: ['The lower chassis mount hole used.'],
+    jl_birdcage_mount: ['Where the ladder mounts on the birdcage.'],
+  },
   event: {
+    round_prefix: ['The word before the round number in lists and the calendar — Round, Night or Prelude (pick from the list, type your own, or leave it blank for “Round”). A prefix with no number, like Prelude, shows on its own.'],
+    more_series: ['Other series this meeting counts towards — parallel series, even in the same class. Each has its own round and prefix, and the event shows in each series.'],
     crew: ['Who’s going to this meeting and their job on the night (e.g. Tyres, Car chief, Hauler). Each person sees their own race-night jobs on Home.'],
+  },
+  fixture: {
+    round_prefix: ['The word before the round number — Round, Night or Prelude (or your own). Blank shows “Round”; a prefix with no number shows on its own.'],
+    more_series: ['Other series this date counts towards, each with its own round. Teams that add the date get every series.'],
   },
   tire: {
     work_log: ['Everything done to this tyre: mounted, cut, siped, ground, and the circumference and durometer readings each time, with who did it.'],

@@ -87,7 +87,11 @@ feat = rec('setup', S(event=ev['id'], session='Feature', order=20, planned_laps=
                       top_wing={'asset': top_wing['id']}, front_wing={'asset': front_wing['id']}, wicker='1"', front_wicker='1/2"', nose_wing='8', wing_position='2',
                       tires={c: {'asset': t['id']} for c, t in tyres.items()},
                       bump_type={'LF': 'Penske', 'RF': 'Penske'}, bump_spec={'LF': '70A', 'RF': '80A'}, bump_height={'LF': '1.25', 'RF': '1.25'},
-                      bump_packers={'LF': '1', 'RF': '2'}, bump_gap={'LF': '0.75', 'RF': '0.6'}), form_id=SF)
+                      bump_packers={'LF': '1', 'RF': '2'}, bump_gap={'LF': '0.75', 'RF': '0.6'},
+                      blocked={'LF': '1.5', 'RF': '1.375', 'LR': '2', 'RR': '2.25'}, turns={'LF': '3', 'RF': '2.5', 'LR': '4', 'RR': '5'},
+                      ride_height={'LF': '9.25', 'RF': '9.5', 'LR': '4.5', 'RR': '4.75'}, rake='1.5', tilt='0.25', lr_radius_rod='hole 3', rr_radius_rod='hole 2',
+                      rear_steer='lead RR 1/8"', birdcage_angle={'LR': '-1', 'RR': '2'}, jl_length='14.5', jl_upper_strap='6.25', jl_lower_strap='6',
+                      jl_mount_upper='hole 2', jl_mount_lower='hole 4', jl_birdcage_mount='top hole'), form_id=SF)
 # a season of earlier nights so Analytics has something to show
 season = []
 for n in range(8):
@@ -102,7 +106,8 @@ for n in range(8):
         season.append(rec('setup', S(event=e['id'], session=sess, order=order, start=str(st), finish=str(fin), stagger_cold=str(stg),
                                      wing_angle=str(12 + n % 3), adr=str(90 + n * 1.5), main_jet=str(46 + n // 3), laps='10' if k == 0 else '30',
                                      fuel_start='5' if k == 0 else '9', fuel_finish='3' if k == 0 else str(round(3 - n * 0.05, 2)),
-                                     tach_high=str(8600 - n * 12), track_conditions=[['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
+                                     tach_high=str(8600 - n * 12), blocked={'LF': '1.5', 'RF': '1.375', 'LR': '2', 'RR': '2.25'},
+                                     turns={'LF': '3', 'RF': '2.5', 'LR': '4' if n % 2 else '4.5', 'RR': '5'}, track_conditions=[['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
                                      driver_feel=['Loose exit'] if k == 0 and n % 2 == 0 else []), form_id=SF))
 heat['data']['values']['adr'] = '91'
 # the engine's tune (two versions, the newer active) and two engine checks, the later with a weak spring
@@ -257,6 +262,61 @@ with sync_playwright() as pw:
         sec = page.locator('.check-compare'); sec.scroll_into_view_if_needed(); settle(page)
         save('engine-check-compare', sec.screenshot())
         page.goto(B + '/'); settle(page)
+    if shot('setup-chassis'):
+        page.goto(f"{B}/r/setup/{feat['id']}"); settle(page)
+        page.add_style_tag(content='.page-head, .save-bar, .topbar { position: static !important; }')
+        page.set_viewport_size({'width': 1280, 'height': 1600})
+        sec = page.locator('#sec-chassis'); sec.scroll_into_view_if_needed(); settle(page)
+        save('setup-chassis', sec.screenshot())
+        page.set_viewport_size({'width': 1280, 'height': 820})
+        page.goto(B + '/'); settle(page)
+    for name in ('setup-quick-add', 'setup-angle-finder'):
+        if shot(name):
+            m = page_for(390, 844, mobile=True)
+            m.goto(f"{B}/r/setup/{feat['id']}"); settle(m)
+            box = 'blocked-RF' if name == 'setup-quick-add' else 'wing_angle'
+            m.locator(f'#f-{box}').scroll_into_view_if_needed()
+            m.locator(f'#f-{box}').dispatch_event('contextmenu')   # what a long press does
+            qa = m.locator('[data-testid="quick-add"]'); expect(qa).to_be_visible()
+            if name == 'setup-angle-finder':
+                qa.get_by_role('button', name='Angle finder').click()
+                for _ in range(30): m.evaluate("dispatchEvent(new DeviceOrientationEvent('deviceorientation', { alpha: 0, beta: 14.5, gamma: 0 }))")
+            m.wait_for_timeout(500)
+            save(name, m.screenshot())
+            m.context.close()
+    if shot('team-photos'):
+        from PIL import ImageDraw
+        def picture(w, h, top, bottom, text):
+            im = Image.new('RGB', (w, h))
+            dr = ImageDraw.Draw(im)
+            for y in range(h):
+                k = y / h; dr.line([(0, y), (w, y)], fill=tuple(int(top[i] + (bottom[i] - top[i]) * k) for i in range(3)))
+            dr.ellipse([w * .3, h * .25, w * .7, h * .75], fill=(255, 255, 255))
+            dr.text((w * .5, h * .5), text, fill=top, anchor='mm', font_size=int(h * .22))
+            b = io.BytesIO(); im.save(b, 'JPEG', quality=90); return b.getvalue()
+        def put_photo(path, data):
+            bd = uuid.uuid4().hex
+            body = (f'--{bd}\r\nContent-Disposition: form-data; name="file"; filename="p.jpg"\r\nContent-Type: image/jpeg\r\n\r\n').encode() + data + f'\r\n--{bd}--\r\n'.encode()
+            req = urllib.request.Request(B + '/api' + path, method='PUT', data=body, headers={'content-type': f'multipart/form-data; boundary={bd}', 'authorization': f'Bearer {T}'})
+            urllib.request.urlopen(req).read()
+        put_photo(f'/t/{TID}/photo', picture(800, 600, (226, 86, 26), (40, 20, 10), '#17'))
+        crew = next(r for r in call(f'/t/{TID}/roles', T)[1] if r['name'] == 'Crew Chief')
+        st_, inv = call(f'/t/{TID}/invites', T, 'POST', {'email': f'sam.{uuid.uuid4().hex[:6]}@example.com', 'role_id': crew['id']})
+        call(f'/invites/{inv["token"]}/accept', method='POST', body={'name': 'Sam Torres', 'password': uuid.uuid4().hex})
+        sam = next(m for m in call(f'/t/{TID}/members', T)[1] if m['name'] == 'Sam Torres')
+        put_photo(f'/t/{TID}/members/{sam["id"]}/photo', picture(400, 400, (30, 90, 200), (10, 20, 50), 'ST'))
+        t = page_for(1280, 1400)
+        t.goto(f'{B}/team/members'); settle(t)
+        t.add_style_tag(content='.page-head, .save-bar, .topbar { position: static !important; }')
+        t.wait_for_timeout(1200)   # the photos load
+        page_png = Image.open(io.BytesIO(t.screenshot(full_page=True)))
+        boxes = [t.locator('section', has=t.locator(sel)).last.bounding_box() for sel in ('[data-testid="team-profile"]', '[data-testid="member-row"]')]
+        sy = t.evaluate('scrollY')
+        crops = [page_png.crop((int(b['x']), int(b['y'] + sy), int(b['x'] + b['width']), int(b['y'] + sy + b['height']))) for b in boxes]
+        both = Image.new('RGB', (max(c.width for c in crops), sum(c.height for c in crops) + 12), (243, 242, 239))
+        both.paste(crops[0], (0, 0)); both.paste(crops[1], (0, crops[0].height + 12))
+        out = io.BytesIO(); both.save(out, 'PNG'); save('team-photos', out.getvalue())
+        t.context.close()
     if shot('setup-quick-edit'):
         q = page_for(1280, 820)
         q.goto(f"{B}/r/setup/{feat['id']}"); settle(q)

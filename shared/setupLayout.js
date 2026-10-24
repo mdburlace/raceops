@@ -4,7 +4,7 @@
 //  - what changed compared with the session the sheet was copied from.
 
 /** Readings taken after the session — labelled "after", and shown by the Before / After switch. */
-export const AFTER_KEYS = ['pressure_hot', 'stagger_hot', 'travel', 'laps', 'finish', 'fuel_finish', 'fuel_used', 'tach_low', 'tach_high',
+export const AFTER_KEYS = ['pressure_hot', 'stagger_hot', 'travel', 'laps', 'finish', 'fuel_finish', 'fuel_used', 'tach_low', 'tach_high', 'rpm_max',
   'track_conditions', 'conditions_notes', 'driver_feel', 'driver_comments', 'crew_feel', 'crew_comments', 'changes_next'];
 
 /** −/+ step for values that get nudged between sessions. Shock adjusters step by 1 click. */

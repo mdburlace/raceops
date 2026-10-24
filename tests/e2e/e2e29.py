@@ -95,7 +95,7 @@ with sync_playwright() as pw:
     rp = ed.locator('[data-testid="rounds-pick"]')
     rows = rp.locator('.round-row')
     expect(rows).to_have_count(4)   # cancelled round left out; next year's round 5 still listed (the series' own dates)
-    expect(rp).to_contain_text('Rd 5'); expect(rp).not_to_contain_text('Rd 3')
+    expect(rp).to_contain_text('Round 5'); expect(rp).not_to_contain_text('Round 3')
     expect(rows.nth(0)).to_contain_text('Past'); expect(rows.nth(1)).to_contain_text('On our calendar')
     expect(rows.nth(1).locator('input')).to_be_checked(); expect(rows.nth(2).locator('input')).not_to_be_checked()
     expect(rp).to_contain_text('1 of 4')

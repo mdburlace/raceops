@@ -23,7 +23,7 @@ Each video also appears at the top of its role's exercises.
 
 ![Video: Start the Feature sheet from Heat 1 and make changes](video/training-feature-sheet.webm)
 
-Adds the Feature to tonight's meeting, copies the sheet from Heat 1, makes three changes and saves. Exercises: [Training: crew chief](/help/training-crew-chief).
+Adds the Feature to tonight's meeting, copies the sheet from Heat 1, makes changes (including one with the quick add screen) and saves. Exercises: [Training: crew chief](/help/training-crew-chief).
 
 ## Mechanic
 

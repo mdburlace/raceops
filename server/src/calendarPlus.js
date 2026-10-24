@@ -12,7 +12,7 @@
 import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { canType } from '../../shared/catalog.js';
-import { eventDayList, parseICS, toICS, matchTrack } from '../../shared/calendar.js';
+import { eventDayList, parseICS, toICS, matchTrack, linkFor, roundLabel, seriesIdsOf, seriesLinks } from '../../shared/calendar.js';
 import { audit } from './settings.js';
 import { mailAdmins, mailTeam, mailConfigured, mailFrom, sendMail } from './mail.js';
 
@@ -21,6 +21,7 @@ const h = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(
 const lc = (s) => String(s ?? '').trim().toLowerCase();
 const fmt = (d) => (d ? new Date(`${d}T00:00:00Z`).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '');
 /** A shared date's days as text, to spot a change (a day added, moved, rained out). */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const dayDates = (v) => eventDayList(v).map((d) => `${d.date}${d.off ? '-' : ''}`).join(',');
 
 // ---------------------------------------------------------------- followers
@@ -30,7 +31,8 @@ const dayDates = (v) => eventDayList(v).map((d) => `${d.date}${d.off ? '-' : ''}
  */
 export async function notifyFollowers(c, { after, before = null, removed = false }) {
   const v = after || before || {};
-  const ids = [...new Set([v.series, v.venue, before?.series, before?.venue].filter(Boolean))];
+  const more = (x) => (Array.isArray(x?.more_series) ? x.more_series.map((r) => r?.series) : []);
+  const ids = [...new Set([v.series, v.venue, before?.series, before?.venue, ...more(v), ...more(before)].filter((x) => typeof x === 'string' && UUID.test(x)))];   // a typed track name isn't a record
   if (!ids.length) return [];
   let what = '';
   if (removed) what = `${v.name} (${fmt(v.date)}) was removed`;
@@ -76,7 +78,7 @@ export async function officialFor(tid) {
 
 // ---------------------------------------------------------------- feeds
 const fixturesFor = async (c, id) => (await c.query(`SELECT id, data FROM records WHERE type='fixture' AND tenant_id IS NULL AND NOT deleted
-    AND (data->'values'->>'series'=$1 OR data->'values'->>'venue'=$1)`, [id])).rows.map((r) => ({ id: r.id, values: r.data?.values || {} }));
+    AND (data->'values'->>'series'=$1 OR data->'values'->>'venue'=$1 OR data->'values'->'more_series' @> jsonb_build_array(jsonb_build_object('series', $1::text)))`, [id])).rows.map((r) => ({ id: r.id, values: r.data?.values || {} }));
 
 /** Read a shared series' or track's official feed; new and changed dates become requests for the admin. */
 export async function checkFeed(entityId, fetchCalendar) {
@@ -161,14 +163,16 @@ async function sharedCalendar(type, id) {
   const ev = ent.data.values || {};
   const since = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
   const fx = (await fixturesFor({ query: q }, id)).filter((f) => (f.values.end_date || f.values.date || '') >= since);
-  const refIds = [...new Set(fx.flatMap((f) => [f.values.venue, f.values.series]).filter(Boolean))];
+  const refIds = [...new Set(fx.flatMap((f) => [f.values.venue, ...seriesIdsOf(f.values)]).filter(Boolean))];
   const { rows: refs } = refIds.length ? await q(`SELECT id, data FROM records WHERE id = ANY($1::uuid[])`, [refIds]) : { rows: [] };
   const byId = Object.fromEntries(refs.map((r) => [r.id, r.data?.values || {}]));
   const items = fx.map((f) => {
-    const v = f.values; const t = byId[v.venue]; const s = byId[v.series];
+    const v = f.values; const t = byId[v.venue];
+    // on a series' page, the round is this series' one; elsewhere the main series
+    const link = (type === 'series' && linkFor(v, id)) || seriesLinks(v)[0] || { prefix: v.round_prefix, round: v.round }; const s = byId[link?.series];
     const win = Array.isArray(v.results) ? v.results.find((r) => String(r.pos) === '1') : null;
     return { id: f.id, name: v.name, date: v.date, end_date: v.end_date || '', days: eventDayList(v).length > 1 ? eventDayList(v) : undefined, track: t?.name || v.track || '', location: [t?.city, t?.region].filter(Boolean).join(', '),
-      series: s?.name || '', round: v.round || '', cancelled: v.status === 'Cancelled', tentative: v.status === 'Postponed', major: v.major ? v.major_name || 'Major event' : '',
+      series: seriesLinks(v).map((l) => byId[l.series]?.name).filter(Boolean).join(', '), round: roundLabel(link?.prefix, link?.round), cancelled: v.status === 'Cancelled', tentative: v.status === 'Postponed', major: v.major ? v.major_name || 'Major event' : '',
       sanctioning: v.sanctioning || s?.sanctioning || '', note: v.start_time || '', car: '', result: win ? `Won by ${[win.number && `#${win.number}`, win.driver].filter(Boolean).join(' ')}` : '' };
   }).sort((a, b) => a.date.localeCompare(b.date));
   return { type, name: ev.name, sub: type === 'series' ? [ev.season, ev.class, ev.sanctioning].filter(Boolean).join(' · ') : [ev.city, ev.region, ev.country].filter(Boolean).join(', '), items };
@@ -188,7 +192,7 @@ export function mountPublicShared(app) {
     res.set('Content-Type', 'text/calendar; charset=utf-8').set('Cache-Control', 'public, max-age=1800').send(toICS({
       name: `${cal.name} — race calendar`,
       items: cal.items.map((i) => ({ uid: `${i.id}@raceops-shared`, date: i.date, end_date: i.end_date, days: i.days, summary: `${i.cancelled ? 'CANCELLED: ' : ''}${i.name}${i.track && cal.type === 'series' ? ` — ${i.track}` : ''}`,
-        location: [i.track, i.location].filter(Boolean).join(', '), description: [i.major, i.series && `${i.series}${i.round ? ` round ${i.round}` : ''}`, i.note, i.result].filter(Boolean).join('\n'),
+        location: [i.track, i.location].filter(Boolean).join(', '), description: [i.major, i.series && `${i.series}${i.round ? ` — ${i.round}` : ''}`, i.note, i.result].filter(Boolean).join('\n'),
         status: i.cancelled ? 'CANCELLED' : 'CONFIRMED' })),
     }));
   }));

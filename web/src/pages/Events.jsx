@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ContactLinks from '../components/ContactLinks.jsx';
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
-import { eventTrack, fmtDays, fmtDay, fmtTime, roundAndTrack, formFor, num, titleOf, today, useTeamData, v } from '../lib/data.js';
-import { DAY_OUTCOMES, WITHDRAW_REASONS, eventDayList, setDayResult } from '@shared/calendar.js';
+import { eventTrack, fmtDays, fmtDay, fmtTime, roundAndTrack, formFor, num, seriesNames, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { DAY_OUTCOMES, WITHDRAW_REASONS, eventDayList, inSeries, roundLabel, seriesLinks, setDayResult } from '@shared/calendar.js';
 import { useSession } from '../lib/session.jsx';
 import { saveRecord } from '../lib/store.js';
 import { orderForNew, orderSessions } from '../lib/sessions.js';
@@ -37,7 +37,7 @@ export function currentDay(tabs, t = today()) {
 }
 
 export function EventRow({ e, data, n }) {
-  const s = data.byId[v(e, 'series')];
+  const names = seriesNames(e.data?.values, data);
   return (
     <Link to={`/events/${e.id}`} className="list-row event-row" data-event={e.id}>
       <span className="date-block">
@@ -46,7 +46,7 @@ export function EventRow({ e, data, n }) {
       </span>
       <span className="grow">
         <span className="row-title">{v(e, 'name')}{eventDays(e) > 1 ? <span className="pill pill-info days-pill">{eventDays(e)} days</span> : null}</span>
-        <span className="row-sub">{[roundAndTrack(v(e, 'round'), eventTrack(e, data)), s && titleOf(s), !s && v(e, 'event_type'), data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')])].filter(Boolean).join(' · ')}</span>
+        <span className="row-sub">{[roundAndTrack(e?.data?.values, eventTrack(e, data)), names, !names && v(e, 'event_type'), data.byId[v(e, 'car')] && titleOf(data.byId[v(e, 'car')])].filter(Boolean).join(' · ')}</span>
         <DayLines values={e.data?.values} />
       </span>
       <span className="row-meta">{n ? `${n} sheet${n > 1 ? 's' : ''}` : ''}</span>
@@ -66,7 +66,7 @@ export function EventList() {
     const setupCount = {};
     for (const s of data.list('setup')) setupCount[v(s, 'event')] = (setupCount[v(s, 'event')] || 0) + 1;
     return data.list('event')
-      .filter((e) => !series || (series === 'none' ? !v(e, 'series') : v(e, 'series') === series))
+      .filter((e) => !series || (series === 'none' ? !v(e, 'series') : inSeries(e.data?.values, series)))
       .filter((e) => !q || `${v(e, 'name')} ${eventTrack(e, data)}`.toLowerCase().includes(q.toLowerCase()))
       .map((e) => ({ e, n: setupCount[e.id] || 0 }))
       .sort((a, b) => (v(b.e, 'date') || '').localeCompare(v(a.e, 'date') || ''));
@@ -137,7 +137,7 @@ function SessionCell({ s, back, label, reorder, onMove, first, last }) {
   }
   return (
     <Link to={`/r/setup/${s.id}?back=${back}`} className={`session-cell has${s.dirty ? ' pending' : ''}`}>
-      <span className="sn">{label || v(s, 'session') || 'Session'}</span>
+      <span className="sn">{label || v(s, 'session') || 'Session'}{v(s, 'locked') && <span className="lock-mark" title="Locked" aria-label="Locked"> 🔒</span>}</span>
       <span className="sd">{[v(s, 'start') && `Start ${v(s, 'start')}`, v(s, 'finish') && `Fin ${v(s, 'finish')}`].filter(Boolean).join(' → ') || 'Recorded'}</span>
     </Link>
   );
@@ -259,7 +259,9 @@ export function EventDetail() {
         {car && <span className="chip static car-chip">Car: {titleOf(car)}</span>}
         {shop && <Link className="chip" to={`/r/shop_setup/${shop.id}`} data-testid="event-shop-setup">Workshop setup: {v(shop, 'name')}</Link>}
         {venue && <Link className="chip" to={`/tracks/${venue.id}`}>Track: {v(venue, 'name')}</Link>}
-        {series && <Link className="chip" to={`/series/${series.id}`}>{titleOf(series)}{v(ev, 'round') ? ` · Round ${v(ev, 'round')}` : ''}</Link>}
+        {seriesLinks(ev.data?.values).filter((l) => data.byId[l.series]).map((l) => (
+          <Link key={l.series} className="chip" to={`/series/${l.series}`} data-testid="event-series">{titleOf(data.byId[l.series])}{roundLabel(l.prefix, l.round) ? ` · ${roundLabel(l.prefix, l.round)}` : ''}</Link>
+        ))}
         {!series && <span className="chip static">Stand-alone event</span>}
         {days > 1 && <span className="chip static">{days}-day event</span>}
       </div>

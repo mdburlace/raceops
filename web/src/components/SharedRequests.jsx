@@ -1,6 +1,7 @@
 // Teams and the shared calendars: send the team's own series, track, dates and major events to the
 // shared calendars, ask for changes to shared records, see what happened to each request, and keep
 // the team's own notes about shared series, tracks and dates. Platform admins moderate the requests.
+import { roundLabel, seriesIdsOf } from '@shared/calendar.js';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import FormRenderer from './FormRenderer.jsx';
@@ -115,7 +116,7 @@ export function SendPanel({ data, initial = '', onDone }) {
   const [note, setNote] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const eventsFor = () => (kind === 'series' ? s.events.filter((e) => v(e, 'series') === subject)
+  const eventsFor = () => (kind === 'series' ? s.events.filter((e) => seriesIdsOf(e.data?.values).includes(subject))
     : kind === 'track' ? s.events.filter((e) => v(e, 'venue') === subject)
       : s.events.filter((e) => !majorOnly || v(e, 'major')));
   const list = subject || kind === 'events' ? eventsFor() : [];
@@ -164,7 +165,7 @@ export function SendPanel({ data, initial = '', onDone }) {
               <label key={e.id} className="check-row">
                 <input type="checkbox" checked={chosen.includes(e.id)} onChange={() => toggle(e.id)} />
                 {fmtDate(v(e, 'date'))} — {v(e, 'name')}{v(e, 'major') ? ` ★ ${v(e, 'major_name') || 'Major event'}` : ''}
-                <span className="muted small">{[data.byId[v(e, 'venue')] ? titleOf(data.byId[v(e, 'venue')]) : v(e, 'track'), data.byId[v(e, 'series')] && `${titleOf(data.byId[v(e, 'series')])}${v(e, 'round') ? ` Rd ${v(e, 'round')}` : ''}`].filter(Boolean).join(' · ')}</span>
+                <span className="muted small">{[data.byId[v(e, 'venue')] ? titleOf(data.byId[v(e, 'venue')]) : v(e, 'track'), data.byId[v(e, 'series')] && [titleOf(data.byId[v(e, 'series')]), roundLabel(v(e, 'round_prefix'), v(e, 'round'))].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}</span>
               </label>
             ))}
           </div>
@@ -336,7 +337,7 @@ function ReviewRequest({ r, refs, onDone }) {
                       <tr key={it.key} data-item={it.key}>
                         <td>{fmtDate(x.date)}{x.end_date ? ` – ${fmtDate(x.end_date)}` : ''}</td>
                         <td>{x.name}{x.major && <div className="small">★ {x.major_name || 'Major event'}</div>}</td>
-                        <td className="small">{[x.track_name || name(x.venue) || x.track, (x.series_name || name(x.series)) && `${x.series_name || name(x.series)}${x.round ? ` Rd ${x.round}` : ''}`, x.sanctioning, (x.classes || []).join(', ')].filter(Boolean).join(' · ')}</td>
+                        <td className="small">{[x.track_name || name(x.venue) || x.track, (x.series_name || name(x.series)) && [x.series_name || name(x.series), roundLabel(x.round_prefix, x.round)].filter(Boolean).join(' '), x.sanctioning, (x.classes || []).join(', ')].filter(Boolean).join(' · ')}</td>
                         <td><CheckList checks={ch} /></td>
                         <td>
                           <select aria-label={`Decision for ${x.name}`} value={d.action === 'link' ? `link:${d.id}` : d.action || 'add'}

@@ -214,7 +214,9 @@ with sync_playwright() as pw:
     pa.goto(B + f'/admin/calendar?show=series:{GS["id"]}')
     pa.click('.cal-crumb button:has-text("Feed")')
     fp = pa.locator('[data-testid="feed"]')
+    pa.wait_for_load_state('networkidle')   # the panel loads the series' feed first, which resets the box
     fp.locator('input[aria-label="Feed link"]').fill(feed_url)
+    expect(fp.locator('button:has-text("Add feed")')).to_be_enabled()
     fp.locator('button:has-text("Add feed")').click()
     expect(fp.locator('[data-testid="feed-status"]')).to_contain_text('2 new, 0 changed')
     reqs = call('/admin/calendar/requests', OT)[1]['requests']

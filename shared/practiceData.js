@@ -96,6 +96,9 @@ export function practiceData({ form, today = new Date(), uuid }) {
         event: ev.id, session, order, start: String(start), finish: String(finish), stagger_cold: String(stagger), wing_angle: String(12 + (n % 3)),
         adr: String(90 + n * 1.5), main_jet: String(46 + Math.floor(n / 3)), laps: k === 0 ? '10' : '30', fuel_start: k === 0 ? '5' : '9',
         fuel_finish: k === 0 ? '3' : String(Math.round((3 - n * 0.05) * 100) / 100), tach_high: String(8600 - n * 12),
+        tach_low: String(5400 + n * 8), rpm_max: String(8750 - n * 10),
+        blocked: { LF: '1.5', RF: n % 3 ? '1.375' : '1.25', LR: '2', RR: '2.25' }, turns: { LF: '3', RF: '2.5', LR: n % 2 ? '4' : '4.5', RR: '5' },
+        rake: String(1.5 + (n % 2) * 0.25),
         track_conditions: [['Heavy', 'Tacky'], ['Slick'], ['Tacky'], ['Dry slick']][n % 4],
         driver_feel: k === 0 && n % 2 === 0 ? ['Loose exit'] : [],
       }));
@@ -106,7 +109,8 @@ export function practiceData({ form, today = new Date(), uuid }) {
   const tonight = add('event', { name: 'Valley Speedway — Club night', date: day(0), track: 'Valley Speedway', car: car.id, intent: 'Planned' });
   add('setup', S({
     event: tonight.id, session: 'Heat 1', order: 10, laps: '10', start: '6', finish: '4', fuel_start: '5', fuel_finish: '3', temp: '68', baro: '29.82',
-    stagger_cold: '5.5', wing_angle: '13', track_conditions: ['Tacky'], driver_feel: ['Loose exit'], driver_comments: 'Loose off turn 2, good drive into 3.',
+    stagger_cold: '5.5', wing_angle: '13', blocked: { LF: '1.5', RF: '1.375', LR: '2', RR: '2.25' }, turns: { LF: '3', RF: '2.5', LR: '4', RR: '5' },
+    track_conditions: ['Tacky'], driver_feel: ['Loose exit'], driver_comments: 'Loose off turn 2, good drive into 3.',
   }));
   add('track_check', { event: tonight.id, car: car.id, after_session: 'Heat 1', c_pressures: { done: true }, c_lugs: { done: true }, c_fuel: { done: true, value: '2' }, issues: 'Small oil weep on the RR shock.' });
   // ---- engines: the build sheet for our engine, and its tune from the builder (two versions, the newer active)

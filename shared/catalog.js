@@ -78,6 +78,7 @@ export const ADMIN_PERMISSIONS = [
   { key: 'members.manage', label: 'Invite & manage members' },
   { key: 'roles.manage', label: 'Create & edit roles' },
   { key: 'team.manage', label: 'Edit team settings' },
+  { key: 'team.photo', label: 'Change the team photo' },
   { key: 'backup.manage', label: 'Back up, restore & export team data' },
   { key: 'trash.manage', label: 'Recover anyone’s deleted items' },
 ];
@@ -89,6 +90,7 @@ export const ADMIN_PERMISSIONS = [
 //  - money.view shows costs and amounts on parts orders, finance and sponsor deals (MONEY_FIELDS);
 //    without it they're hidden on the device and kept unchanged by the server.
 //  - purchases.approve: approve or decline parts orders.
+//  - setups.unlock: unlock a locked setup sheet (anyone who can edit setups locks one; nobody changes it while locked).
 export const PART_PERMISSIONS = [
   { key: 'setups.part.feedback', module: 'setups', type: 'setup', sections: ['feedback'], label: 'Setup sheets: edit only Track conditions & car feedback (driver debrief)' },
   { key: 'setups.part.changes', module: 'setups', type: 'setup', sections: ['changes'], label: 'Setup sheets: tick off the change list' },
@@ -97,6 +99,7 @@ export const PART_PERMISSIONS = [
 export const SPECIAL_PERMISSIONS = [
   ...PART_PERMISSIONS,
   { key: 'purchases.approve', module: 'purchases', label: 'Approve or decline parts orders' },
+  { key: 'setups.unlock', module: 'setups', label: 'Unlock locked setup sheets' },
   { key: 'money.view', module: null, label: 'See costs, prices and amounts (parts orders, finance, sponsor deals)' },
 ];
 /** Fields only shown to roles with money.view (top-level values keys, by record type). */
@@ -226,7 +229,7 @@ export const DEFAULT_ROLES = [
     name: 'Crew Chief',
     description: 'Runs the car at the track and in the workshop; calls changes, approves parts orders, edits forms; sees reports',
     permissions: [...areas('track', 'workshop', 'engines', 'team'), ...mod(allMods.filter((m) => m !== 'reviews' && !BUSINESS.includes(m)), ACTIONS),
-      ...mod(['transport'], ['view']), 'forms.manage', 'purchases.approve', 'money.view'],
+      ...mod(['transport'], ['view']), 'forms.manage', 'purchases.approve', 'money.view', 'setups.unlock'],
   },
   {
     name: 'Car Chief',
@@ -304,7 +307,7 @@ export const DEFAULT_ROLES = [
     permissions: [
       ...areas('team'),
       ...mod(['cars', 'events', 'calendar', 'contacts', 'ai'], ['view']),
-      ...mod(['marketing'], ACTIONS), ...mod(['partnerships'], ['view', 'edit']),
+      ...mod(['marketing'], ACTIONS), ...mod(['partnerships'], ['view', 'edit']), 'team.photo',
     ],
   },
 ];

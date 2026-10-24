@@ -71,7 +71,7 @@ export function ShopSetupLinks({ rec, values }) {
     setMsg(on ? `Linked to ${v(ev, 'name')}.` : `Unlinked from ${v(ev, 'name')}.`);
     setPick('');
   };
-  const label = (e) => [fmtDate(v(e, 'date')), v(e, 'name'), roundAndTrack(v(e, 'round'), '')].filter(Boolean).join(' · ');
+  const label = (e) => [fmtDate(v(e, 'date')), v(e, 'name'), roundAndTrack(e?.data?.values, '')].filter(Boolean).join(' · ');
   return (
     <Section title="Events this is the baseline for" className="shop-links">
       <p className="small muted">At these events, setup sheets can start from this workshop setup (<b>Start this sheet from… → Workshop setup</b>).</p>

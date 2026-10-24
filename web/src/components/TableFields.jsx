@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ADJUSTERS } from '@shared/baseForms2.js';
 import { fillX, parseGearSets, parseSweep, parseTable } from '../lib/parse.js';
 import { SHEET_ACCEPT, readSpreadsheet, sheetToText } from '../lib/sheets.js';
-import { fmtDate, fmtDateTime, memberName, membersList } from '../lib/data.js';
+import { fmtDate, fmtDateTime, memberName, membersList, platformList, titleOf } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 
 /**
@@ -11,7 +11,7 @@ import { useSession } from '../lib/session.jsx';
  * member: true (a team member) or check: true (a tick box — stamp: true also records who ticked it and when,
  * in <key>_by and <key>_at).
  */
-function Cell({ c, row, readOnly, label, set, setMany }) {
+function Cell({ c, row, readOnly, label, set, setMany, data }) {
   const { user } = useSession() || {};
   const val = row[c.key];
   if (c.check) {
@@ -36,7 +36,28 @@ function Cell({ c, row, readOnly, label, set, setMany }) {
       </select>
     );
   }
+  if (c.ref) {
+    const recs = (data?.list(c.ref) || []).slice().sort((a, b) => titleOf(a, data).localeCompare(titleOf(b, data)));
+    if (readOnly) return val ? titleOf(data?.byId[val], data) : '';
+    return (
+      <select aria-label={label} value={val ?? ''} onChange={(e) => set(e.target.value)}>
+        <option value="">—</option>
+        {recs.map((r) => <option key={r.id} value={r.id}>{titleOf(r, data)}</option>)}
+      </select>
+    );
+  }
   if (c.options) {
+    // a column may take its choices from a platform pick-list (list: key), falling back to its own
+    const options = (c.list && platformList(c.list)?.length ? platformList(c.list) : c.options);
+    if (c.list) {
+      if (readOnly) return val ?? '';
+      return (
+        <>
+          <input aria-label={label} className="txt" list={`dl-${c.list}`} value={val ?? ''} onChange={(e) => set(e.target.value)} />
+          <datalist id={`dl-${c.list}`}>{options.map((o) => <option key={o} value={o} />)}</datalist>
+        </>
+      );
+    }
     if (readOnly) return val ?? '';
     return (
       <select aria-label={label} value={val ?? ''} onChange={(e) => set(e.target.value)}>
@@ -85,7 +106,7 @@ function PastePanel({ onApply, onClose, hint, allowAppend = true }) {
   );
 }
 
-export function TableField({ field, value, onChange, readOnly, compactHelp, labelPrefix = '' }) {
+export function TableField({ field, value, onChange, readOnly, compactHelp, labelPrefix = '', data = null }) {
   const cols = field.columns || [];
   const rows = Array.isArray(value) && (value.length || field.defaultRows?.length === 0) ? value : (field.defaultRows?.length === 0 ? [] : field.defaultRows || [{}]);
   const [panel, setPanel] = useState(null);
@@ -140,7 +161,7 @@ export function TableField({ field, value, onChange, readOnly, compactHelp, labe
               <tr key={i}>
                 {cols.map((c) => (
                   <td key={c.key} className={c.check ? 'td-check' : ''}>
-                    <Cell c={c} row={r} readOnly={readOnly} label={`${labelPrefix}${c.label} row ${i + 1}`}
+                    <Cell c={c} row={r} readOnly={readOnly} label={`${labelPrefix}${c.label} row ${i + 1}`} data={data}
                       set={(x) => set(i, c.key, x)} setMany={(patch) => onChange(rows.map((row, j) => (j === i ? { ...row, ...patch } : row)))} />
                   </td>
                 ))}

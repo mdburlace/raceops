@@ -13,13 +13,13 @@ import {
 import { Empty, PageHeader, Pill, Section } from '../components/ui.jsx';
 import { api, apiJob } from '../lib/api.js';
 import { fileToPart } from '../lib/ai.js';
-import { fmtDate, fmtDays, formFor, roundAndTrack, num, platformList, titleOf, today, useTeamData, v } from '../lib/data.js';
+import { fmtDate, fmtDays, formFor, roundAndTrack, num, platformList, seriesNames, titleOf, today, useTeamData, v } from '../lib/data.js';
 import { useSession } from '../lib/session.jsx';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { syncNow } from '../lib/sync.js';
 import {
   INTENTS, MONTHS, OUTCOMES, WITHDREW, WITHDRAW_REASONS, carsForFixture, consecutiveDays, daysOn, entryStatus, eventDayList, eventFromFixture, fixtureChanges,
-  keepUsedDays, normaliseDays, respanDays,
+  keepUsedDays, normaliseDays, respanDays, ROUND_PREFIXES, addToSeries, linkFor, removeFromSeries, roundLabel, seriesIdsOf, seriesLinks, tidySeries,
   fixtureClasses, inSeason, majorLabel, matchTrack, sanctioningOf, sameFixture, seasonLabel, seasonMatches, seasonOf, seasonStart, seasonSummary,
 } from '@shared/calendar.js';
 
@@ -66,7 +66,7 @@ export function teamItems(data, year, sm, { notGoing = true } = {}) {
       const fx = data.byId[x.fixture];
       return {
         id: e.id, rec: e, values: x, date: x.date, end_date: x.end_date || '', days: eventDayList(x), name: x.name || 'Event', track: trackName(data, x),
-        location: x.location || '', series: seriesName(data, x.series), round: x.round || '', car: car ? titleOf(car) : '',
+        location: x.location || '', series: seriesNames(x, data), round: roundLabel(x.round_prefix, x.round), car: car ? titleOf(car) : '',
         sanctioning: sanctioningOf(x, vals(data.byId[x.series])), major: majorLabel(x.major ? x : vals(fx)).replace(/^★ /, ''),
         tentative: x.intent === 'Tentative', notGoing: x.intent === 'Not going',
         cancelled: vals(fx).status === 'Cancelled' || x.outcome === 'Event cancelled', fx, changes: fx ? fixtureChanges(x, vals(fx)) : [],
@@ -221,7 +221,8 @@ function EntryQuickEdit({ ev, data, onDone }) {
     const kept = new Set(eventDayList(normaliseDays(values)).map((d) => d.n));
     const lost = Object.entries(sheetsByDay(data, ev.id)).filter(([n]) => !kept.has(Number(n))).reduce((a, [, c]) => a + c, 0);
     if (lost) { setErr(`That takes off a day that has ${lost} setup sheet${lost > 1 ? 's' : ''}. Move ${lost > 1 ? 'them' : 'it'} to another day first.`); return; }
-    if (!values.series) { delete values.series; delete values.round; }
+    Object.assign(values, tidySeries(values));
+    if (!values.series) { delete values.series; delete values.round; delete values.round_prefix; }
     if (!values.major) delete values.major_name;
     await saveRecord(tid, 'event', ev.id, { ...ev.data, values }, user.id);
     onDone();
@@ -257,7 +258,13 @@ function EntryQuickEdit({ ev, data, onDone }) {
           </select>
           <small className="muted">Not listed? <Link to="/r/series/new?back=/calendar">Add a series</Link></small>
         </label>
+        <label className="field"><span className="label">Round prefix</span>
+          <input aria-label="Round prefix" list="dl-qe-prefix" value={x.round_prefix || ''} placeholder="Round" disabled={!x.series} onChange={(e) => set('round_prefix', e.target.value)} />
+          <datalist id="dl-qe-prefix">{(platformList('round_prefixes') || ROUND_PREFIXES).map((o) => <option key={o} value={o} />)}</datalist>
+        </label>
         <label className="field"><span className="label">Round</span><input aria-label="Round" inputMode="numeric" value={x.round || ''} disabled={!x.series} onChange={(e) => set('round', e.target.value)} /></label>
+        {x.more_series?.length > 0 && <div className="field"><span className="label">Also counts towards</span><span>{seriesNames({ more_series: x.more_series, series: '' }, data)}</span>
+          <small className="muted">Change them in <Link to={`/r/event/${ev.id}?back=/calendar`}>All details</Link>.</small></div>}
         <label className="field"><span className="label">Sanctioning body</span>
           <input aria-label="Sanctioning body" list="dl-qe-sanctioning" value={x.sanctioning || ''} placeholder="Choose or type" onChange={(e) => set('sanctioning', e.target.value)} />
           <datalist id="dl-qe-sanctioning">{bodies.map((b) => <option key={b} value={b} />)}</datalist>
@@ -395,7 +402,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
   const entries = team ? data.list('season_plan').filter((p) => seasonMatches(vals(p).season, year, sm)) : [];
   const enteredSeries = new Set(entries.map((p) => canon(data, vals(p).series)));
   const onCal = (f) => (team ? data.list('event').filter((e) => v(e, 'fixture') === f.id) : []);
-  const ours = (f) => onCal(f).length > 0 || enteredSeries.has(canon(data, vals(f).series))
+  const ours = (f) => onCal(f).length > 0 || seriesIdsOf(vals(f)).some((x) => enteredSeries.has(canon(data, x)))
     || fixtureClasses(vals(f), vals(data.byId[vals(f).series])).some((c) => ourClasses.has(lc(c)));
   const [kind, id] = filter.split(':');
   // the team's waiting requests: a change shows on the date it changes
@@ -417,10 +424,10 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
 
   // ---- the lists of calendars (one per series / per track) ----
   const seriesIndex = () => {
-    const ids = new Set(dates.map((f) => canon(data, vals(f).series)).filter(Boolean));
+    const ids = new Set(dates.flatMap((f) => seriesIdsOf(vals(f)).map((x) => canon(data, x))).filter(Boolean));
     // admins also see shared series for this year that have no dates yet, so they can add them
     if (!team) for (const s of data.list('series')) if (seasonMatches(vals(s).season, year, sm)) ids.add(s.id);
-    return [...ids].map((sid) => ({ id: sid, rec: data.byId[sid], dates: dates.filter((f) => canon(data, vals(f).series) === sid) }))
+    return [...ids].map((sid) => ({ id: sid, rec: data.byId[sid], dates: dates.filter((f) => !!linkFor(vals(f), sid, (x) => canon(data, x))) }))
       .filter((x) => x.rec).sort((a, b) => seriesName(data, a.id).localeCompare(seriesName(data, b.id)));
   };
   const trackIndex = () => [...new Set(dates.map((f) => vals(f).venue).filter(Boolean))]
@@ -428,7 +435,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
     .sort((a, b) => trackName(data, { venue: a.id }).localeCompare(trackName(data, { venue: b.id })));
 
   const list = dates.filter((f) => (kind === 'all' || kind === 'clashes' ? true : kind === 'major' ? !!vals(f).major
-    : kind === 'series' ? canon(data, vals(f).series) === id : kind === 'track' ? vals(f).venue === id : ours(f)));
+    : kind === 'series' ? !!linkFor(vals(f), id, (x) => canon(data, x)) : kind === 'track' ? vals(f).venue === id : ours(f)));
   const saveFixture = adminApi?.saveFixture;
 
   const remove = async (f) => {
@@ -498,7 +505,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
       {team && pending > 0 && <div className="notice info small" data-testid="waiting-notice">{pending === 1 ? 'One request from your team is' : `${pending} requests from your team are`} waiting for a RaceOps admin. <Link to="/calendar?tab=requests">See requests</Link></div>}
       {importing && <ImportPanel data={data} year={year} sm={sm} seriesId={pick} trackId={kind === 'track' ? id : ''} saveRows={adminApi?.saveRows} onDone={(x) => { setImporting(false); if (x) sent(); }} />}
       {editing && !editing.rec && <FixtureEditor data={data} initial={editing.initial} onSave={saveFixture} onDone={(x) => { setEditing(null); if (x) sent(); }} />}
-      {seriesEdit && <SeriesEditor data={data} rec={seriesEdit.rec} year={year} sm={sm} onSave={adminApi.saveSeries} onDone={() => setSeriesEdit(null)} />}
+      {seriesEdit && <SeriesEditor data={data} rec={seriesEdit.rec} year={year} sm={sm} onSave={adminApi.saveSeries} onDates={adminApi.seriesDates} onDone={() => setSeriesEdit(null)} />}
       {entering && <EntryEditor data={data} year={year} sm={sm} initial={{ series: entering }} onDone={() => setEntering(null)} />}
       {kind === 'series' && !id ? index(seriesIndex(), 'series', (x) => [vals(x.rec).class, vals(x.rec).sanctioning].filter(Boolean).join(' · '))
         : kind === 'tracks' ? index(trackIndex(), 'tracks', (x) => [vals(x.rec).city, vals(x.rec).region].filter(Boolean).join(', '))
@@ -515,6 +522,8 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                 const series = data.byId[fv.series];
                 const classes = fixtureClasses(fv, vals(series));
                 const change = team ? changeFor(f) : null;
+                // on a series' calendar, the round is this series' one
+                const link = (kind === 'series' && id && linkFor(fv, id, (x) => canon(data, x))) || seriesLinks(fv)[0] || { prefix: fv.round_prefix, round: fv.round };
                 return (
                   <div key={f.id} className={`list-row fx-row${fv.status === 'Cancelled' ? ' cancelled' : ''}`} data-fixture={f.id}>
                     <span className="date-block">
@@ -523,7 +532,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
                     </span>
                     <span className="grow">
                       <span className="row-title">{fv.name}{eventDayList(fv).length > 1 ? <span className="pill pill-info days-pill">{eventDayList(fv).length} days</span> : null}</span>
-                      <span className="row-sub">{[roundAndTrack(fv.round, trackName(data, fv)), series && vals(series).name, sanctioningOf(fv, vals(series)), classes.join(', '), fv.start_time].filter(Boolean).join(' · ')}</span>
+                      <span className="row-sub">{[roundAndTrack(link ? roundLabel(link.prefix, link.round) : '', trackName(data, fv)), seriesNames(fv, data), sanctioningOf(fv, vals(series)), classes.join(', '), fv.start_time].filter(Boolean).join(' · ')}</span>
                       <DayLines values={fv} />
                       {winnerText(fv) && <span className="small winner">🏁 {winnerText(fv)}{fv.entries ? ` · ${fv.entries} entries` : ''}</span>}
                       <span className="fx-flags">
@@ -561,7 +570,7 @@ export function SharedCalendars({ data, year, sm, label, mode = 'team', admin: a
 }
 
 /** Platform admin: add or change a shared series. */
-function SeriesEditor({ data, rec, year, sm, onSave, onDone }) {
+function SeriesEditor({ data, rec, year, sm, onSave, onDates, onDone }) {
   const form = formFor(data, 'series');
   const [values, setValues] = useState(() => (rec ? { ...vals(rec) } : { season: seasonLabel(year, sm) }));
   const [err, setErr] = useState('');
@@ -578,6 +587,60 @@ function SeriesEditor({ data, rec, year, sm, onSave, onDone }) {
         <button type="button" className="btn primary" onClick={save}>Save series</button>
         <button type="button" className="btn ghost" onClick={onDone}>Cancel</button>
       </div>
+      {rec && onDates && <SeriesDates data={data} rec={rec} year={year} sm={sm} onDates={onDates} />}
+    </div>
+  );
+}
+
+/**
+ * The series' dates, from its edit screen: take a date out, or tick shared dates to add (with each one's
+ * round and prefix). A date already in another series keeps it — this series is added as one more.
+ */
+function SeriesDates({ data, rec, year, sm, onDates }) {
+  const [q, setQ] = useState('');
+  const [picked, setPicked] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const sid = rec.id;
+  const inIt = data.list('fixture').filter((f) => linkFor(vals(f), sid)).sort((a, b) => String(vals(a).date).localeCompare(String(vals(b).date)));
+  const nextRound = Math.max(0, ...inIt.map((f) => num(linkFor(vals(f), sid)?.round) || 0)) + 1;
+  const prefixes = platformList('round_prefixes')?.length ? platformList('round_prefixes') : ROUND_PREFIXES;
+  const candidates = data.list('fixture').filter((f) => !linkFor(vals(f), sid) && vals(f).date)
+    .filter((f) => (q ? `${vals(f).name} ${trackName(data, vals(f))}`.toLowerCase().includes(q.toLowerCase()) : inSeason(vals(f).date, vals(f).end_date, year, sm)))
+    .sort((a, b) => String(vals(a).date).localeCompare(String(vals(b).date)));
+  const toggle = (f) => setPicked((p) => { const n = { ...p }; if (n[f.id]) delete n[f.id]; else n[f.id] = { round: String(nextRound + Object.keys(p).length), prefix: '' }; return n; });
+  const run = async (body) => { setBusy(true); setErr(''); try { await onDates(sid, body); setPicked({}); } catch (e) { setErr(e.message); } finally { setBusy(false); } };
+  const n = Object.keys(picked).length;
+  return (
+    <div className="series-dates" data-testid="series-dates">
+      <h4 className="subhead">Dates in this series ({inIt.length})</h4>
+      {inIt.length === 0 ? <p className="muted small">No dates yet. Tick shared dates below to add them.</p> : (
+        <div className="list">{inIt.map((f) => (
+          <div key={f.id} className="list-row">
+            <span className="grow"><b>{roundIn(data, vals(f), sid) || '—'}</b> · {vals(f).name} <span className="muted small">· {fmtDays(vals(f))} · {trackName(data, vals(f))}{seriesLinks(vals(f)).length > 1 ? ` · also ${seriesNames({ more_series: seriesLinks(vals(f)).filter((l) => l.series !== sid) }, data)}` : ''}</span></span>
+            <button type="button" className="btn small ghost danger" disabled={busy} onClick={() => run({ remove: [f.id] })}>Take out</button>
+          </div>
+        ))}</div>
+      )}
+      <h4 className="subhead">Add shared dates</h4>
+      <input type="search" aria-label="Search shared dates" placeholder={`Search every shared date (showing ${seasonLabel(year, sm)})`} value={q} onChange={(e) => setQ(e.target.value)} />
+      {candidates.length === 0 ? <p className="muted small">No other shared dates{q ? ' match' : ` in ${seasonLabel(year, sm)}`}.</p> : (
+        <div className="list" data-testid="series-add-dates">{candidates.slice(0, 80).map((f) => (
+          <div key={f.id} className="list-row">
+            <label className="check-row grow"><input type="checkbox" checked={!!picked[f.id]} onChange={() => toggle(f)} />
+              <span>{fmtDate(vals(f).date)} — {vals(f).name} <span className="muted small">· {trackName(data, vals(f))}{seriesNames(vals(f), data) ? ` · in ${seriesNames(vals(f), data)}` : ''}</span></span></label>
+            {picked[f.id] && (
+              <span className="row-actions">
+                <input aria-label={`Prefix for ${vals(f).name}`} list="dl-sd-prefix" placeholder="Round" value={picked[f.id].prefix} onChange={(e) => setPicked((p) => ({ ...p, [f.id]: { ...p[f.id], prefix: e.target.value } }))} style={{ width: 110 }} />
+                <input aria-label={`Round for ${vals(f).name}`} inputMode="numeric" value={picked[f.id].round} onChange={(e) => setPicked((p) => ({ ...p, [f.id]: { ...p[f.id], round: e.target.value } }))} style={{ width: 70 }} />
+              </span>
+            )}
+          </div>
+        ))}</div>
+      )}
+      <datalist id="dl-sd-prefix">{prefixes.map((o) => <option key={o} value={o} />)}</datalist>
+      {err && <div className="notice error small">{err}</div>}
+      <div className="row-actions"><button type="button" className="btn primary" disabled={!n || busy} onClick={() => run({ add: Object.entries(picked).map(([fixture, r]) => ({ fixture, ...r })) })}>Add {n || ''} date{n === 1 ? '' : 's'} to {vals(rec).name}</button></div>
     </div>
   );
 }
@@ -611,7 +674,7 @@ function Clashes({ data, dates, ourClasses, team }) {
               <span className="date-block"><b>{Number(r.date.slice(8))}</b><small>{new Date(`${r.date}T00:00:00`).toLocaleString(undefined, { month: 'short' })} {dow(r.date)}</small></span>
               <span className="grow">
                 <span className="row-title">{r.list.length} meetings · {r.reg}{r.shared.length > 0 && <span className="pill pill-over">Same class: {r.shared.join(', ')}</span>}</span>
-                {r.list.map((f) => <span key={f.id} className="row-sub">{vals(f).name} — {roundAndTrack(vals(f).round, trackName(data, vals(f)))}{classesOf(f).length ? ` · ${classesOf(f).join(', ')}` : ''}</span>)}
+                {r.list.map((f) => <span key={f.id} className="row-sub">{vals(f).name} — {roundAndTrack(vals(f), trackName(data, vals(f)))}{classesOf(f).length ? ` · ${classesOf(f).join(', ')}` : ''}</span>)}
               </span>
             </div>
           ))}
@@ -840,7 +903,7 @@ function ImportPanel({ data, year, sm, seriesId, trackId, saveRows = null, onDon
           {rows.length === 0 ? <p className="muted">No dates found.</p> : (
             <div className="table-scroll">
               <table className="table import-rows" data-testid="import-rows">
-                <thead><tr><th>Add</th><th>Date</th><th>End</th><th>Event</th><th>Track</th><th>Rd</th><th>Classes</th><th>Major</th></tr></thead>
+                <thead><tr><th>Add</th><th>Date</th><th>End</th><th>Event</th><th>Track</th><th>Round</th><th>Classes</th><th>Major</th></tr></thead>
                 <tbody>{rows.map((r, i) => (
                   <tr key={i} className={r._dup ? 'dup' : ''}>
                     <td><input type="checkbox" aria-label={`Add ${r.name}`} checked={r._on} onChange={(e) => setRow(i, { _on: e.target.checked })} />{r._dup && <small className="muted"> already listed</small>}</td>
@@ -877,8 +940,14 @@ function ImportPanel({ data, year, sm, seriesId, trackId, saveRows = null, onDon
 function seriesRounds(data, seriesId) {
   if (!seriesId) return [];
   const sid = canon(data, seriesId);
-  return data.list('fixture').filter((f) => canon(data, vals(f).series) === sid && vals(f).status !== 'Cancelled' && vals(f).date)
-    .sort((a, b) => (vals(a).date || '').localeCompare(vals(b).date || '') || (num(vals(a).round) || 0) - (num(vals(b).round) || 0));
+  const rnd = (f) => num(linkFor(vals(f), sid, (x) => canon(data, x))?.round) || 0;
+  return data.list('fixture').filter((f) => linkFor(vals(f), sid, (x) => canon(data, x)) && vals(f).status !== 'Cancelled' && vals(f).date)
+    .sort((a, b) => (vals(a).date || '').localeCompare(vals(b).date || '') || rnd(a) - rnd(b));
+}
+/** A date's or event's round in one series, worded ("Night 2"), or ''. */
+function roundIn(data, values, seriesId) {
+  const l = linkFor(values, seriesId, (x) => canon(data, x));
+  return l ? roundLabel(l.prefix, l.round) : '';
 }
 
 function SeriesEntries({ data, year, sm, label }) {
@@ -897,7 +966,7 @@ function SeriesEntries({ data, year, sm, label }) {
             const pv = vals(p);
             const rounds = seriesRounds(data, pv.series);
             const mine = rounds.filter((f) => evs.some((e) => v(e, 'fixture') === f.id && v(e, 'car') === pv.car && v(e, 'intent') !== 'Not going'));
-            const ownEvents = evs.filter((e) => canon(data, v(e, 'series')) === canon(data, pv.series) && v(e, 'car') === pv.car && inSeason(v(e, 'date'), v(e, 'end_date'), year, sm));
+            const ownEvents = evs.filter((e) => linkFor(vals(e), pv.series, (x) => canon(data, x)) && v(e, 'car') === pv.car && inSeason(v(e, 'date'), v(e, 'end_date'), year, sm));
             const car = data.byId[pv.car];
             return (
               <Fragment key={p.id}>
@@ -946,7 +1015,7 @@ function EntryEditor({ data, year, sm, rec, initial = {}, onDone }) {
   const onCalFor = (f, car) => evs.find((e) => v(e, 'fixture') === f.id && v(e, 'car') === car);
   const going = (f, car) => { const e = onCalFor(f, car); return !!e && v(e, 'intent') !== 'Not going'; };
   // the team's own dates in this series that aren't on a calendar date (a series it hasn't shared yet)
-  const ownRounds = values.series ? evs.filter((e) => !v(e, 'fixture') && canon(data, v(e, 'series')) === canon(data, values.series) && (!values.car || v(e, 'car') === values.car))
+  const ownRounds = values.series ? evs.filter((e) => !v(e, 'fixture') && linkFor(vals(e), values.series, (x) => canon(data, x)) && (!values.car || v(e, 'car') === values.car))
     .sort((a, b) => (v(a, 'date') || '').localeCompare(v(b, 'date') || '')) : [];
   const [picked, setPicked] = useState(() => rounds.filter((f) => going(f, values.car)).map((f) => f.id));
   const [errors, setErrors] = useState({});
@@ -1003,7 +1072,7 @@ function EntryEditor({ data, year, sm, rec, initial = {}, onDone }) {
             return (
               <label key={f.id} className="check-row round-row">
                 <input type="checkbox" checked={picked.includes(f.id)} onChange={(ev) => tick(f.id, ev.target.checked)} />
-                <span className="grow">{fv.round ? <b>Rd {fv.round}</b> : null}{fv.round ? ' — ' : ''}{fv.name} · {fmtDays(fv)}
+                <span className="grow">{roundIn(data, fv, values.series) ? <b>{roundIn(data, fv, values.series)}</b> : null}{roundIn(data, fv, values.series) ? ' — ' : ''}{fv.name} · {fmtDays(fv)}
                   {data.byId[fv.venue] ? <span className="muted"> · {titleOf(data.byId[fv.venue])}</span> : null}
                   {fv.major && <span className="pill pill-warn">★ Major event</span>}
                   {e && <span className="pill pill-ok">{v(e, 'intent') === 'Not going' ? 'On our calendar — not going' : 'On our calendar'}</span>}
@@ -1011,13 +1080,13 @@ function EntryEditor({ data, year, sm, rec, initial = {}, onDone }) {
                 </span>
               </label>
             );
-          }) : <p className="muted small">{rounds.map((f) => `${vals(f).round ? `Rd ${vals(f).round}` : vals(f).name} ${fmtDate(vals(f).date)}`).join(' · ')}</p>}
+          }) : <p className="muted small">{rounds.map((f) => `${roundIn(data, vals(f), values.series) || vals(f).name} ${fmtDate(vals(f).date)}`).join(' · ')}</p>}
           {partial && rounds.some((f) => onCalFor(f, values.car)) && <p className="muted small">Untick a round that’s on our calendar to mark it Not going. Its setups and notes are kept.</p>}
         </div>
       ) : ownRounds.length ? (
         <div className="rounds-pick" data-testid="rounds-pick">
           <b>{ownRounds.length} round{ownRounds.length === 1 ? '' : 's'} on our calendar</b>
-          <p className="muted small">{ownRounds.map((e) => `${v(e, 'round') ? `Rd ${v(e, 'round')} ` : ''}${v(e, 'name') || ''} ${fmtDate(v(e, 'date'))}`).join(' · ')}</p>
+          <p className="muted small">{ownRounds.map((e) => `${roundIn(data, vals(e), values.series) ? `${roundIn(data, vals(e), values.series)} ` : ''}${v(e, 'name') || ''} ${fmtDate(v(e, 'date'))}`).join(' · ')}</p>
           <p className="muted small">This series is your team’s own, so its rounds are the events you’ve added. Send it to the shared calendars (under <b>Requests</b>) to share the dates, or add more events in the series.</p>
         </div>
       ) : <p className="muted small">This series has no dates yet — import or suggest them under Shared calendars.</p>}
@@ -1241,6 +1310,7 @@ export function AdminCalendar() {
     deleteFixture: async (rec) => { await api(`/admin/calendar/fixtures/${rec.id}`, { method: 'DELETE' }); await load(); },
     saveSeries: async (values, rec) => { await api(`/admin/calendar/series/${rec?.id || 'new'}`, { method: 'PUT', body: { values } }); await load(); },
     saveRows: async (rows) => { for (const values of rows) await api('/admin/calendar/fixtures/new', { method: 'PUT', body: { values } }); await load(); },
+    seriesDates: async (sid, body) => { await api(`/admin/calendar/series/${sid}/dates`, { method: 'POST', body }); await load(); },
     reload: () => load(),
   };
   return (

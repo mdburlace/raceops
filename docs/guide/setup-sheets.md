@@ -7,7 +7,7 @@ summary: Start a sheet from the last session, a baseline or blank; what's copied
 for: module:setups
 team: race
 pages: /setups, /r/setup/*
-covers: type:setup, module:setups, setting:baseline
+covers: type:setup, module:setups, setting:baseline, perm:setups.unlock
 related: workshop-setups, setup-sheet-layout, shocks-on-setup, fuel-planner, weather, feedback-debrief, setup-advisor, import-files
 ---
 Each session at an event has one setup sheet. Fields have an **ⓘ** beside the label: tap it to see what to enter and where to get the number.
@@ -45,8 +45,14 @@ Some sections work things out for you:
 - **Weather.** Pull it for the track, or calculate from your readings. See [Track weather](/help/weather).
 - **Shocks.** A card per corner with the shock, its adjusters, bump rubbers and travel. Each corner lists that corner's shocks first, and adjusters show only for an adjustable shock. See [Shocks, adjusters and bump rubbers](/help/shocks-on-setup).
 - **Engine.** Once you pick the motor, its [engine tune](/help/engine-tunes) shows the pill settings for the session's ADR or density altitude. **Use this jetting** puts them on the sheet.
-- **Race.** The fuel plan predicts the fuel to start with. See [Plan fuel for a session](/help/fuel-planner).
+- **Fuel plan.** The fuel plan in **Race** predicts the fuel to start with. See [Plan fuel for a session](/help/fuel-planner).
+- **Chassis.** Bars, **Block height** and **Turns** (torsion stop adjuster turns) at each corner, ride height, chassis **rake** and **tilt**, the LR and RR radius rod front mounts, rear steer, the LR and RR **birdcage angles**, and the **Jacobs ladder**: its length, upper and lower strap lengths, upper and lower chassis mounts and birdcage mount.
+
+  ![The Chassis section of a setup sheet](img/setup-chassis.webp)
+- **Race.** Engine rpm from the tach recall: **Low RPM (corners)**, **High RPM (straights)** and **Highest RPM (overall)**, with laps, finish and fuel.
 - **Calculator buttons** beside some fields (main jet, stagger, ADR…) open the matching calculator, filled in from the sheet. **Use** puts the answer in the field.
+
+Long-press a number box for the big keypad, sixteenths and the team's common values, and use the angle finder for wing, rake, tilt and birdcage angles. See [Quick add screen](/help/setup-sheet-layout#quick-add-screen).
 
 Press **Save** when done. Everything saves on the device first and syncs when there's a connection.
 
@@ -65,6 +71,17 @@ The Motor, Shocks, Bars and Gear fields pick from your [assets](/help/assets). P
 ## Who fills in what
 
 With part rights, a role can change only some sections of a sheet: the driver fills in **Track conditions & car feedback**, the car chief ticks the **Change list**, and the tyre specialist fills in **Tires** and **Wheels**. The sheet shows which sections you can change. See [Roles and permissions](/help/roles-permissions#other-rights).
+
+## Lock a finished sheet
+
+When a sheet is finished, lock it so nobody changes it by mistake.
+
+1. Save the sheet.
+2. Press **Lock sheet** at the top. Anyone who can edit setup sheets can lock one.
+
+A locked sheet shows **🔒 Locked by … on …** and opens read-only for everyone, the owner included. It can't be deleted, and lists show 🔒 next to it. The sheet still moves if you reorder the sessions.
+
+To change it, someone with **Unlock locked setup sheets** presses **Unlock**. The team owner can always unlock, and can give the right to other roles, such as the crew chief, in [Roles and permissions](/help/roles-permissions#other-rights). Lock it again when you're done.
 
 ## Baselines
 

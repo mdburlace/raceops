@@ -172,6 +172,16 @@ def training_feature_sheet(page):
     say(page, 'And a degree more top wing', speak='And one degree more on the top wing.')
     click(page, 'button[aria-label="More Top wing angle"]', 500)
     click(page, 'button[aria-label="More Top wing angle"]', 1200)
+    say(page, 'Long-press a box for the quick add screen: sixteenths and common values',
+        speak='Long-press a number box for the quick add screen, with sixteenths and the team’s common values. Here, one and a quarter inches of block height.')
+    bh = page.locator('#f-blocked-RF'); bh.scroll_into_view_if_needed(); page.wait_for_timeout(600)
+    box = bh.bounding_box(); page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
+    page.mouse.down(); page.wait_for_timeout(700); page.mouse.up(); page.wait_for_timeout(900)
+    qa = page.locator('[data-testid="quick-add"]')
+    click(page, qa.get_by_role('button', name='Clear'), 500)
+    click(page, qa.get_by_role('button', name='1', exact=True), 600)
+    click(page, qa.get_by_role('button', name='plus 1/4'), 1500)
+    click(page, qa.get_by_role('button', name='OK'), 1200)
     say(page, 'Each change shows what it was. Changes only shows just those',
         speak='Each change shows what it was before. Tick Changes only to see just the changes.')
     page.locator('label:has-text("Changes only") input').check(); page.wait_for_timeout(500)
@@ -214,7 +224,8 @@ def training_driver(page):
     click(page, '.sheet-nav .sn-chip:has-text("Wing")', 2000)
     say(page, 'Where are we racing next? Team Management → Calendar', speak='Where are we racing next? Open Team Management → Calendar.')
     click(page, '.sidebar .nav-link:has-text("Calendar")', 1500)
-    page.locator('.list-row:has-text("Rd 9")').first.scroll_into_view_if_needed(); page.wait_for_timeout(800)
+    rd9 = next(r for r in RECS if r['type'] == 'event' and str((r['data'].get('values') or {}).get('round')) == '9')
+    page.locator(f'[data-event="{rd9["id"]}"]').scroll_into_view_if_needed(); page.wait_for_timeout(800)  # by the event, not its round label
     say(page, 'Round 9 at Lakeside next week', 2500)
     say(page, '', 300)
 

@@ -6,7 +6,7 @@ import { TrackDates } from './Calendar.jsx';
 import { FollowButton, RequestChange, TeamNotes } from '../components/SharedRequests.jsx';
 import { Empty, PageHeader, Pill, Section, useOnline } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
-import { fmtDate, titleOf, useTeamData, v, platformList } from '../lib/data.js';
+import { fmtDate, titleOf, useTeamData, v, platformList, roundAndTrack, seriesNames } from '../lib/data.js';
 import { deleteRecord, saveRecord } from '../lib/store.js';
 import { useSession } from '../lib/session.jsx';
 import { dateRange } from './Events.jsx';
@@ -268,7 +268,7 @@ export function TrackDetail() {
         {events.length === 0 ? <p className="muted">No events recorded at this track yet.</p> : (
           <div className="list">{events.map((e) => (
             <Link key={e.id} to={`/events/${e.id}`} className="list-row event-row" data-event={e.id}>
-              <span className="grow"><span className="row-title">{v(e, 'name')}</span><span className="row-sub">{[dateRange(e), v(e, 'round') && `Rd ${v(e, 'round')}`, data.byId[v(e, 'series')] && titleOf(data.byId[v(e, 'series')])].filter(Boolean).join(' · ')}</span>
+              <span className="grow"><span className="row-title">{v(e, 'name')}</span><span className="row-sub">{[dateRange(e), roundAndTrack(e.data?.values, ''), seriesNames(e.data?.values, data)].filter(Boolean).join(' · ')}</span>
                 <DayLines values={e.data?.values} /></span>
               <span className="row-meta">{setups.filter((s) => v(s, 'event') === e.id).length} sheets</span>
             </Link>

@@ -13,7 +13,7 @@ import crypto from 'node:crypto';
 import { q, tx } from './db.js';
 import { HttpError } from './auth.js';
 import { canType } from '../../shared/catalog.js';
-import { keepUsedDays, moveDays, normaliseDays, stripDayResults } from '../../shared/calendar.js';
+import { keepUsedDays, moveDays, normaliseDays, stripDayResults, tidySeries } from '../../shared/calendar.js';
 import { audit } from './settings.js';
 import { notifyFollowers, officialFor, sendAfter } from './calendarPlus.js';
 import { mailAdmins, mailTeam } from './mail.js';
@@ -29,14 +29,14 @@ export { pick as pickValues };
 // a team's own day results never go to a shared date
 export const pickFixture = (v, keys = FIXTURE_KEYS) => stripDayResults(normaliseDays(pick(v, keys)));
 
-export const FIXTURE_KEYS = ['name', 'date', 'end_date', 'multi_day', 'days', 'series', 'round', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes',
+export const FIXTURE_KEYS = ['name', 'date', 'end_date', 'multi_day', 'days', 'series', 'round', 'round_prefix', 'more_series', 'venue', 'track', 'classes', 'major', 'major_name', 'sanctioning', 'status', 'start_time', 'website', 'notes',
   'entries', 'results', 'results_note'];
 export const SERIES_KEYS = ['name', 'season', 'class', 'sanctioning', 'start_date', 'end_date', 'website', 'points'];
 export const TRACK_KEYS = ['name', 'address', 'city', 'region', 'country', 'status', 'length', 'surface', 'dirt_type', 'radius', 'banking', 'cushion',
   'typical', 'lat', 'lon', 'website', 'phone', 'classes'];
 const KEYS = { series: SERIES_KEYS, track: TRACK_KEYS, fixture: FIXTURE_KEYS };
 // fields a team event takes from the shared date it came from
-const SYNC_KEYS = ['name', 'date', 'end_date', 'multi_day', 'days', 'venue', 'track', 'series', 'round', 'sanctioning', 'major', 'major_name'];
+const SYNC_KEYS = ['name', 'date', 'end_date', 'multi_day', 'days', 'venue', 'track', 'series', 'round', 'round_prefix', 'more_series', 'sanctioning', 'major', 'major_name'];
 
 // ---------------------------------------------------------------- record helpers
 export async function insertGlobal(c, type, data, userId) {
@@ -71,6 +71,14 @@ export async function syncEvents(c, fixtureId, fv, userId) {
     const v = { ...(e.data.values || {}) };
     const before = JSON.stringify(v);
     for (const k of SYNC_KEYS) {
+      if (k === 'more_series') {
+        // the shared date's other series, plus any the team added itself (its own series, or another shared one)
+        const theirs = Array.isArray(fv.more_series) ? fv.more_series : [];
+        const taken = new Set([fv.series, ...theirs.map((r) => r.series)].filter(Boolean));
+        const ours = (Array.isArray(v.more_series) ? v.more_series : []).filter((r) => r?.series && !taken.has(r.series) && r.series !== v.series);
+        if (theirs.length || ours.length) v.more_series = [...theirs, ...ours]; else delete v.more_series;
+        continue;
+      }
       if (k === 'series') {
         if (!fv.series) { delete v.series; continue; }
         // a team that kept its own copy of a shared series (older shares) keeps pointing at it
@@ -336,8 +344,17 @@ async function decide(c, r, body, userId) {
         if (p.series && v.series === p.series.id) v.series = gSeries;
         else {
           const { rows: [s] } = await c.query(`SELECT tenant_id FROM records WHERE id=$1 AND type='series' AND NOT deleted`, [v.series]);
-          if (!s || s.tenant_id !== null) { delete v.series; delete v.round; }
+          if (!s || s.tenant_id !== null) { delete v.series; delete v.round; delete v.round_prefix; }
         }
+      }
+      // other series must be shared ones too
+      if (Array.isArray(v.more_series)) {
+        const ids = v.more_series.map((r) => r?.series).filter(Boolean);
+        const { rows: ok } = ids.length ? await c.query(`SELECT id FROM records WHERE id = ANY($1::uuid[]) AND type='series' AND tenant_id IS NULL AND NOT deleted`, [ids]) : { rows: [] };
+        const good = new Set(ok.map((r) => r.id));
+        v.more_series = v.more_series.filter((r) => good.has(r?.series) || (p.series && r?.series === p.series.id)).map((r) => (p.series && r.series === p.series.id ? { ...r, series: gSeries } : r));
+        Object.assign(v, tidySeries(v));
+        if (!v.more_series) delete v.more_series;
       }
       if (v.venue) {
         if (p.track && v.venue === p.track.id) v.venue = gTrack;

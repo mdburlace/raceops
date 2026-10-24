@@ -47,6 +47,10 @@ No signal? Keep going. Everything saves on the phone and syncs later. [Work offl
 
 | I want to… | Go to |
 |---|---|
+| Enter block heights and turns in sixteenths, fast | [Quick editing on the setup sheet](/help/setup-sheet-layout#quick-add-screen) — long-press the box |
+| Read the wing angle with my phone | [Quick editing on the setup sheet](/help/setup-sheet-layout#angles-pick-and-the-angle-finder) — **Angle finder** |
+| Lock a finished sheet, or unlock one to fix it | [Fill in a setup sheet](/help/setup-sheets#lock-a-finished-sheet) — **Lock sheet**, **Unlock** |
+| Put an event in two series at once | [Events and sessions](/help/events-sessions#more-than-one-series) — **Also counts towards** |
 | Pick the pills for tonight’s weather | [Engine tune sheets](/help/engine-tunes) — **At the track** |
 | Set up a two-night meeting, or one with a practice day | [Events and sessions](/help/events-sessions#multi-day-events) — **Runs over more than one day** |
 | Start the night from how the car left the shop | [Workshop setup sheets](/help/workshop-setups) |
